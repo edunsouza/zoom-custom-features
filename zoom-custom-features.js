@@ -17,7 +17,7 @@ function encerrarRotina(nomeRotina) {
 }
 
 function desenharModal() {
-    // limpar componentes anteriores
+    /* limpar componentes anteriores */
     if (document.querySelector('#modal-opcoes-reuniao')) document.querySelector('#modal-opcoes-reuniao').remove();
     if (document.querySelector('#opcoes-reuniao')) document.querySelector('#opcoes-reuniao').remove();
 
@@ -30,23 +30,23 @@ function desenharModal() {
     modal.style.width = `${window.screen.width}px`;
     modal.style.backgroundColor = 'black';
     modal.style.opacity = '0.7';
-    // posicionar modal acima de toda tela
+    /* posicionar modal acima de toda tela */
     modal.style.zIndex = 1 + Math.max.apply(null, Array
         .from(document.querySelectorAll('body *'))
         .filter(e => !!e.style.zIndex)
         .map(e => parseInt(e.style.zIndex))
     );
-    // fechar modal clicando fora do conteudo
+    /* fechar modal clicando fora do conteudo */
     modal.onclick = (evento) => evento.srcElement.id == modal.id && fecharModal();
 
     var painelOpcoes = desenharPainelOpcoes();
     painelOpcoes.style.zIndex = modal.style.zIndex + 1;
 
-    // esconder modal ao iniciar script
+    /* esconder modal ao iniciar script */
     painelOpcoes.style.display = 'none';
     modal.style.display = 'none';
 
-    // adicionar na tela
+    /* adicionar na tela */
     document.body.appendChild(modal);
     document.body.appendChild(painelOpcoes);
 }
@@ -55,24 +55,23 @@ function desenharPainelOpcoes() {
     var funcionalidades = [
         { nome: 'Ligar vídeos', icone: 'camera', classe: 'btn-danger', click: ligarVideos, confirmar: 'Tem certeza que deseja LIGAR TODOS OS VÍDEOS?' },
         { nome: 'Finalizar discurso', icone: 'palmas', classe: 'btn-danger', click: finalizarDiscurso, confirmar: 'Tem certeza que deseja FINALIZAR O DISCURSO? Ligará todos microfones para as palmas.' },
-        { nome: 'Desligar vídeos', icone: 'cameraFechada', classe: 'btn-warning', click: desligarVideos, confirmar: 'Tem certeza que deseja DESLIGAR TODOS OS VIDEOS?' },
-        { nome: 'Iniciar cântico', icone: 'microfoneFechado', classe: 'btn-warning', click: iniciarCantico, confirmar: 'Tem certeza que deseja INICIAR O CÂNTICO? Desligará todos vídeos e microfones.' },
+        { nome: 'Desligar tudo', icone: 'cameraFechada,microfoneFechado', classe: 'btn-warning', click: iniciarCantico, confirmar: 'Tem certeza que deseja INICIAR O CÂNTICO? Desligará todos vídeos e microfones.' },
+        { nome: 'Contar assistência', icone: 'assistencia', classe: 'btn-success', click: contarAssitencia },
         { nome: 'Focar no presidente', icone: 'participante', classe: 'btn-primary', click: focarNoPresidente },
+        { nome: 'Focar no orador', icone: 'participante', classe: 'btn-primary', click: focarNoOrador },
         { nome: 'Focar no dirigente', icone: 'participante', classe: 'btn-primary', click: focarNoDirigente },
         { nome: 'Focar no leitor', icone: 'participante', classe: 'btn-primary', click: focarNoLeitor },
-        { nome: 'Focar no orador', icone: 'participante', classe: 'btn-primary', click: focarNoOrador },
-        { nome: 'Contar assistência', icone: 'assistencia', classe: 'btn-primary', click: contarAssitencia },
-        // TODO: OPCIONAIS
-        // { nome: 'Leitura Bíblia', icone: 'participante', classe: 'btn-primary', click: leituraBiblia },
-        // { nome: 'Demonstracao 1', icone: 'assistencia', classe: 'btn-primary', click: demonstracao1 },
-        // { nome: 'Demonstracao 2', icone: 'assistencia', classe: 'btn-primary', click: demonstracao2 },
+        /* TODO: OPCIONAIS */
+        /* { nome: 'Leitura Bíblia', icone: 'participante', classe: 'btn-primary', click: leituraBiblia }, */
+        /* { nome: 'Demonstracao 1', icone: 'assistencia', classe: 'btn-primary', click: demonstracao1 }, */
+        /* { nome: 'Demonstracao 2', icone: 'assistencia', classe: 'btn-primary', click: demonstracao2 }, */
     ];
     var rotinas = [
         { nome: 'Validar nomes inválidos', classe: 'btn-primary', click: rotina_validarNomes },
         { nome: 'Verificar opções sala', classe: 'btn-primary', click: rotina_verificarOpcoesDaSala },
         { nome: 'Desligar vídeos assistência', classe: 'btn-warning', click: rotina_desligarVideosAssistencia },
     ];
-    // construir botoes principais
+    /* construir botoes principais */
     var botoes = funcionalidades.map(func => {
         var btn = document.createElement('button');
         btn.innerText = func.nome;
@@ -102,7 +101,7 @@ function desenharPainelOpcoes() {
     btnFechar.style.top = '1%';
     btnFechar.style.opacity = '0.7';
     btnFechar.onclick = fecharModal;
-    // construtir o frame com botoes
+    /* construtir o frame com botoes */
     var frameBotoes = document.createElement('div');
     frameBotoes.style.cssText = `
         display: grid;
@@ -111,14 +110,14 @@ function desenharPainelOpcoes() {
         grid-gap: 5px;
         padding: 10px;
     `;
-    // adicionar os botoes no frame
+    /* adicionar os botoes no frame */
     botoes.forEach(btn => frameBotoes.appendChild(btn));
-    // construtir o frame com servicos
+    /* construtir o frame com servicos */
     var frameServicos = document.createElement('div');
     frameServicos.appendChild(btnFechar);
-    // adicionar os servicos no frame
-    // TODO: criar servicos
-    // construir o quadro inteiro do painel
+    /* adicionar os servicos no frame */
+    /* TODO: criar servicos */
+    /* construir o quadro inteiro do painel */
     var painelOpcoes = document.createElement('div');
     painelOpcoes.id = 'opcoes-reuniao';
     painelOpcoes.style.cssText = `
@@ -133,7 +132,7 @@ function desenharPainelOpcoes() {
         background-color: #edf2f7e6;
         border-radius: 10px;
     `;
-    // adicionar os frames ao painel
+    /* adicionar os frames ao painel */
     painelOpcoes.appendChild(frameBotoes);
     painelOpcoes.appendChild(frameServicos);
     return painelOpcoes;
@@ -246,7 +245,7 @@ function desligarMicrofoneParticipante(participante) {
 }
 
 function ligarVideoParticipante(participante, callback) {
-    // se o video ja estiver ligado, seguir para proximas instrucoes
+    /* se o video ja estiver ligado, seguir para proximas instrucoes */
     if (isVideoLigado(participante)) return callback && callback();
 
     var textosBotao = ['ask for start video', 'start video', 'pedir para iniciar vídeo', 'iniciar vídeo'];
@@ -254,19 +253,20 @@ function ligarVideoParticipante(participante, callback) {
 
     clickDropdown(participante, textosBotao, mensagemErro);
 
-    // se houverem instrucoes para executar apos video ser ligado, ativa um temporizador
+    /* se houverem instrucoes para executar apos video ser ligado, ativa um temporizador */
     if (participante && callback) {
         var nomeParticipante = getNomeParticipante(participante);
 
-        // iniciar temporizador para aguardar participante liberar video
+        /* iniciar temporizador para aguardar participante liberar video */
         var repeticoes = 0;
         dispararRotina(nomeParticipante, 500, () => {
             repeticoes++;
             if (isVideoLigado(participante)) {
                 encerrarRotina(nomeParticipante);
                 callback();
-            } else if (repeticoes > 5) {
-                // nao tentar ativar o video toda hora para evitar processamento desnecessario
+            } else if (repeticoes >= 10) {
+                /* nao tentar ativar o video toda hora para evitar processamento desnecessario */
+                repeticoes = 0;
                 console.log(`Loop de rotina [ligar vídeo] --EM EXECUÇÃO-- para: ${nomeParticipante}.`);
                 clickDropdown(participante, textosBotao, mensagemErro);
             }
@@ -298,26 +298,26 @@ function ligarMicrofones() {
 
     if (!btn) return;
 
-    // se botao estiver na opcao silenciar todos, entao sera preciso desligar para depois ligar microfones
+    /* se botao estiver na opcao silenciar todos, entao sera preciso desligar para depois ligar microfones */
     if (textosMuteAll.includes(btn.innerText.toLowerCase())) {
-        // abrir modal para silenciar todos
+        /* abrir modal para silenciar todos */
         btn.click();
 
         var btnConfirmarMute = document.querySelector('.zm-modal-footer-default-actions .zm-btn--primary');
         var checkboxPermitirUnmute = document.querySelector('.zm-modal-footer-default-checkbox .zm-checkbox');
 
-        // desmarcar a opcao 'participantes desativem o mudo'
+        /* desmarcar a opcao 'participantes desativem o mudo' */
         if (checkboxPermitirUnmute) {
             checkboxPermitirUnmute.setAttribute('aria-checked', 'false');
             checkboxPermitirUnmute.removeAttribute('class');
             checkboxPermitirUnmute.setAttribute('class', 'zm-checkbox');
         }
 
-        // confirmar opcao silenciar todos para que surja a opcao para liberar microfones
+        /* confirmar opcao silenciar todos para que surja a opcao para liberar microfones */
         btnConfirmarMute && btnConfirmarMute.click();
     }
 
-    // por fim, liberar todos os microfones
+    /* por fim, liberar todos os microfones */
     btn.click();
 }
 
@@ -326,7 +326,7 @@ function desligarMicrofones(execoes) {
     execoes = Array.isArray(execoes) ? execoes.map(p => getNomeParticipante(p)) : [];
 
     getParticipantes().forEach(participante => {
-        // silenciar todos participantes que nao estejam na lista de excecoes
+        /* silenciar todos participantes que nao estejam na lista de excecoes */
         if (!execoes.includes(getNomeParticipante(participante))) {
             desligarMicrofoneParticipante(participante);
         }
@@ -343,14 +343,14 @@ function desligarVideos(execoes) {
     execoes = Array.isArray(execoes) ? execoes.map(p => getNomeParticipante(p)) : [];
 
     getParticipantes().forEach(participante => {
-        // desligar video de todos participantes que nao estejam na lista de excecoes
+        /* desligar video de todos participantes que nao estejam na lista de excecoes */
         if (!execoes.includes(getNomeParticipante(participante))) {
             desligarVideoParticipante(participante);
         }
     });
 }
 
-// FUNCOES AVANCADAS
+/* FUNCOES AVANCADAS */
 
 function focarNoDirigente() {
     abrirPainelParticipantes();
@@ -358,18 +358,18 @@ function focarNoDirigente() {
     var presidente = selecionarParticipante('presidente');
     var leitor = selecionarParticipante('leitor');
 
-    // desligar video de todos participantes, exceto dirigente, leitor e presidente
+    /* desligar video de todos participantes, exceto dirigente, leitor e presidente */
     desligarVideos([dirigente, leitor, presidente]);
 
-    // silenciar todos exceto dirigente
+    /* silenciar todos exceto dirigente */
     desligarMicrofones([dirigente]);
 
-    // ligar video do dirigente
+    /* ligar video do dirigente */
     ligarVideoParticipante(dirigente, () => {
-        // quando o dirigente iniciar seu video
+        /* quando o dirigente iniciar seu video */
         spotlightParticipante(dirigente);
         ligarMicrofoneParticipante(dirigente);
-        // para evitar distracoes com autofoco, manter o presidente em foco ate que dirigente inicie seu video
+        /* para evitar distracoes com autofoco, manter o presidente em foco ate que dirigente inicie seu video */
         desligarVideoParticipante(presidente);
     });
 }
@@ -379,15 +379,15 @@ function focarNoLeitor() {
     var leitor = selecionarParticipante('leitor');
     var dirigente = selecionarParticipante('dirigente');
 
-    // desligar video de todos participantes, exceto dirigente e leitor
+    /* desligar video de todos participantes, exceto dirigente e leitor */
     desligarVideos([dirigente, leitor]);
 
-    // silenciar todos participantes, exceto leitor
+    /* silenciar todos participantes, exceto leitor */
     desligarMicrofones([leitor]);
 
-    // ligar video do leitor
+    /* ligar video do leitor */
     ligarVideoParticipante(leitor, () => {
-        // quando o leitor iniciar seu video
+        /* quando o leitor iniciar seu video */
         spotlightParticipante(leitor);
         ligarMicrofoneParticipante(leitor);
     });
@@ -397,15 +397,15 @@ function focarNoPresidente() {
     abrirPainelParticipantes();
     var presidente = selecionarParticipante('presidente');
 
-    // silenciar todos participantes, exceto presidente
+    /* silenciar todos participantes, exceto presidente */
     desligarMicrofones([presidente]);
 
-    // ligar video do presidente
+    /* ligar video do presidente */
     ligarVideoParticipante(presidente, () => {
-        // quando o presidente iniciar seu video
+        /* quando o presidente iniciar seu video */
         ligarMicrofoneParticipante(presidente);
         spotlightParticipante(presidente);
-        desligarVideos([presidente]); // exceto presidente
+        desligarVideos([presidente]); /* exceto presidente */
     });
 }
 
@@ -413,15 +413,15 @@ function focarNoOrador() {
     abrirPainelParticipantes();
     var orador = selecionarParticipante('orador');
 
-    // desligar video de todos participantes, exceto orador
+    /* desligar video de todos participantes, exceto orador */
     desligarVideos([orador]);
 
-    // silenciar todos participantes, exceto orador
+    /* silenciar todos participantes, exceto orador */
     desligarMicrofones([orador]);
 
-    // ligar video do orador
+    /* ligar video do orador */
     ligarVideoParticipante(orador, () => {
-        // quando o orador iniciar seu video
+        /* quando o orador iniciar seu video */
         spotlightParticipante(orador);
         ligarMicrofoneParticipante(orador);
     });
@@ -431,24 +431,25 @@ function finalizarDiscurso() {
     abrirPainelParticipantes();
     var presidente = selecionarParticipante('presidente');
 
-    // desligar video de todos participantes
+    /* desligar video de todos participantes */
     desligarVideos();
 
-    // ligar microfone de todos participantes para as palmas
+    /* ligar microfone de todos participantes para as palmas */
     ligarMicrofones();
 
-    // Aguardar tempo suficiente de palmas
+    /* Aguardar tempo suficiente de palmas (8 segundos) */
     setTimeout(() => {
-        // ligar video do presidente
+        desligarMicrofones();
+        /* ligar video do presidente */
         ligarVideoParticipante(presidente, () => {
-            // quando o presidente iniciar seu video
+            /* quando o presidente iniciar seu video */
             spotlightParticipante(presidente);
             ligarMicrofoneParticipante(presidente);
         });
     }, 8000);
 }
 
-// somente desliga videos e microfones
+/* somente desliga videos e microfones */
 function iniciarCantico() {
     abrirPainelParticipantes();
     desligarVideos();
@@ -466,18 +467,18 @@ function contarAssitencia() {
         };
     });
 
-    alert(`Contagem automatizada da assistência: ${assistencia}\nContando apenas nomes no padrão: (1) Nome `);
+    alert(`Contagem automatizada da assistência: ${assistencia}\nContando apenas nomes no padrão: (1) Nome\nO indicador deve verificar os nomes dos participantes`);
 }
 
-// ROTINAS DE LOOP
+/* ROTINAS DE LOOP */
 
 function rotina_desligarVideosAssistencia() {
     var rotina = 'validarVideosLigadosNaAssistencia';
-    // iniciar rotina de 10 segundos
+    /* iniciar rotina de 10 segundos */
     dispararRotina(rotina, 10000, () => {
-        // Atualizar sempre que uma funcao nova for mapeada
+        /* Atualizar sempre que uma funcao nova for mapeada */
         desligarVideos([
-            // desligar todos videos, com excecao dos participantes abaixo
+            /* desligar todos videos, com excecao dos participantes abaixo */
             selecionarParticipante('dirigente'),
             selecionarParticipante('leitor'),
             selecionarParticipante('presidente'),
@@ -488,7 +489,7 @@ function rotina_desligarVideosAssistencia() {
 
 function rotina_validarNomes() {
     var rotina = 'validarNomesForaDoPadrao';
-    // iniciar rotina de 15 segundos
+    /* iniciar rotina de 15 segundos */
     dispararRotina(rotina, 15000, () => {
         var invalidos = getParticipantes().filter(participante => !/\s*[\(\[\{]\s*[0-9]/ig.test(getNomeParticipante(participante)));
 
@@ -498,10 +499,10 @@ function rotina_validarNomes() {
     });
 }
 
-// verificar se participantes podem se desmutar, renomear, entram silenciados, se a sala está trancada...
+/* verificar se participantes podem se desmutar, renomear, entram silenciados, se a sala está trancada... */
 function rotina_verificarOpcoesDaSala() { /* TODO */ }
 
-// INICIO DO SCRIPT
+/* INICIO DO SCRIPT */
 desenharModal();
 iniciarEventosDeRotina();
 
@@ -513,10 +514,10 @@ if (!document.querySelector('#abrir-opcoes-reuniao')) {
     btnAbrirModal.innerText = 'Opções customizadas';
     btnAbrirModal.style.marginRight = '20px';
     btnAbrirModal.onclick = abrirModal;
-    // adicionar botao no rodape
+    /* adicionar botao no rodape */
     document.querySelector('#wc-footer').appendChild(btnAbrirModal);
 }
 
-// TODO: MELHORIAS
-// desligar video do participante anterior somente quando o atual ligar a camera
-// antes de contar a assistencia, validar os nomes invalidos
+/* TODO: MELHORIAS */
+/* desligar video do participante anterior somente quando o atual ligar a camera */
+/* antes de contar a assistencia, validar os nomes invalidos */
