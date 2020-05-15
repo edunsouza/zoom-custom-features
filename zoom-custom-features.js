@@ -4,18 +4,12 @@ function iniciarEventosDeRotina() {
     rotina_validarNomesForaDoPadrao();
     rotina_verificarOpcoesDaSala();
 
-    dispararRotina('rotinasEmSegundoPlano', 5000, () => {
+    dispararRotina('rotinasEmSegundoPlano', 1000, () => {
         try {
             /* limpar avisos antigos */
             Object.keys(avisosDeRotinas).forEach(rotina => avisosDeRotinas[rotina] = avisosDeRotinas[rotina].slice(-10));
             logarUltimasAtividades();
-            console.log(avisosDeRotinas);
-
-            /*
-            var rotinas = document.querySelector('#rotinas-background');
-            rotinas.innerHTML = '';
-            getListasDeRotinas().forEach(ul => rotinas.appendChild(ul));
-            */
+            atualizarAssistencia();
         } catch (error) {
             console.log(error);
         }
@@ -23,21 +17,31 @@ function iniciarEventosDeRotina() {
 }
 
 function logarUltimasAtividades() {
-    var divRotinas = document.querySelector('#ultimos-logs');
-    var logs = [];
+    Object.keys(avisosDeRotinas).forEach(rotina => {
+        var novoCache = btoa(avisosDeRotinas[rotina].join(''));
+        if (cache[rotina] === novoCache) {
+            /* se o cache for o mesmo, lista nao precisa ser redesenhada */
+            return;
+        }
 
-    /* limpar feed de logs antigos */
-    document.querySelectorAll('#ultimos-logs li').forEach(li => li.remove());
+        cache[rotina] = novoCache;
 
-    Object.keys(avisosDeRotinas).forEach(avisosRotinaX => {
-        logs = logs.concat(avisosDeRotinas[avisosRotinaX].slice(-5));
+        var ulRotina = document.getElementById(btoa(rotina));
+        /* limpar feed de logs antigos */
+        ulRotina.querySelectorAll('li').forEach(log => log.remove());
+
+        avisosDeRotinas[rotina].forEach(aviso => {
+            var li = document.createElement('li');
+            li.innerText = aviso;
+            ulRotina.appendChild(li);
+        });
     });
+}
 
-    logs.forEach(log => {
-        var li = document.createElement('li');
-        li.innerText = log;
-        divRotinas.appendChild(li);
-    });
+function atualizarAssistencia() {
+    var dadosAssistencia = contarAssistencia();
+    document.querySelector('#texto-contados').innerText = `${dadosAssistencia.contados} identificados na assistência`;
+    document.querySelector('#texto-nao-contados').innerText = `${dadosAssistencia.naoContados} não identificados na assistência`;
 }
 
 function dispararRotina(nomeRotina, tempoEmMilissengudos, callback) {
@@ -97,11 +101,11 @@ function desenharPainelPrincipal() {
     painelOpcoes.id = 'opcoes-reuniao';
     painelOpcoes.style.cssText = `
         display: grid;
-        grid-template-columns: 2fr 1fr;
+        grid-template-columns: 1fr 1fr;
         position: fixed;
+        right: 5%;
+        left: 5%;
         top: 5%;
-        left: 10%;
-        width: 1190px;
         height: 550px;
         background-color: #edf2f7e6;
         border-radius: 10px;
@@ -125,50 +129,102 @@ function desenharFrameBotoes() {
         { nome: 'Focar no presidente', icone: 'presidente', classe: 'btn-primary', click: focarNoPresidente },
         { nome: 'Focar no orador', icone: 'orador', classe: 'btn-primary', click: focarNoOrador },
         { nome: 'Focar no dirigente', icone: 'dirigente', classe: 'btn-primary', click: focarNoDirigente },
-        { nome: 'Focar no leitor', icone: 'leitor', classe: 'btn-primary', click: focarNoLeitor },
-        { nome: 'Contar assistência', icone: 'assistencia', classe: 'btn-success', click: contarAssitencia },
+        { nome: 'Focar no leitor', icone: 'leitor', classe: 'btn-primary', click: focarNoLeitor }
     ];
 
-    /* construir botoes principais */
-    var botoes = funcionalidades.map(func => {
+    var criarBotao = (opcoes) => {
+        if (!opcoes) return;
         var btn = document.createElement('button');
-        btn.innerText = func.nome;
-        btn.onclick = () => !func.confirmar ? func.click() : confirm(`CUIDADO!\n\n${func.confirmar}\n\nClique em cancelar para desfazer`) && func.click();
-        btn.setAttribute('class', `btn ${func.classe}`);
+        btn.innerText = opcoes.nome;
+        btn.onclick = () => !opcoes.confirmar ? opcoes.click() : confirm(`CUIDADO!\n\n${opcoes.confirmar}\n\nClique em cancelar para desfazer`) && opcoes.click();
+        btn.setAttribute('class', `btn ${opcoes.classe}`);
         btn.style.cssText = `
             display: flex;
             flex-direction: row-reverse;
             align-items: center;
             justify-content: space-evenly;
-            width: 95%;
-            height: 90%;
-            margin: auto;
-            font-size: 20px;
-            font-weight: 600;
+            width: auto;
+            height: auto;
+            margin: 10px;
+            font-size: 16px;
             opacity: 0.8;
         `;
-
-        if (func.icone) {
+        if (opcoes.icone) {
             var div = document.createElement('div');
-            func.icone.split(',').forEach(i => div.appendChild(criarIcone(i)));
+            opcoes.icone.split(',').forEach(i => div.appendChild(criarIcone(i)));
             btn.appendChild(div);
         }
-
         return btn;
-    });
+    };
+
+    /* construir botoes principais */
+    var botoes = funcionalidades.reduce((rows, f, index, lista) => {
+        if (index % 2 !== 0) {
+            return rows;
+        }
+
+        var divDupla = document.createElement('div');
+        divDupla.style.display = 'grid';
+        divDupla.style.gridTemplateColumns = '1fr';
+
+        var btn1 = criarBotao(lista[index]);
+        var btn2 = criarBotao(lista[index + 1]);
+
+        divDupla.appendChild(btn1);
+
+        /* criar o proximo botao quando nao for o ultimo */
+        if (btn2) {
+            divDupla.style.gridTemplateColumns = '1fr 1fr';
+            divDupla.appendChild(btn2);
+        }
+
+        rows.push(divDupla);
+        return rows;
+    }, []);
+
+    /* exibir contagem da assistencia na ultima linha */
+    var divAssitencia = document.createElement('div');
+    var textoContados = document.createElement('span');
+    var textoNaoContados = document.createElement('span');
+    var dadosAssistencia = contarAssistencia();
+    textoContados.id = 'texto-contados';
+    textoNaoContados.id = 'texto-nao-contados';
+    textoContados.innerText = `${dadosAssistencia.contados} identificados na assistência`;
+    textoNaoContados.innerText = `${dadosAssistencia.naoContados} não identificados na assistência`;
+    var iconContados = criarIcone('assistencia');
+    var iconNaoContados = criarIcone('assistenciaNaoContada');
+    iconContados.style.color = '#5cb85c';
+    iconNaoContados.style.color = '#ff4242';
+
+    divAssitencia.id = 'contagem-automatica';
+    divAssitencia.appendChild(iconContados);
+    divAssitencia.appendChild(textoContados);
+    divAssitencia.appendChild(iconNaoContados);
+    divAssitencia.appendChild(textoNaoContados);
+    divAssitencia.style.cssText = `
+        display: grid;
+        grid-template-columns: 1fr 9fr 2fr 10fr;
+        align-items: center;
+        font-size: 18px;
+        margin: 10px;
+        border-radius: 4px;
+        opacity: 0.9;
+        color: #ffffff;
+        background-color: #23272b;
+    `;
 
     /* construtir o frame com botoes */
     var frameBotoes = document.createElement('div');
     frameBotoes.style.cssText = `
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: repeat(6, 1fr);
-        grid-gap: 5px;
-        padding: 10px;
+        grid-template-rows: repeat(5, 1fr);
+        gap: 5px;
+        padding: 10px 0;
     `;
 
     /* adicionar os botoes no frame */
     botoes.forEach(btn => frameBotoes.appendChild(btn));
+    frameBotoes.appendChild(divAssitencia);
 
     return frameBotoes;
 }
@@ -176,52 +232,60 @@ function desenharFrameBotoes() {
 function desenharFrameServicos() {
     var btnFechar = criarIcone('fechar', 'btn-fechar-modal');
     btnFechar.onclick = fecharModal;
-    btnFechar.style.position = 'relative';
-    btnFechar.style.left = '86%';
-    btnFechar.style.top = '0%';
+    btnFechar.style.position = 'absolute';
+    btnFechar.style.left = '96%';
+    btnFechar.style.top = '1%';
     btnFechar.style.opacity = '0.7';
     btnFechar.style.fontSize = '50px';
-
-    var listaAvisos = document.createElement('ul');
-    listaAvisos.id = 'ultimos-logs';
+    btnFechar.style.cursor = 'pointer';
 
     /* bloco dos servicos */
     var servicos = document.createElement('div');
     servicos.id = 'rotinas-background';
+    servicos.style.cssText = `
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr 1fr;
+        min-height: 80%;
+    `;
 
-    /* adicionar a lista de avisos */
-    servicos.appendChild(listaAvisos);
+    var titulo = document.createElement('h3');
+    titulo.innerText = 'O que está acontecendo agora';
+    titulo.style.textAlign = 'center';
 
-    /* getListasDeRotinas().forEach(ul => servicos.appendChild(ul)); */
+    var listaServicos = [];
+
+    Object.keys(avisosDeRotinas).forEach(rotina => {
+        var div = document.createElement('div');
+        var titulo = document.createElement('p');
+        titulo.innerText = getNomeRotina(rotina);
+        titulo.style.cssText = `
+            margin: 0px 5px;
+            opacity: 0.6;
+            background-color: #23272b;
+            text-align: center;
+            color: white;
+        `;
+        var ul = document.createElement('ul');
+        ul.id = btoa(rotina);
+        ul.style.listStyleType = 'none';
+        ul.style.padding = '0px';
+        ul.style.margin = '0px 10px';
+
+        div.appendChild(titulo);
+        div.appendChild(ul);
+        listaServicos.push(div);
+    });
+
+    listaServicos.forEach(ls => servicos.appendChild(ls));
 
     /* construtir o frame com servicos */
     var frameServicos = document.createElement('div');
     frameServicos.appendChild(btnFechar);
+    frameServicos.appendChild(titulo);
     frameServicos.appendChild(servicos);
 
     return frameServicos;
-}
-
-function getListasDeRotinas() {
-    var listaServicos = [];
-
-    Object.keys(avisosDeRotinas).forEach(nome => {
-        var rotinas = avisosDeRotinas[nome];
-        var ul = document.createElement('ul');
-        ul.style.listStyleType = 'none';
-
-        rotinas.forEach(linha => {
-            var li = document.createElement('li');
-            li.innerText = linha;
-            li.onClick = () => { console.log('click não implementado ainda') };
-
-            ul.appendChild(li);
-        });
-
-        listaServicos.push(ul);
-    });
-
-    return listaServicos;
 }
 
 function importarIconesFontAwesome() {
@@ -248,6 +312,7 @@ function criarIcone(tipo, id) {
         dirigente: 'group',
         leitor: 'supervisor_account',
         assistencia: 'airline_seat_recline_normal',
+        assistenciaNaoContada: 'airline_seat_recline_extra',
         cadeado: 'lock',
         desativado: 'toggle_off',
         ativado: 'toggle_on',
@@ -256,8 +321,7 @@ function criarIcone(tipo, id) {
     var icone = document.createElement('i');
     if (id) icone.id = id;
     icone.setAttribute('class', 'material-icons-outlined');
-    icone.style.fontSize = '60px';
-    icone.style.cursor = 'pointer';
+    icone.style.fontSize = '40px';
     icone.innerText = tipos[tipo];
     return icone;
 }
@@ -279,7 +343,7 @@ function abrirPainelParticipantes() {
 }
 
 function getParticipantes() {
-    return Array.from(document.querySelectorAll('.item-pos.participants-li'));
+    return Array.from(document.querySelectorAll('.participants-ul  .item-pos.participants-li'));
 }
 
 function getNomeParticipante(participante) {
@@ -377,6 +441,19 @@ function desligarVideoParticipante(participante) {
         ['stop video', 'parar vídeo'],
         'Não foi possível DESLIGAR o vídeo! Verifique o nome do participante.'
     );
+}
+
+function desligarSpotlight() {
+    abrirPainelParticipantes();
+    getParticipantes().forEach(participante => {
+        participante.dispatchEvent(criarEventoMouseOver());
+        getBotoesDropdown(participante).some(btn => {
+            if (['cancel the spotlight video', 'cancelar vídeo de destaque'].includes(btn.innerText.toLowerCase())) {
+                btn.click();
+                return true;
+            }
+        });
+    });
 }
 
 function spotlightParticipante(participante) {
@@ -562,7 +639,6 @@ function finalizarDiscurso() {
     alert('Aguarde!\nApós as palmas, o presidente será automaticamente acionado.\nAguarde até o presidente anunciar o dirgente.');
 }
 
-/* desligar videos e microfones */
 function desligarTudo() {
     abrirPainelParticipantes();
     desligarVideos();
@@ -573,14 +649,15 @@ function ligarTudo() {
     abrirPainelParticipantes();
     getParticipantes().forEach(participante => ligarVideoParticipante(participante));
     ligarMicrofones();
+    desligarSpotlight(); /* deixar foco automático */
 }
 
-function contarAssitencia() {
+function contarAssistencia() {
     abrirPainelParticipantes();
     var assistencia = 0;
     var nomesForaPadrao = [];
 
-    document.querySelectorAll('.participants-item__display-name').forEach(x => {
+    document.querySelectorAll('.participants-ul .participants-item__display-name').forEach(x => {
         var participantes = parseInt(x.innerText.replace(/\(|\{|\[/, '').trim());
         if (participantes > 0) {
             assistencia += participantes;
@@ -589,9 +666,22 @@ function contarAssitencia() {
         };
     });
 
-    var erros = !nomesForaPadrao.length ? '' : `${nomesForaPadrao.length} nomes inválidos:\n${nomesForaPadrao.join('\n')}`;
+    return {
+        contados: assistencia,
+        naoContados: nomesForaPadrao.length,
+        nomesInvalidos: nomesForaPadrao
+    };
+}
 
-    alert(`ASSISTÊNCIA IDENTIFICADA: === ${assistencia} ===\nContando apenas nomes no padrão: "(quantidade) Nome do participante"\n\n${erros}\n\nO indicador deve verificar os nomes dos participantes.`);
+function getNomeRotina(id) {
+    return {
+        'rotina_validarVideosLigadosNaAssistencia': 'Vídeos ligados',
+        'rotina_admitirEntradaNaSalaComNomeValido': 'Entrada liberada',
+        'rotina_registrarEntradaNaSalaComNomeInvalido': 'Inválidos em espera',
+        'rotina_validarNomesForaDoPadrao': 'Nomes inválidos',
+        'rotina_verificarOpcoesDaSala': 'Opções de sala',
+        'tentativaAbrirVideo': 'Tentando abrir vídeo',
+    }[id];
 }
 
 /* ROTINAS DE LOOP */
@@ -602,7 +692,7 @@ function rotina_validarVideosLigadosNaAssistencia() {
         var videosLigados = [];
         getParticipantes()
             .filter(p => !!p.querySelector('.participants-icon__participant-video--started'))
-            .forEach(p => videosLigados.push(`Participante com vídeo ligado: ${getNomeParticipante(p)}`));
+            .forEach(p => videosLigados.push(getNomeParticipante(p)));
 
         avisosDeRotinas['rotina_validarVideosLigadosNaAssistencia'] = videosLigados;
     });
@@ -619,9 +709,9 @@ function rotina_admitirEntradaNaSalaComNomeValido() {
             if (/\s*[\(\[\{]\s*[0-9]/ig.test(nome)) {
                 participante.dispatchEvent(criarEventoMouseOver());
                 participante.querySelector('.btn-primary').click();
-                avisosDeRotinas['rotina_admitirEntradaNaSalaComNomeValido'].push(`liberada a entrada do participante: ${nome}`);
+                avisosDeRotinas['rotina_admitirEntradaNaSalaComNomeValido'].push(nome);
             } else {
-                invalidos.push(`Participante em espera com nome fora do padrão: ${nome}`);
+                invalidos.push(nome);
             }
 
             /* criar uma nova lista com todos participantes invalidos */
@@ -639,7 +729,7 @@ function rotina_validarNomesForaDoPadrao() {
             var nome = getNomeParticipante(participante);
             /* verifica se nome esta fora do padrao */
             if (!/\s*[\(\[\{]\s*[0-9]/ig.test(nome)) {
-                nomesInvalidos.push(`Participante na assistência com nome inválido: ${nome}`);
+                nomesInvalidos.push(nome);
             }
         });
 
@@ -662,6 +752,7 @@ function rotina_verificarOpcoesDaSala() {
 
 /* INICIO DO SCRIPT */
 var intervalosEmExecucao = intervalosEmExecucao || {};
+var cache = {};
 var avisosDeRotinas = {
     'rotina_validarVideosLigadosNaAssistencia': [],
     'rotina_admitirEntradaNaSalaComNomeValido': [],
