@@ -1,47 +1,89 @@
-function iniciarEventosDeRotina() {
-    rotina_validarVideosLigadosNaAssistencia();
-    rotina_admitirEntradaNaSalaComNomeValido();
-    rotina_validarNomesForaDoPadrao();
-    rotina_verificarOpcoesDaSala();
+function criarDomListener() {
+    if (observer) {
+        observer.disconnect();
+    }
 
-    dispararRotina('rotinasEmSegundoPlano', 1000, () => {
-        try {
-            /* limpar avisos antigos */
-            Object.keys(avisosDeRotinas).forEach(rotina => avisosDeRotinas[rotina] = avisosDeRotinas[rotina].slice(-10));
-            logarUltimasAtividades();
-            atualizarAssistencia();
-        } catch (error) {
-            console.log(error);
+    observer = new MutationObserver((mutations, observer) => atualizarTela());
+
+    observer.observe(
+        document.getElementById('wc-container-right'),
+        {
+            subtree: true,
+            childList: true,
+            characterData: true,
+            attributes: true
+        }
+    );
+}
+
+function atualizarTela() {
+console.log('eita nois!' + new Date().toISOString());
+    /* limpar avisos antigos */
+    Object.keys(avisosDeRotinas).forEach(rotina => {
+        if (avisosDeRotinas[rotina].length > 10) {
+            avisosDeRotinas[rotina] = avisosDeRotinas[rotina].slice(-10);
+        }
+    });
+    rotina_validarNomesForaDoPadrao();
+    rotina_admitirEntradaNaSalaComNomeValido();
+    rotina_validarVideosLigadosNaAssistencia();
+    atualizarAssistencia();
+    informarUltimasAtividades();
+    atualizarAvisosGerais();
+}
+
+function informarUltimasAtividades() {
+    Object.keys(avisosDeRotinas).forEach(rotina => {
+        const novoCache = btoa(avisosDeRotinas[rotina].join(''));
+        /* atualizar lista somente se tiver novos dados */
+        if (cache[rotina] !== novoCache) {
+            const ulRotina = document.getElementById(btoa(rotina));
+            /* limpar feed de logs antigos */
+            ulRotina.querySelectorAll('li').forEach(log => log.remove());
+            /* repopular lista */
+            avisosDeRotinas[rotina].forEach(aviso => {
+                const li = document.createElement('li');
+                li.innerText = aviso;
+                ulRotina.appendChild(li);
+            });
+            /* atualizar cache */
+            cache[rotina] = novoCache;
         }
     });
 }
 
-function logarUltimasAtividades() {
-    Object.keys(avisosDeRotinas).forEach(rotina => {
-        var novoCache = btoa(avisosDeRotinas[rotina].join(''));
-        if (cache[rotina] === novoCache) {
-            /* se o cache for o mesmo, lista nao precisa ser redesenhada */
-            return;
-        }
+function logarAviso(aviso) {
+    avisosGerais = Array.from(new Set(avisosGerais).add(aviso)).slice(-10);
+}
 
-        cache[rotina] = novoCache;
-
-        var ulRotina = document.getElementById(btoa(rotina));
-        /* limpar feed de logs antigos */
-        ulRotina.querySelectorAll('li').forEach(log => log.remove());
-
-        avisosDeRotinas[rotina].forEach(aviso => {
-            var li = document.createElement('li');
-            li.innerText = aviso;
-            ulRotina.appendChild(li);
-        });
-    });
+function removerAviso(aviso) {
+    if (aviso && avisosGerais.includes(aviso)) {
+        avisosGerais = avisosGerais.filter(a => aviso !== a);
+    }
 }
 
 function atualizarAssistencia() {
-    var dadosAssistencia = contarAssistencia();
-    document.querySelector('#texto-contados').innerText = `${dadosAssistencia.contados} identificados na assistência`;
-    document.querySelector('#texto-nao-contados').innerText = `${dadosAssistencia.naoContados} não identificados na assistência`;
+    const dadosAssistencia = contarAssistencia();
+    const novoCache = btoa(JSON.stringify(dadosAssistencia));
+    /* atualizar lista somente se com novas informacoes */
+    if (cache['atualizarAssistencia'] !== novoCache) {
+        document.getElementById(idTextoContados).innerText = `${dadosAssistencia.contados} identificado(s)`;
+        document.getElementById(idTextoNaoContados).innerText = `${dadosAssistencia.naoContados} não identificado(s)`;
+        /* atualizar cache */
+        cache['atualizarAssistencia'] = novoCache;
+    }
+}
+
+function atualizarAvisosGerais() {
+    const listaAvisosGerais = document.getElementById(btoa('avisosGerais'));
+    if (!listaAvisosGerais) return;
+
+    listaAvisosGerais.querySelectorAll('*').forEach(li => li.remove());
+    avisosGerais.forEach(aviso => {
+        const li = document.createElement('li');
+        li.innerText = aviso;
+        listaAvisosGerais.appendChild(li);
+    });
 }
 
 function dispararRotina(nomeRotina, tempoEmMilissengudos, callback) {
@@ -53,16 +95,37 @@ function encerrarRotina(nomeRotina) {
     intervalosEmExecucao[nomeRotina] = clearInterval(intervalosEmExecucao[nomeRotina]);
 }
 
+function criarBotaoOpcoesCustomizadas() {
+    const idBotao = 'abrir-opcoes-reuniao';
+    const btnAntigo = document.getElementById(idBotao);
+
+    /* remover botao da barra de acoes do zoom ao reexecutar script */
+    if (btnAntigo) btnAntigo.remove();
+
+    /* recriar o botao ao executar script para manter atualizado */
+    const btnAbrirModal = document.createElement('button');
+    btnAbrirModal.id = idBotao;
+    btnAbrirModal.innerText = 'Opções customizadas';
+    btnAbrirModal.style.marginRight = '20px';
+    btnAbrirModal.onclick = abrirModal;
+    /* adicionar botao na barra de acoes do zoom */
+    document.querySelector('#wc-footer').appendChild(btnAbrirModal);
+}
+
 function desenharModal() {
+    const modalBackdrop = document.getElementById(idModalBackdrop);
+    const modal = document.getElementById(idModal);
     /* limpar componentes anteriores */
-    if (document.querySelector('#modal-opcoes-reuniao')) document.querySelector('#modal-opcoes-reuniao').remove();
-    if (document.querySelector('#opcoes-reuniao')) document.querySelector('#opcoes-reuniao').remove();
+    if (modalBackdrop) modalBackdrop.remove();
+    if (modal) modal.remove();
 
-    var backdrop = desenharModalBackdrop();
-    var painelOpcoes = desenharPainelPrincipal();
+    const backdrop = desenharModalBackdrop();
+    const painelOpcoes = desenharPainelPrincipal();
 
-    /* posicionar acima de tudo e esconder modal ao iniciar script */
-    painelOpcoes.style.zIndex = backdrop.style.zIndex + 1;
+    /* fechar modal clicando fora do conteudo */
+    backdrop.onclick = () => fecharModal();
+
+    /* esconder modal ao iniciar script */
     painelOpcoes.style.display = 'none';
     backdrop.style.display = 'none';
 
@@ -72,23 +135,9 @@ function desenharModal() {
 }
 
 function desenharModalBackdrop() {
-    var backdrop = document.createElement('div');
-    backdrop.id = 'modal-opcoes-reuniao';
-    backdrop.style.position = 'fixed';
-    backdrop.style.top = '0px';
-    backdrop.style.left = '0px';
-    backdrop.style.height = `${window.screen.height}px`;
-    backdrop.style.width = `${window.screen.width}px`;
-    backdrop.style.backgroundColor = 'black';
-    backdrop.style.opacity = '0.7';
-
-    /* posicionar backdrop acima de toda tela */
-    var zIndexes = Array.from(document.querySelectorAll('body *')).filter(e => !!e.style.zIndex);
-    backdrop.style.zIndex = 1 + Math.max.apply(null, zIndexes.map(e => parseInt(e.style.zIndex)));
-
-    /* fechar modal clicando fora do conteudo */
-    backdrop.onclick = (evento) => evento.srcElement.id == backdrop.id && fecharModal();
-
+    const backdrop = document.createElement('div');
+    backdrop.id = idModalBackdrop;
+    backdrop.setAttribute('class', 'backdrop-principal');
     return backdrop;
 }
 
@@ -97,210 +146,321 @@ function desenharPainelPrincipal() {
     importarIconesFontAwesome();
 
     /* construir o quadro inteiro do painel */
-    var painelOpcoes = document.createElement('div');
-    painelOpcoes.id = 'opcoes-reuniao';
-    painelOpcoes.style.cssText = `
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        position: fixed;
-        right: 5%;
-        left: 5%;
-        top: 5%;
-        height: 550px;
-        background-color: #edf2f7e6;
-        border-radius: 10px;
-    `;
-
-    var frameBotoes = desenharFrameBotoes();
-    var frameServicos = desenharFrameServicos();
+    const painelOpcoes = document.createElement('div');
+    painelOpcoes.id = idModal;
+    painelOpcoes.setAttribute('class', 'modal-principal');
 
     /* adicionar os frames ao painel */
-    painelOpcoes.appendChild(frameBotoes);
-    painelOpcoes.appendChild(frameServicos);
+    painelOpcoes.appendChild(desenharFrameBotoes());
+    painelOpcoes.appendChild(desenharFrameServicos());
     return painelOpcoes;
 }
 
 function desenharFrameBotoes() {
-    var funcionalidades = [
-        { nome: 'Ligar vídeos e som', icone: 'camera,microfone', classe: 'btn-danger', click: ligarTudo, confirmar: 'Tem certeza que deseja LIGAR TODOS OS VÍDEOS E MICROFONES?' },
-        { nome: 'Desligar vídeos e som', icone: 'cameraFechada,microfoneFechado', classe: 'btn-danger', click: desligarTudo, confirmar: 'Tem certeza que deseja DESLIGAR TODOS OS VÍDEOS E MICROFONES?' },
-        { nome: 'Focar em qualquer um', icone: 'participante', classe: 'btn-danger', click: customizarFoco },
-        { nome: 'Finalizar discurso', icone: 'finalizarDiscurso', classe: 'btn-danger', click: finalizarDiscurso, confirmar: 'Tem certeza que deseja FINALIZAR O DISCURSO?\nOs microfones serão ligados (por alguns segundos) para as palmas.' },
-        { nome: 'Focar no presidente', icone: 'presidente', classe: 'btn-primary', click: focarNoPresidente },
-        { nome: 'Focar no orador', icone: 'orador', classe: 'btn-primary', click: focarNoOrador },
-        { nome: 'Focar no dirigente', icone: 'dirigente', classe: 'btn-primary', click: focarNoDirigente },
-        { nome: 'Focar no leitor', icone: 'leitor', classe: 'btn-primary', click: focarNoLeitor }
+    const funcionalidades = [
+        {
+            nome: 'Ligar vídeos e som',
+            icone: 'camera,microfone',
+            classe: 'btn-danger',
+            click: ligarTudo,
+            confirmar: 'Tem certeza que deseja LIGAR TODOS OS VÍDEOS E MICROFONES?'
+        },
+        {
+            nome: 'Desligar vídeos e som',
+            icone: 'cameraFechada,microfoneFechado',
+            classe: 'btn-danger',
+            click: desligarTudo,
+            confirmar: 'Tem certeza que deseja DESLIGAR TODOS OS VÍDEOS E MICROFONES?'
+        },
+        {
+            nome: 'Focar em qualquer um',
+            icone: 'participante',
+            classe: 'btn-danger',
+            click: customizarFoco
+        },
+        {
+            nome: 'Finalizar discurso',
+            icone: 'finalizarDiscurso',
+            classe: 'btn-danger',
+            click: finalizarDiscurso,
+            confirmar: 'Tem certeza que deseja FINALIZAR O DISCURSO?\n\nOs microfones serão ligados (por alguns segundos) para as palmas e o presidente será acionado após as palmas.'
+        },
+        {
+            nome: 'Focar no presidente',
+            icone: 'presidente',
+            classe: 'btn-primary',
+            click: focarNoPresidente
+        },
+        {
+            nome: 'Focar no orador',
+            icone: 'orador',
+            classe: 'btn-primary',
+            click: focarNoOrador
+        },
+        {
+            nome: 'Focar no dirigente',
+            icone: 'dirigente',
+            classe: 'btn-primary',
+            click: focarNoDirigente
+        },
+        {
+            nome: 'Focar no leitor',
+            icone: 'leitor',
+            classe: 'btn-primary',
+            click: focarNoLeitor
+        }
     ];
 
-    var criarBotao = (opcoes) => {
-        if (!opcoes) return;
-        var btn = document.createElement('button');
-        btn.innerText = opcoes.nome;
-        btn.onclick = () => !opcoes.confirmar ? opcoes.click() : confirm(`CUIDADO!\n\n${opcoes.confirmar}\n\nClique em cancelar para desfazer`) && opcoes.click();
-        btn.setAttribute('class', `btn ${opcoes.classe}`);
-        btn.style.cssText = `
-            display: flex;
-            flex-direction: row-reverse;
-            align-items: center;
-            justify-content: space-evenly;
-            width: auto;
-            height: auto;
-            margin: 10px;
-            font-size: 16px;
-            opacity: 0.8;
-        `;
-        if (opcoes.icone) {
-            var div = document.createElement('div');
-            opcoes.icone.split(',').forEach(i => div.appendChild(criarIcone(i)));
+    /* construir botoes principais */
+    const criarBotao = ({ nome, confirmar, click, classe, icone }) => {
+        const btn = document.createElement('button');
+        btn.innerText = nome;
+        btn.onclick = () => !confirmar ? click() : confirm(`CUIDADO!\n\n${confirmar}\n\nClique em cancelar para desfazer`) && click();
+        btn.setAttribute('class', `btn ${classe} btn-funcionalidade`);
+
+        if (icone) {
+            const div = document.createElement('div');
+            icone.split(',').forEach(i => div.appendChild(criarIcone(i)));
             btn.appendChild(div);
         }
         return btn;
     };
 
-    /* construir botoes principais */
-    var botoes = funcionalidades.reduce((rows, f, index, lista) => {
-        if (index % 2 !== 0) {
-            return rows;
-        }
+    /* contagem da assistencia na ultima linha */
+    const dadosAssistencia = contarAssistencia();
 
-        var divDupla = document.createElement('div');
-        divDupla.style.display = 'grid';
-        divDupla.style.gridTemplateColumns = '1fr';
-
-        var btn1 = criarBotao(lista[index]);
-        var btn2 = criarBotao(lista[index + 1]);
-
-        divDupla.appendChild(btn1);
-
-        /* criar o proximo botao quando nao for o ultimo */
-        if (btn2) {
-            divDupla.style.gridTemplateColumns = '1fr 1fr';
-            divDupla.appendChild(btn2);
-        }
-
-        rows.push(divDupla);
-        return rows;
-    }, []);
-
-    /* exibir contagem da assistencia na ultima linha */
-    var divAssitencia = document.createElement('div');
-    var textoContados = document.createElement('span');
-    var textoNaoContados = document.createElement('span');
-    var dadosAssistencia = contarAssistencia();
-    textoContados.id = 'texto-contados';
-    textoNaoContados.id = 'texto-nao-contados';
+    const textoContados = document.createElement('span');
+    textoContados.id = idTextoContados;
     textoContados.innerText = `${dadosAssistencia.contados} identificados na assistência`;
+
+    const textoNaoContados = document.createElement('span');
+    textoNaoContados.id = idTextoNaoContados;
     textoNaoContados.innerText = `${dadosAssistencia.naoContados} não identificados na assistência`;
-    var iconContados = criarIcone('assistencia');
-    var iconNaoContados = criarIcone('assistenciaNaoContada');
+
+    const iconContados = criarIcone('assistencia');
     iconContados.style.color = '#5cb85c';
+
+    const iconNaoContados = criarIcone('assistenciaNaoContada');
     iconNaoContados.style.color = '#ff4242';
 
-    divAssitencia.id = 'contagem-automatica';
-    divAssitencia.appendChild(iconContados);
-    divAssitencia.appendChild(textoContados);
-    divAssitencia.appendChild(iconNaoContados);
-    divAssitencia.appendChild(textoNaoContados);
-    divAssitencia.style.cssText = `
-        display: grid;
-        grid-template-columns: 1fr 9fr 2fr 10fr;
-        align-items: center;
-        font-size: 18px;
-        margin: 10px;
-        border-radius: 4px;
-        opacity: 0.9;
-        color: #ffffff;
-        background-color: #23272b;
-    `;
+    const divContados = document.createElement('div');
+    divContados.setAttribute('class', 'configuracao');
+    divContados.appendChild(iconContados);
+    divContados.appendChild(textoContados);
+
+    const divNaoContados = document.createElement('div');
+    divNaoContados.setAttribute('class', 'configuracao');
+    divNaoContados.appendChild(iconNaoContados);
+    divNaoContados.appendChild(textoNaoContados);
+
+    const inputModoTransparente = document.createElement('input');
+    inputModoTransparente.id = 'modo-transparente';
+    inputModoTransparente.setAttribute('type', 'checkbox');
+    inputModoTransparente.onchange = (evento) => alternarModoTransparente(evento);
+
+    const textoModoTransparente = document.createElement('label');
+    textoModoTransparente.setAttribute('for', 'modo-transparente');
+    textoModoTransparente.innerText = 'Ativar modo transparente (revela vídeo em destaque)';
+
+    const divModoTransparente = document.createElement('div');
+    divModoTransparente.setAttribute('class', 'configuracao config-item');
+    divModoTransparente.appendChild(inputModoTransparente);
+    divModoTransparente.appendChild(textoModoTransparente);
 
     /* construtir o frame com botoes */
-    var frameBotoes = document.createElement('div');
-    frameBotoes.style.cssText = `
-        display: grid;
-        grid-template-rows: repeat(5, 1fr);
-        gap: 5px;
-        padding: 10px 0;
-    `;
+    const frameBotoes = document.createElement('div');
+    frameBotoes.setAttribute('class', 'frame-funcionalidades');
 
     /* adicionar os botoes no frame */
-    botoes.forEach(btn => frameBotoes.appendChild(btn));
-    frameBotoes.appendChild(divAssitencia);
-
+    funcionalidades.forEach(f => frameBotoes.appendChild(criarBotao(f)));
+    frameBotoes.appendChild(divContados);
+    frameBotoes.appendChild(divNaoContados);
+    frameBotoes.appendChild(divModoTransparente);
     return frameBotoes;
 }
 
 function desenharFrameServicos() {
-    var btnFechar = criarIcone('fechar', 'btn-fechar-modal');
-    btnFechar.onclick = fecharModal;
-    btnFechar.style.position = 'absolute';
-    btnFechar.style.left = '96%';
-    btnFechar.style.top = '1%';
-    btnFechar.style.opacity = '0.7';
-    btnFechar.style.fontSize = '50px';
-    btnFechar.style.cursor = 'pointer';
-
     /* bloco dos servicos */
-    var servicos = document.createElement('div');
+    const servicos = document.createElement('div');
     servicos.id = 'rotinas-background';
-    servicos.style.cssText = `
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr 1fr;
-        min-height: 80%;
-    `;
+    servicos.setAttribute('class', 'frame-rotinas');
 
-    var titulo = document.createElement('h3');
-    titulo.innerText = 'O que está acontecendo agora';
+    /* botao fechar modal */
+    const btnFechar = criarIcone('fechar', 'btn-fechar-modal');
+    btnFechar.onclick = fecharModal;
+    btnFechar.classList.add('btn-fechar');
+
+    /* titulo das rotinas */
+    const titulo = document.createElement('h3');
     titulo.style.textAlign = 'center';
+    titulo.innerText = 'O que está acontecendo agora';
 
-    var listaServicos = [];
-
+    /* criar listas de logs das rotinas */
     Object.keys(avisosDeRotinas).forEach(rotina => {
-        var div = document.createElement('div');
-        var titulo = document.createElement('p');
-        titulo.innerText = getNomeRotina(rotina);
-        titulo.style.cssText = `
-            margin: 0px 5px;
-            opacity: 0.6;
-            background-color: #23272b;
-            text-align: center;
-            color: white;
-        `;
-        var ul = document.createElement('ul');
-        ul.id = btoa(rotina);
-        ul.style.listStyleType = 'none';
-        ul.style.padding = '0px';
-        ul.style.margin = '0px 10px';
+        const div = document.createElement('div');
+        const tituloRotina = document.createElement('p');
+        const ul = document.createElement('ul');
 
-        div.appendChild(titulo);
+        /* adicionar titulo na sessao */
+        tituloRotina.setAttribute('class', 'titulo-lista-rotina');
+        tituloRotina.innerText = getNomeRotina(rotina);
+        div.appendChild(tituloRotina);
+
+        /* adicionar lista na sessao */
+        ul.id = btoa(rotina);
         div.appendChild(ul);
-        listaServicos.push(div);
+
+        /* adiciona sessao na lista */
+        servicos.appendChild(div);
     });
 
-    listaServicos.forEach(ls => servicos.appendChild(ls));
-
     /* construtir o frame com servicos */
-    var frameServicos = document.createElement('div');
+    const frameServicos = document.createElement('div');
     frameServicos.appendChild(btnFechar);
     frameServicos.appendChild(titulo);
     frameServicos.appendChild(servicos);
-
     return frameServicos;
 }
 
+function criarCss() {
+    const maiorZIndex = Math.max.apply(null, Array.from(document.querySelectorAll('body *')).map(({ style = {} }) => style.zIndex || 0));
+    const css = document.getElementById('estiloCustomizado') || document.createElement('style');
+    css.id = 'estiloCustomizado';
+    css.innerHTML = `
+        .backdrop-principal {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            height: ${window.screen.height}px;
+            width: ${window.screen.width}px;
+            background-color: black;
+            opacity: 0.7;
+            z-index: ${maiorZIndex + 1};
+        }
+        .modal-principal {
+            display: grid;
+            grid-template-columns: 2fr 3fr;
+            position: fixed;
+            right: 5%;
+            left: 5%;
+            top: 5%;
+            height: 550px;
+            background-color: #edf2f7e6;
+            border-radius: 10px;
+            font-size: 14px;
+            z-index: ${maiorZIndex + 2};
+        }
+        .modal-transparente {
+            background-color: #ffffff11;
+        }
+        .modal-transparente * {
+            color: #ffffffbb;
+        }
+        .btn-fechar {
+            position: absolute;
+            left: 96%;
+            top: 1%;
+            opacity: 0.7;
+            font-size: 50px;
+            cursor: pointer;
+        }
+        .frame-rotinas {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 33% 33% 34%;
+            min-height: 90%;
+            padding-bottom: 10px;
+        }
+        .frame-funcionalidades {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            padding: 0;
+            margin: 5px;
+        }
+        .btn-funcionalidade {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: space-evenly;
+            align-items: center;
+            padding: 0;
+            font-size: 16px;
+            opacity: 0.8;
+        }
+        .contagem-funcionalidade div {
+            display: flex;
+            align-items: center;
+            justify-content: space-evenly;
+        }
+        .contagem-funcionalidade i {
+            margin-right: 10px;
+        }
+        .configuracao {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            border-radius: 4px;
+            color: #ffffff;
+            background-color: #23272b;
+        }
+        .config-item {
+            grid-column: span 2;
+        }
+        .config-item * {
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            cursor: pointer;
+        }
+        .config-item input {
+            margin: 0;
+            margin-right: 10px;
+        }
+        .titulo-lista-rotina {
+            margin: 0px 5px;
+            background-color: #23272b;
+            text-align: center;
+            color: white;
+        }
+        .titulo-lista-rotina + ul {
+            list-style-type: none;
+            overflow-y: scroll;
+            height: 135px;
+            padding: 0px;
+            margin: 0px 10px;
+        }
+        .titulo-lista-rotina + ul li {
+            padding-top: 10px;
+            padding-bottom: 10px;
+        }
+        .titulo-lista-rotina + ul::-webkit-scrollbar-thumb {
+            background-color: #23272b2e;
+            border-radius: 10px;
+        }
+        .titulo-lista-rotina + ul li:nth-child(2n) {
+            background-color: #c1c2c38a;
+        }
+    `;
+    document.body.appendChild(css);
+}
+
 function importarIconesFontAwesome() {
-    if (document.querySelector('#icones')) document.querySelector('#icones').remove();
-    var link = document.createElement('link');
-    link.setAttribute('href', 'https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
-    link.setAttribute('rel', 'stylesheet');
-    link.setAttribute('id', 'icones');
-    document.head.appendChild(link);
+    const importIcones = document.querySelector('#icones');
+    /* nao duplicar tag de import dos icones */
+    if (!importIcones) {
+        const link = document.createElement('link');
+        link.setAttribute('href', 'https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
+        link.setAttribute('rel', 'stylesheet');
+        link.setAttribute('id', 'icones');
+        document.head.appendChild(link);
+    }
 }
 
 function criarIcone(tipo, id) {
     if (!tipo) return;
 
-    var tipos = {
+    const tipos = {
         camera: 'videocam',
         cameraFechada: 'videocam_off',
         microfone: 'mic_none',
@@ -318,8 +478,8 @@ function criarIcone(tipo, id) {
         ativado: 'toggle_on',
         fechar: 'cancel',
     };
-    var icone = document.createElement('i');
-    if (id) icone.id = id;
+    const icone = document.createElement('i');
+    icone.id = id || btoa(Math.random());
     icone.setAttribute('class', 'material-icons-outlined');
     icone.style.fontSize = '40px';
     icone.innerText = tipos[tipo];
@@ -327,23 +487,33 @@ function criarIcone(tipo, id) {
 }
 
 function abrirModal() {
-    document.querySelector('#opcoes-reuniao').style.display = 'grid';
-    document.querySelector('#modal-opcoes-reuniao').style.display = 'block';
+    document.getElementById(idModal).removeAttribute('style');
+    document.getElementById(idModalBackdrop).removeAttribute('style');
 }
 
 function fecharModal() {
-    document.querySelector('#modal-opcoes-reuniao').style.display = 'none';
-    document.querySelector('#opcoes-reuniao').style.display = 'none';
+    document.getElementById(idModalBackdrop).style.display = 'none';
+    document.getElementById(idModal).style.display = 'none';
+}
+
+function alternarModoTransparente(evento) {
+    const modal = document.getElementById(idModal);
+    if (evento.target.checked) {
+        modal.classList.add('modal-transparente');
+    } else {
+        modal.classList.remove('modal-transparente');
+    }
 }
 
 function abrirPainelParticipantes() {
     if (!document.querySelector('.participants-header__title')) {
         document.querySelector('.footer-button__participants-icon').click();
+        criarDomListener();
     }
 }
 
 function getParticipantes() {
-    return Array.from(document.querySelectorAll('.participants-ul  .item-pos.participants-li'));
+    return Array.from(document.querySelectorAll('.participants-ul .item-pos.participants-li'));
 }
 
 function getNomeParticipante(participante) {
@@ -355,27 +525,62 @@ function getBotoesDropdown(participante) {
 }
 
 function criarEventoMouseOver() {
-    var eventoFalsoDeMouseOver = new MouseEvent('mouseover', { bubbles: true });
+    const eventoFalsoDeMouseOver = new MouseEvent('mouseover', { bubbles: true });
     eventoFalsoDeMouseOver.simulated = true;
     return eventoFalsoDeMouseOver;
 }
 
 function selecionarParticipante(funcao) {
     return getParticipantes().find(participante => {
-        var nome = getNomeParticipante(participante);
+        const nome = getNomeParticipante(participante);
         return nome && nome.toLowerCase().includes(funcao);
     });
+}
+
+function isNomeValido(participante) {
+    const nome = getNomeParticipante(participante);
+    /* valida se nome comeca com (ou [ ou {, seguido de 0 a 9 */
+    const regexPadrao = /^\s*[\(\[\{]\s*[0-9]/i;
+    const dispositivos = [
+        'galaxy',
+        'note',
+        'samsung',
+        'apple',
+        'huawei',
+        'xiaomi',
+        'oppo',
+        'vivo',
+        'lg',
+        'lenovo',
+        'motorola',
+        'moto',
+        'nokia',
+        'tecno'
+    ];
+    /* texto deve conter nome [marca/dispositivo nao sao validos], quantidade [formato: "(x) nome pessoa"] */
+    return nome
+        && regexPadrao.test(nome)
+        && nome.split(' ').filter(p => !dispositivos.includes(p.toLowerCase())).length == nome.split(' ').length;
 }
 
 function isVideoLigado(participante) {
     if (!participante) return false;
     participante.dispatchEvent(criarEventoMouseOver());
-    return getBotoesDropdown(participante)
-        .some(btn => btn && ['stop video', 'parar vídeo'].includes(btn.innerText.toLowerCase()));
+    return getBotoesDropdown(participante).some(btn => textoPararVideo.includes(btn.innerText.toLowerCase()));
+}
+
+function isSpotlightLigado(participante) {
+    if (!participante) return false
+    participante.dispatchEvent(criarEventoMouseOver());
+    return getBotoesDropdown(participante).some(btn => textoCancelarSpotlight.includes(btn.innerText.toLowerCase()));
 }
 
 function clickBotao(participante, textosBotao, mensagemErro) {
-    if (!participante) return console.log(mensagemErro || 'Um click em botão foi perdido');
+    if (!participante) {
+        logarAviso(mensagemErro || 'Um click em botão foi perdido');
+        atualizarTela();
+        return;
+    }
     participante.dispatchEvent(criarEventoMouseOver());
     Array.from(participante.querySelectorAll('.participants-item__buttons button')).some(btn => (
         btn && textosBotao.includes(btn.innerText.toLowerCase()) && !btn.click()
@@ -383,9 +588,19 @@ function clickBotao(participante, textosBotao, mensagemErro) {
 }
 
 function clickDropdown(participante, textosBotao, mensagemErro) {
-    if (!participante) return console.log(mensagemErro || 'Um click em dropdown foi perdido');
+    if (!participante) {
+        logarAviso(mensagemErro || 'Um click em dropdown foi perdido');
+        atualizarTela();
+        return;
+    }
     participante.dispatchEvent(criarEventoMouseOver());
-    getBotoesDropdown(participante).some(btn => btn && textosBotao.includes(btn.innerText.toLowerCase()) && !btn.click());
+    getBotoesDropdown(participante).some(btn => {
+        if (textosBotao.includes(btn.innerText.toLowerCase())) {
+            btn.click();
+            removerAviso(mensagemErro);
+            return true;
+        }
+    });
 }
 
 function ligarMicrofoneParticipante(participante) {
@@ -408,28 +623,36 @@ function ligarVideoParticipante(participante, callback) {
     /* se o video ja estiver ligado, seguir para proximas instrucoes */
     if (isVideoLigado(participante)) return callback && callback();
 
-    var textosBotao = ['ask for start video', 'start video', 'pedir para iniciar vídeo', 'iniciar vídeo'];
-    var mensagemErro = 'Não foi possível LIGAR o vídeo! Verifique o nome do participante.';
+    const textosBotao = ['ask for start video', 'start video', 'pedir para iniciar vídeo', 'iniciar vídeo'];
+    const mensagemErro = 'Não foi possível LIGAR o vídeo! Verifique o nome do participante.';
 
     clickDropdown(participante, textosBotao, mensagemErro);
 
     /* se houverem instrucoes para executar apos video ser ligado, ativa um temporizador */
     if (participante && callback) {
-        var nome = getNomeParticipante(participante);
+        const nome = getNomeParticipante(participante);
 
         /* iniciar temporizador para aguardar participante liberar video */
-        var repeticoes = 0;
+        let repeticoes = 0;
         dispararRotina(nome, 500, () => {
             repeticoes++;
             if (isVideoLigado(participante)) {
+                avisosDeRotinas['tentativaAbrirVideo'] = avisosDeRotinas['tentativaAbrirVideo'].filter(aviso => aviso !== nome);
+                removerAviso(mensagemErro);
                 encerrarRotina(nome);
+                atualizarTela();
                 callback();
-            } else if (repeticoes >= 10) { /* aguardar tempo suficiente para nova tentativa */
-                repeticoes = 0;
-                clickDropdown(participante, textosBotao, mensagemErro);
+            } else {
                 /* registrar log de tentativa em andamento */
-                var momento = new Date().toLocaleString('pt-br').split(' ')[1];
-                avisosDeRotinas['tentativaAbrirVideo'].push(`Tentando ligar vídeo de: ${nome}. Horário da tentativa: ${momento}`);
+                if (!avisosDeRotinas['tentativaAbrirVideo'].includes(nome)) {
+                    avisosDeRotinas['tentativaAbrirVideo'].push(nome);
+                    atualizarTela();
+                }
+                /* aguardar tempo suficiente para nova tentativa */
+                if (repeticoes >= 10) {
+                    repeticoes = 0;
+                    clickDropdown(participante, textosBotao, mensagemErro);
+                }
             }
         });
     }
@@ -438,22 +661,9 @@ function ligarVideoParticipante(participante, callback) {
 function desligarVideoParticipante(participante) {
     clickDropdown(
         participante,
-        ['stop video', 'parar vídeo'],
+        textoPararVideo,
         'Não foi possível DESLIGAR o vídeo! Verifique o nome do participante.'
     );
-}
-
-function desligarSpotlight() {
-    abrirPainelParticipantes();
-    getParticipantes().forEach(participante => {
-        participante.dispatchEvent(criarEventoMouseOver());
-        getBotoesDropdown(participante).some(btn => {
-            if (['cancel the spotlight video', 'cancelar vídeo de destaque'].includes(btn.innerText.toLowerCase())) {
-                btn.click();
-                return true;
-            }
-        });
-    });
 }
 
 function spotlightParticipante(participante) {
@@ -463,10 +673,24 @@ function spotlightParticipante(participante) {
     );
 }
 
+function desligarSpotlight() {
+    abrirPainelParticipantes();
+    getParticipantes().some(participante => {
+        if (isSpotlightLigado(participante)) {
+            clickDropdown(
+                participante,
+                textoCancelarSpotlight,
+                'Não foi possível DESLIGAR o spolight! Verifique o nome do participante.'
+            );
+            return true;
+        }
+    });
+}
+
 function ligarMicrofones() {
-    var textos = ['mute all', 'unmute all', 'desativar som de todos', 'ativar som de todos'];
-    var textosMuteAll = ['mute all', 'desativar som de todos'];
-    var btn = Array
+    const textos = ['mute all', 'unmute all', 'desativar som de todos', 'ativar som de todos'];
+    const textosMuteAll = ['mute all', 'desativar som de todos'];
+    const btn = Array
         .from(document.querySelectorAll('.participants-section-container__participants-footer button'))
         .find(btn => textos.includes(btn.innerText.toLowerCase()));
 
@@ -477,8 +701,8 @@ function ligarMicrofones() {
         /* abrir modal para silenciar todos */
         btn.click();
 
-        var btnConfirmarMute = document.querySelector('.zm-modal-footer-default-actions .zm-btn--primary');
-        var checkboxPermitirUnmute = document.querySelector('.zm-modal-footer-default-checkbox .zm-checkbox');
+        const btnConfirmarMute = document.querySelector('.zm-modal-footer-default-actions .zm-btn--primary');
+        const checkboxPermitirUnmute = document.querySelector('.zm-modal-footer-default-checkbox .zm-checkbox');
 
         /* desmarcar a opcao 'participantes desativem o mudo' */
         if (checkboxPermitirUnmute) {
@@ -523,9 +747,13 @@ function desligarVideos(execoes) {
 
 function focarNoDirigente() {
     abrirPainelParticipantes();
-    var dirigente = selecionarParticipante('dirigente');
-    var presidente = selecionarParticipante('presidente');
-    var leitor = selecionarParticipante('leitor');
+    const dirigente = selecionarParticipante(identificacaoDirigente);
+    const presidente = selecionarParticipante(identificacaoPresidente);
+    const leitor = selecionarParticipante(identificacaoLeitor);
+
+    if (!dirigente) {
+        return alert(`Dirigente não informado.\nCom permissão de anfitrião (host) identifique-o renomeando.\nExemplo: Anthony Morris - ${identificacaoDirigente}`);
+    }
 
     /* desligar video de todos participantes, exceto dirigente, leitor e presidente */
     desligarVideos([dirigente, leitor, presidente]);
@@ -539,14 +767,18 @@ function focarNoDirigente() {
         spotlightParticipante(dirigente);
         ligarMicrofoneParticipante(dirigente);
         /* para evitar distracoes com autofoco, manter o presidente em foco ate que dirigente inicie seu video */
-        desligarVideoParticipante(presidente);
+        desligarVideoParticipante(selecionarParticipante(identificacaoPresidente));
     });
 }
 
 function focarNoLeitor() {
     abrirPainelParticipantes();
-    var leitor = selecionarParticipante('leitor');
-    var dirigente = selecionarParticipante('dirigente');
+    const leitor = selecionarParticipante(identificacaoLeitor);
+    const dirigente = selecionarParticipante(identificacaoDirigente);
+
+    if (!leitor) {
+        return alert(`Leitor não informado.\nCom permissão de anfitrião (host) identifique-o renomeando.\nExemplo: David Splane - ${identificacaoLeitor}`);
+    }
 
     /* desligar video de todos participantes, exceto dirigente e leitor */
     desligarVideos([dirigente, leitor]);
@@ -564,7 +796,11 @@ function focarNoLeitor() {
 
 function focarNoPresidente() {
     abrirPainelParticipantes();
-    var presidente = selecionarParticipante('presidente');
+    const presidente = selecionarParticipante(identificacaoPresidente);
+
+    if (!presidente) {
+        return alert(`Presidente não informado.\nCom permissão de anfitrião (host) identifique-o renomeando.\nExemplo: Geoffrey Jackson - ${identificacaoPresidente}`);
+    }
 
     /* silenciar todos participantes, exceto presidente */
     desligarMicrofones([presidente]);
@@ -580,7 +816,11 @@ function focarNoPresidente() {
 
 function focarNoOrador() {
     abrirPainelParticipantes();
-    var orador = selecionarParticipante('orador');
+    const orador = selecionarParticipante(identificacaoOrador);
+
+    if (!orador) {
+        return alert(`Orador não informado.\nCom permissão de anfitrião (host) identifique-o renomeando.\nExemplo: Gerrit Losch - ${identificacaoOrador}`);
+    }
 
     /* desligar video de todos participantes, exceto orador */
     desligarVideos([orador]);
@@ -598,12 +838,14 @@ function focarNoOrador() {
 
 function customizarFoco() {
     abrirPainelParticipantes();
-    var nome = prompt('Informe como (nome ou palavra no nome) encontrar o participante.\n\n(Dica: use uma identificação única)\nBOA SORTE AO DIGITAR!');
-    if (!nome) return;
-    var alvo = selecionarParticipante(nome);
+    const texto = prompt('Informe como (nome ou palavra no nome) encontrar o participante.\n\n(Dica: use uma identificação diferente em cada participante)');
+    if (!texto) alert('Nome não informado. Nenhuma ação será tomada. Tente novamente');
 
-    /* desligar video de todos participantes, exceto participante informado */
-    desligarVideos([alvo]);
+    const alvo = selecionarParticipante(texto);
+    if (!alvo) return alert('Não encontrado!\nCom permissão de anfitrião (host) identifique-o renomeando.\nExemplo: Charles T. Russel - joias-espirituais');
+
+    const confirmar = confirm(`Participante encontrado: ${getNomeParticipante(alvo)}\n\nDESEJA COLOCAR ESTE PARTICIPANTE EM FOCO PARA TODOS?\nClick em cancelar para abortar operação`);
+    if (!confirmar) return;
 
     /* silenciar todos participantes, exceto participante informado */
     desligarMicrofones([alvo]);
@@ -611,6 +853,7 @@ function customizarFoco() {
     /* ligar video do participante informado */
     ligarVideoParticipante(alvo, () => {
         /* quando o participante informado iniciar seu video */
+        desligarVideos([alvo]);
         spotlightParticipante(alvo);
         ligarMicrofoneParticipante(alvo);
     });
@@ -618,7 +861,8 @@ function customizarFoco() {
 
 function finalizarDiscurso() {
     abrirPainelParticipantes();
-    var presidente = selecionarParticipante('presidente');
+    const aviso = 'Aguarde!\nApós as palmas, o presidente será automaticamente acionado.\nAguarde até o presidente anunciar o dirgente.';
+    const presidente = selecionarParticipante(identificacaoPresidente);
 
     /* desligar video de todos participantes */
     desligarVideos();
@@ -626,8 +870,16 @@ function finalizarDiscurso() {
     /* ligar microfone de todos participantes para as palmas */
     ligarMicrofones();
 
+    /* desativar botoes durante as palmas para evitar interrupcoes acidentais */
+    document.querySelectorAll('.btn-funcionalidade').forEach(btn => btn.classList.add('disabled'));
+
     /* Aguardar tempo suficiente de palmas (8 segundos) */
-    setTimeout(() => desligarMicrofones(), 8000);
+    setTimeout(() => {
+        desligarMicrofones();
+        document.querySelectorAll('.btn-funcionalidade').forEach(btn => btn.classList.remove('disabled'));
+        removerAviso(aviso);
+        atualizarTela();
+    }, 8000);
 
     /* ligar video do presidente antes de acabar as palmas */
     setTimeout(() => ligarVideoParticipante(presidente, () => {
@@ -636,7 +888,8 @@ function finalizarDiscurso() {
         ligarMicrofoneParticipante(presidente);
     }), 4000);
 
-    alert('Aguarde!\nApós as palmas, o presidente será automaticamente acionado.\nAguarde até o presidente anunciar o dirgente.');
+    logarAviso(aviso);
+    atualizarTela();
 }
 
 function desligarTudo() {
@@ -654,16 +907,21 @@ function ligarTudo() {
 
 function contarAssistencia() {
     abrirPainelParticipantes();
-    var assistencia = 0;
-    var nomesForaPadrao = [];
+    let assistencia = 0;
+    const nomesForaPadrao = [];
 
-    document.querySelectorAll('.participants-ul .participants-item__display-name').forEach(x => {
-        var participantes = parseInt(x.innerText.replace(/\(|\{|\[/, '').trim());
-        if (participantes > 0) {
-            assistencia += participantes;
-        } else {
-            nomesForaPadrao.push(x.innerText);
-        };
+    getParticipantes().forEach(participante => {
+        const nome = getNomeParticipante(participante);
+
+        if (!isNomeValido(participante)) {
+            nomesForaPadrao.push(nome);
+            return;
+        }
+
+        const quantidade = parseInt(nome.replace(/\(|\{|\[/, '').trim());
+        if (quantidade > 0) {
+            assistencia += quantidade;
+        }
     });
 
     return {
@@ -673,108 +931,102 @@ function contarAssistencia() {
     };
 }
 
-function getNomeRotina(id) {
-    return {
-        'rotina_validarVideosLigadosNaAssistencia': 'Vídeos ligados',
-        'rotina_admitirEntradaNaSalaComNomeValido': 'Entrada liberada',
-        'rotina_registrarEntradaNaSalaComNomeInvalido': 'Inválidos em espera',
-        'rotina_validarNomesForaDoPadrao': 'Nomes inválidos',
-        'rotina_verificarOpcoesDaSala': 'Opções de sala',
-        'tentativaAbrirVideo': 'Tentando abrir vídeo',
-    }[id];
-}
-
 /* ROTINAS DE LOOP */
 
 function rotina_validarVideosLigadosNaAssistencia() {
-    dispararRotina('rotina_validarVideosLigadosNaAssistencia', 5000, () => {
-        abrirPainelParticipantes();
-        var videosLigados = [];
-        getParticipantes()
-            .filter(p => !!p.querySelector('.participants-icon__participant-video--started'))
-            .forEach(p => videosLigados.push(getNomeParticipante(p)));
-
-        avisosDeRotinas['rotina_validarVideosLigadosNaAssistencia'] = videosLigados;
-    });
+    abrirPainelParticipantes();
+    avisosDeRotinas['rotina_validarVideosLigadosNaAssistencia'] = getParticipantes().reduce((lista, participante) => {
+        if (isVideoLigado(participante)) {
+            lista.push(getNomeParticipante(participante));
+        }
+        return lista;
+    }, []);
 }
 
 function rotina_admitirEntradaNaSalaComNomeValido() {
-    dispararRotina('rotina_admitirEntradaNaSalaComNomeValido', 5000, () => {
-        abrirPainelParticipantes();
-        Array.from(document.querySelectorAll('.waiting-room-list-conatiner__ul li')).forEach(participante => {
-            var nome = getNomeParticipante(participante);
-            var invalidos = [];
-
-            /* verificar se participante tem nome valido */
-            if (/\s*[\(\[\{]\s*[0-9]/ig.test(nome)) {
-                participante.dispatchEvent(criarEventoMouseOver());
-                participante.querySelector('.btn-primary').click();
-                avisosDeRotinas['rotina_admitirEntradaNaSalaComNomeValido'].push(nome);
-            } else {
-                invalidos.push(nome);
+    abrirPainelParticipantes();
+    const invalidos = [];
+    Array.from(document.querySelectorAll('.waiting-room-list-conatiner__ul li')).forEach(participante => {
+        const nome = getNomeParticipante(participante);
+        /* verificar se participante tem nome valido */
+        if (isNomeValido(participante)) {
+            participante.dispatchEvent(criarEventoMouseOver());
+            /* selecionar botao que permite entrada do participante */
+            const btnPermitir = participante.querySelector('.btn-primary');
+            if (btnPermitir) {
+                btnPermitir.click();
+                /* remover avisos duplicados */
+                avisosDeRotinas['rotina_admitirEntradaNaSalaComNomeValido'] = Array.from(
+                    new Set(avisosDeRotinas['rotina_admitirEntradaNaSalaComNomeValido']).add(nome)
+                );
             }
-
-            /* criar uma nova lista com todos participantes invalidos */
-            avisosDeRotinas['rotina_registrarEntradaNaSalaComNomeInvalido'] = invalidos;
-        });
+        } else {
+            invalidos.push(nome);
+        }
     });
+    /* criar uma nova lista com todos participantes invalidos */
+    avisosDeRotinas['rotina_registrarEntradaNaSalaComNomeInvalido'] = invalidos;
 }
 
 function rotina_validarNomesForaDoPadrao() {
-    dispararRotina('rotina_validarNomesForaDoPadrao', 5000, () => {
-        abrirPainelParticipantes();
-        var nomesInvalidos = [];
+    abrirPainelParticipantes();
+    const nomesInvalidos = [];
 
-        getParticipantes().forEach(participante => {
-            var nome = getNomeParticipante(participante);
-            /* verifica se nome esta fora do padrao */
-            if (!/\s*[\(\[\{]\s*[0-9]/ig.test(nome)) {
-                nomesInvalidos.push(nome);
-            }
-        });
-
-        avisosDeRotinas['rotina_validarNomesForaDoPadrao'] = nomesInvalidos;
+    getParticipantes().forEach(participante => {
+        const nome = getNomeParticipante(participante);
+        /* busca por: parenteses, chaves ou colchetes (com ou sem espaco) seguido do numero de pessoas */
+        if (!isNomeValido(participante)) {
+            nomesInvalidos.push(nome);
+        }
     });
+
+    avisosDeRotinas['rotina_validarNomesForaDoPadrao'] = nomesInvalidos;
 }
 
-/* ================================================ TODO ================================================ */
-function rotina_verificarOpcoesDaSala() {
-    /*
-    dispararRotina('rotina_verificarOpcoesDaSala', 5000, () => {
-        abrirPainelParticipantes();
-        avisosDeRotinas['rotina_verificarOpcoesDaSala'] = Array
-            .from(document.querySelectorAll('ul[aria-labelledby="particioantHostDropdown"] li'))
-            .filter(li => li.querySelector('.glyphicon-ok'))
-            .map(opcao => opcao.innerText);
-    });
-    */
+function getNomeRotina(id) {
+    return {
+        'rotina_validarVideosLigadosNaAssistencia': 'Vídeos ligados na assistência',
+        'rotina_admitirEntradaNaSalaComNomeValido': 'Liberados automaticamente da sala de espera',
+        'rotina_registrarEntradaNaSalaComNomeInvalido': 'Nomes inválidos (mantidos na sala de espera)',
+        'rotina_validarNomesForaDoPadrao': 'Nomes inválidos na assistência',
+        'avisosGerais': 'Avisos gerais',
+        'tentativaAbrirVideo': 'Tentando abrir vídeo (desmarque para abortar)',
+    }[id];
 }
 
 /* INICIO DO SCRIPT */
+var idTextoContados = 'texto-contados';
+var idTextoNaoContados = 'texto-nao-contados';
+var idModalBackdrop = 'modal-opcoes-reuniao';
+var idModal = 'opcoes-reuniao';
+
+/* PALAVRAS-CHAVE PARA ENCONTRAR PARTICIPANTES (NOMEAR PARTICIPANTE COM CHAVES ABAIXO) */
+var identificacaoDirigente = 'dirigente';
+var identificacaoPresidente = 'presidente';
+var identificacaoLeitor = 'leitor';
+var identificacaoOrador = 'orador';
+
+var textoPararVideo = ['stop video', 'parar vídeo'];
+var textoCancelarSpotlight = ['cancel the spotlight video', 'cancelar vídeo de destaque'];
+
 var intervalosEmExecucao = intervalosEmExecucao || {};
 var cache = {};
+var avisosGerais = [];
 var avisosDeRotinas = {
-    'rotina_validarVideosLigadosNaAssistencia': [],
-    'rotina_admitirEntradaNaSalaComNomeValido': [],
-    'rotina_registrarEntradaNaSalaComNomeInvalido': [],
-    'rotina_validarNomesForaDoPadrao': [],
-    'rotina_verificarOpcoesDaSala': [],
     'tentativaAbrirVideo': [],
+    'rotina_validarVideosLigadosNaAssistencia': [],
+    'rotina_validarNomesForaDoPadrao': [],
+    'rotina_registrarEntradaNaSalaComNomeInvalido': [],
+    'rotina_admitirEntradaNaSalaComNomeValido': [],
+    'avisosGerais': avisosGerais,
 };
 
-if (!document.querySelector('#abrir-opcoes-reuniao')) {
-    var btnAbrirModal = document.createElement('button');
-    btnAbrirModal.id = 'abrir-opcoes-reuniao';
-    btnAbrirModal.innerText = 'Opções customizadas';
-    btnAbrirModal.style.marginRight = '20px';
-    btnAbrirModal.onclick = abrirModal;
-    /* adicionar botao no rodape */
-    document.querySelector('#wc-footer').appendChild(btnAbrirModal);
-}
+/* RESPONSAVEL POR OUVIR MUDANCAS NO PAINEL DOS PARTICIPANTES */
+var observer = observer || null;
 
+criarCss();
 desenharModal();
-iniciarEventosDeRotina();
+criarBotaoOpcoesCustomizadas();
 
 /* TODO: MELHORIAS */
-/* desligar video do participante anterior somente quando o atual ligar a camera */
 /* usar icones de cadeado, checkbox_on e checkbox_off nos servicos */
