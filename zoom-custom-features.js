@@ -16,49 +16,147 @@ function criarDomListener() {
     );
 }
 
-function atualizarTela() {
-console.log('eita nois!' + new Date().toISOString());
-    /* limpar avisos antigos */
-    Object.keys(avisosDeRotinas).forEach(rotina => {
-        if (avisosDeRotinas[rotina].length > 10) {
-            avisosDeRotinas[rotina] = avisosDeRotinas[rotina].slice(-10);
+function validarVideosLigadosNaAssistencia() {
+    abrirPainelParticipantes();
+    avisosDeRotinas['validarVideosLigadosNaAssistencia'] = getParticipantes().reduce((lista, participante) => {
+        if (isVideoLigado(participante)) {
+            lista.push(getNomeParticipante(participante));
+        }
+        return lista;
+    }, []);
+}
+
+function admitirEntradaNaSalaComNomeValido() {
+    abrirPainelParticipantes();
+    const invalidos = [];
+    Array.from(document.querySelectorAll('.waiting-room-list-conatiner__ul li')).forEach(participante => {
+        const nome = getNomeParticipante(participante);
+        /* verificar se participante tem nome valido */
+        if (isNomeValido(participante)) {
+            participante.dispatchEvent(criarEventoMouseOver());
+            /* selecionar botao que permite entrada do participante */
+            const btnPermitir = participante.querySelector('.btn-primary');
+            if (btnPermitir) {
+                btnPermitir.click();
+                /* remover avisos duplicados */
+                avisosDeRotinas['admitirEntradaNaSalaComNomeValido'] = Array.from(
+                    new Set(avisosDeRotinas['admitirEntradaNaSalaComNomeValido']).add(nome)
+                );
+            }
+        } else {
+            invalidos.push(nome);
         }
     });
-    rotina_validarNomesForaDoPadrao();
-    rotina_admitirEntradaNaSalaComNomeValido();
-    rotina_validarVideosLigadosNaAssistencia();
+    /* criar uma nova lista com todos participantes invalidos */
+    avisosDeRotinas['registrarEntradaNaSalaComNomeInvalido'] = invalidos;
+}
+
+function validarNomesForaDoPadrao() {
+    abrirPainelParticipantes();
+    const nomesInvalidos = [];
+
+    getParticipantes().forEach(participante => {
+        const nome = getNomeParticipante(participante);
+        /* busca por: parenteses, chaves ou colchetes (com ou sem espaco) seguido do numero de pessoas */
+        if (!isNomeValido(participante)) {
+            nomesInvalidos.push(nome);
+        }
+    });
+
+    avisosDeRotinas['validarNomesForaDoPadrao'] = nomesInvalidos;
+}
+
+function getNomeRotina(id) {
+    return {
+        validarVideosLigadosNaAssistencia: 'Vídeos ligados na assistência',
+        admitirEntradaNaSalaComNomeValido: 'Liberados automaticamente da sala de espera',
+        registrarEntradaNaSalaComNomeInvalido: 'Nomes inválidos (mantidos na sala de espera)',
+        validarNomesForaDoPadrao: 'Nomes inválidos na assistência',
+        avisosGerais: 'Avisos gerais',
+        tentativaAbrirVideo: 'Tentando abrir vídeo (desmarque para abortar)',
+    }[id];
+}
+
+function atualizarTela() {
+    limparAvisosAntigos();
+    validarNomesForaDoPadrao();
+    admitirEntradaNaSalaComNomeValido();
+    validarVideosLigadosNaAssistencia();
     atualizarAssistencia();
-    informarUltimasAtividades();
+    atualizarAvisosDeRotinas();
     atualizarAvisosGerais();
 }
 
-function informarUltimasAtividades() {
+function interromperSolicitaoVideo(idSolicitacao) {
+    avisosDeRotinas['tentativaAbrirVideo'] = avisosDeRotinas['tentativaAbrirVideo'].filter(id => id !== idSolicitacao);
+    encerrarRotina(idSolicitacao);
+    atualizarTentativasAberturaVideo();
+}
+
+function atualizarTentativasAberturaVideo() {
+    const ul = document.getElementById(btoa('tentativaAbrirVideo'));
+    ul.querySelectorAll('li').forEach(li => li.remove());
+
+    avisosDeRotinas['tentativaAbrirVideo'].forEach(alvo => {
+        const check = document.createElement('input');
+        check.setAttribute('type', 'checkbox');
+        check.setAttribute('value', alvo);
+        check.onclick = (e) => interromperSolicitaoVideo(e.target.value);
+
+        const li = document.createElement('li');
+        li.innerText = alvo;
+        li.setAttribute('class', 'checkbox');
+        li.appendChild(check);
+
+        ul.appendChild(li);
+    });
+}
+
+function atualizarAvisosDeRotinas() {
     Object.keys(avisosDeRotinas).forEach(rotina => {
         const novoCache = btoa(avisosDeRotinas[rotina].join(''));
+
         /* atualizar lista somente se tiver novos dados */
         if (cache[rotina] !== novoCache) {
             const ulRotina = document.getElementById(btoa(rotina));
+
             /* limpar feed de logs antigos */
-            ulRotina.querySelectorAll('li').forEach(log => log.remove());
+            ulRotina.querySelectorAll('li').forEach(li => li.remove());
+
+            if (rotina == 'tentativaAbrirVideo') {
+                atualizarTentativasAberturaVideo();
+                return;
+            }
+
             /* repopular lista */
             avisosDeRotinas[rotina].forEach(aviso => {
                 const li = document.createElement('li');
+                li.setAttribute('class', 'checkbox');
                 li.innerText = aviso;
                 ulRotina.appendChild(li);
             });
+
             /* atualizar cache */
             cache[rotina] = novoCache;
         }
     });
 }
 
-function logarAviso(aviso) {
-    avisosGerais = Array.from(new Set(avisosGerais).add(aviso)).slice(-10);
-}
-
-function removerAviso(aviso) {
-    if (aviso && avisosGerais.includes(aviso)) {
-        avisosGerais = avisosGerais.filter(a => aviso !== a);
+function atualizarAvisosGerais() {
+    const novoCache = btoa(avisosGerais.join(''));
+    const listaAvisosGerais = document.getElementById(btoa('avisosGerais'));
+    /* atualizar lista somente se tiver novos dados */
+    if (cache['avisosGerais'] != novoCache && listaAvisosGerais) {
+        /* limpar feed de logs antigos */
+        listaAvisosGerais.querySelectorAll('*').forEach(li => li.remove());
+        /* redesenhar lista com novos dados */
+        avisosGerais.forEach(aviso => {
+            const li = document.createElement('li');
+            li.innerText = aviso;
+            listaAvisosGerais.appendChild(li);
+        });
+        /* atualizar cache */
+        cache['avisosGerais'] = novoCache;
     }
 }
 
@@ -74,16 +172,23 @@ function atualizarAssistencia() {
     }
 }
 
-function atualizarAvisosGerais() {
-    const listaAvisosGerais = document.getElementById(btoa('avisosGerais'));
-    if (!listaAvisosGerais) return;
-
-    listaAvisosGerais.querySelectorAll('*').forEach(li => li.remove());
-    avisosGerais.forEach(aviso => {
-        const li = document.createElement('li');
-        li.innerText = aviso;
-        listaAvisosGerais.appendChild(li);
+function limparAvisosAntigos() {
+    Object.keys(avisosDeRotinas).forEach(rotina => {
+        if (rotina != 'tentativaAbrirVideo' && avisosDeRotinas[rotina].length > 10) {
+            const avisosUnicos = Array.from(new Set(avisosDeRotinas[rotina]));
+            avisosDeRotinas[rotina] = avisosUnicos.slice(-10);
+        }
     });
+}
+
+function logarAvisoGeral(aviso) {
+    avisosGerais = Array.from(new Set(avisosGerais).add(aviso)).slice(-10);
+}
+
+function removerAvisoGeral(aviso) {
+    if (aviso && avisosGerais.includes(aviso)) {
+        avisosGerais = avisosGerais.filter(a => aviso !== a);
+    }
 }
 
 function dispararRotina(nomeRotina, tempoEmMilissengudos, callback) {
@@ -176,7 +281,7 @@ function desenharFrameBotoes() {
             nome: 'Focar em qualquer um',
             icone: 'participante',
             classe: 'btn-danger',
-            click: customizarFoco
+            click: focarEmQualquerUm
         },
         {
             nome: 'Finalizar discurso',
@@ -434,6 +539,15 @@ function criarCss() {
             padding-top: 10px;
             padding-bottom: 10px;
         }
+        .titulo-lista-rotina + ul li.checkbox {
+            display: flex;
+            flex-direction: row-reverse;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .titulo-lista-rotina + ul li.checkbox input {
+            margin-right: 10px;
+        }
         .titulo-lista-rotina + ul::-webkit-scrollbar-thumb {
             background-color: #23272b2e;
             border-radius: 10px;
@@ -577,7 +691,7 @@ function isSpotlightLigado(participante) {
 
 function clickBotao(participante, textosBotao, mensagemErro) {
     if (!participante) {
-        logarAviso(mensagemErro || 'Um click em botão foi perdido');
+        logarAvisoGeral(mensagemErro || 'Um click em botão foi perdido');
         atualizarTela();
         return;
     }
@@ -589,7 +703,7 @@ function clickBotao(participante, textosBotao, mensagemErro) {
 
 function clickDropdown(participante, textosBotao, mensagemErro) {
     if (!participante) {
-        logarAviso(mensagemErro || 'Um click em dropdown foi perdido');
+        logarAvisoGeral(mensagemErro || 'Um click em dropdown foi perdido');
         atualizarTela();
         return;
     }
@@ -597,7 +711,7 @@ function clickDropdown(participante, textosBotao, mensagemErro) {
     getBotoesDropdown(participante).some(btn => {
         if (textosBotao.includes(btn.innerText.toLowerCase())) {
             btn.click();
-            removerAviso(mensagemErro);
+            removerAvisoGeral(mensagemErro);
             return true;
         }
     });
@@ -638,7 +752,7 @@ function ligarVideoParticipante(participante, callback) {
             repeticoes++;
             if (isVideoLigado(participante)) {
                 avisosDeRotinas['tentativaAbrirVideo'] = avisosDeRotinas['tentativaAbrirVideo'].filter(aviso => aviso !== nome);
-                removerAviso(mensagemErro);
+                removerAvisoGeral(mensagemErro);
                 encerrarRotina(nome);
                 atualizarTela();
                 callback();
@@ -836,7 +950,7 @@ function focarNoOrador() {
     });
 }
 
-function customizarFoco() {
+function focarEmQualquerUm() {
     abrirPainelParticipantes();
     const texto = prompt('Informe como (nome ou palavra no nome) encontrar o participante.\n\n(Dica: use uma identificação diferente em cada participante)');
     if (!texto) alert('Nome não informado. Nenhuma ação será tomada. Tente novamente');
@@ -877,7 +991,7 @@ function finalizarDiscurso() {
     setTimeout(() => {
         desligarMicrofones();
         document.querySelectorAll('.btn-funcionalidade').forEach(btn => btn.classList.remove('disabled'));
-        removerAviso(aviso);
+        removerAvisoGeral(aviso);
         atualizarTela();
     }, 8000);
 
@@ -888,7 +1002,7 @@ function finalizarDiscurso() {
         ligarMicrofoneParticipante(presidente);
     }), 4000);
 
-    logarAviso(aviso);
+    logarAvisoGeral(aviso);
     atualizarTela();
 }
 
@@ -931,69 +1045,6 @@ function contarAssistencia() {
     };
 }
 
-/* ROTINAS DE LOOP */
-
-function rotina_validarVideosLigadosNaAssistencia() {
-    abrirPainelParticipantes();
-    avisosDeRotinas['rotina_validarVideosLigadosNaAssistencia'] = getParticipantes().reduce((lista, participante) => {
-        if (isVideoLigado(participante)) {
-            lista.push(getNomeParticipante(participante));
-        }
-        return lista;
-    }, []);
-}
-
-function rotina_admitirEntradaNaSalaComNomeValido() {
-    abrirPainelParticipantes();
-    const invalidos = [];
-    Array.from(document.querySelectorAll('.waiting-room-list-conatiner__ul li')).forEach(participante => {
-        const nome = getNomeParticipante(participante);
-        /* verificar se participante tem nome valido */
-        if (isNomeValido(participante)) {
-            participante.dispatchEvent(criarEventoMouseOver());
-            /* selecionar botao que permite entrada do participante */
-            const btnPermitir = participante.querySelector('.btn-primary');
-            if (btnPermitir) {
-                btnPermitir.click();
-                /* remover avisos duplicados */
-                avisosDeRotinas['rotina_admitirEntradaNaSalaComNomeValido'] = Array.from(
-                    new Set(avisosDeRotinas['rotina_admitirEntradaNaSalaComNomeValido']).add(nome)
-                );
-            }
-        } else {
-            invalidos.push(nome);
-        }
-    });
-    /* criar uma nova lista com todos participantes invalidos */
-    avisosDeRotinas['rotina_registrarEntradaNaSalaComNomeInvalido'] = invalidos;
-}
-
-function rotina_validarNomesForaDoPadrao() {
-    abrirPainelParticipantes();
-    const nomesInvalidos = [];
-
-    getParticipantes().forEach(participante => {
-        const nome = getNomeParticipante(participante);
-        /* busca por: parenteses, chaves ou colchetes (com ou sem espaco) seguido do numero de pessoas */
-        if (!isNomeValido(participante)) {
-            nomesInvalidos.push(nome);
-        }
-    });
-
-    avisosDeRotinas['rotina_validarNomesForaDoPadrao'] = nomesInvalidos;
-}
-
-function getNomeRotina(id) {
-    return {
-        'rotina_validarVideosLigadosNaAssistencia': 'Vídeos ligados na assistência',
-        'rotina_admitirEntradaNaSalaComNomeValido': 'Liberados automaticamente da sala de espera',
-        'rotina_registrarEntradaNaSalaComNomeInvalido': 'Nomes inválidos (mantidos na sala de espera)',
-        'rotina_validarNomesForaDoPadrao': 'Nomes inválidos na assistência',
-        'avisosGerais': 'Avisos gerais',
-        'tentativaAbrirVideo': 'Tentando abrir vídeo (desmarque para abortar)',
-    }[id];
-}
-
 /* INICIO DO SCRIPT */
 var idTextoContados = 'texto-contados';
 var idTextoNaoContados = 'texto-nao-contados';
@@ -1013,12 +1064,12 @@ var intervalosEmExecucao = intervalosEmExecucao || {};
 var cache = {};
 var avisosGerais = [];
 var avisosDeRotinas = {
-    'tentativaAbrirVideo': [],
-    'rotina_validarVideosLigadosNaAssistencia': [],
-    'rotina_validarNomesForaDoPadrao': [],
-    'rotina_registrarEntradaNaSalaComNomeInvalido': [],
-    'rotina_admitirEntradaNaSalaComNomeValido': [],
-    'avisosGerais': avisosGerais,
+    tentativaAbrirVideo: [],
+    validarVideosLigadosNaAssistencia: [],
+    validarNomesForaDoPadrao: [],
+    registrarEntradaNaSalaComNomeInvalido: [],
+    admitirEntradaNaSalaComNomeValido: [],
+    avisosGerais,
 };
 
 /* RESPONSAVEL POR OUVIR MUDANCAS NO PAINEL DOS PARTICIPANTES */
