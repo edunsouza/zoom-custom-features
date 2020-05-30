@@ -73,7 +73,7 @@ function getNomeRotina(id) {
         registrarEntradaNaSalaComNomeInvalido: 'Nomes inválidos (mantidos na sala de espera)',
         validarNomesForaDoPadrao: 'Nomes inválidos na assistência',
         avisosGerais: 'Avisos gerais',
-        tentativaAbrirVideo: 'Tentando abrir vídeo (desmarque para abortar)',
+        tentativasPersistentes: 'Tentativas em andamento (desmarque para abortar)',
     }[id];
 }
 
@@ -87,21 +87,21 @@ function atualizarTela() {
     atualizarAvisosGerais();
 }
 
-function interromperSolicitaoVideo(idSolicitacao) {
-    avisosDeRotinas['tentativaAbrirVideo'] = avisosDeRotinas['tentativaAbrirVideo'].filter(id => id !== idSolicitacao);
+function interromperSolicitaoPersistente(idSolicitacao) {
+    avisosDeRotinas['tentativasPersistentes'] = avisosDeRotinas['tentativasPersistentes'].filter(id => id !== idSolicitacao);
     encerrarRotina(idSolicitacao);
-    atualizarTentativasAberturaVideo();
+    atualizarTentativasPersistentes();
 }
 
-function atualizarTentativasAberturaVideo() {
-    const ul = document.getElementById(btoa('tentativaAbrirVideo'));
+function atualizarTentativasPersistentes() {
+    const ul = document.getElementById(btoa('tentativasPersistentes'));
     ul.querySelectorAll('li').forEach(li => li.remove());
 
-    avisosDeRotinas['tentativaAbrirVideo'].forEach(alvo => {
+    avisosDeRotinas['tentativasPersistentes'].forEach(alvo => {
         const check = document.createElement('input');
         check.setAttribute('type', 'checkbox');
         check.setAttribute('value', alvo);
-        check.onclick = (e) => interromperSolicitaoVideo(e.target.value);
+        check.onclick = (e) => interromperSolicitaoPersistente(e.target.value);
 
         const li = document.createElement('li');
         li.innerText = alvo;
@@ -123,8 +123,8 @@ function atualizarAvisosDeRotinas() {
             /* limpar feed de logs antigos */
             ulRotina.querySelectorAll('li').forEach(li => li.remove());
 
-            if (rotina == 'tentativaAbrirVideo') {
-                atualizarTentativasAberturaVideo();
+            if (rotina == 'tentativasPersistentes') {
+                atualizarTentativasPersistentes();
                 return;
             }
 
@@ -174,7 +174,7 @@ function atualizarAssistencia() {
 
 function limparAvisosAntigos() {
     Object.keys(avisosDeRotinas).forEach(rotina => {
-        if (rotina != 'tentativaAbrirVideo' && avisosDeRotinas[rotina].length > 10) {
+        if (rotina != 'tentativasPersistentes' && avisosDeRotinas[rotina].length > 10) {
             const avisosUnicos = Array.from(new Set(avisosDeRotinas[rotina]));
             avisosDeRotinas[rotina] = avisosUnicos.slice(-10);
         }
@@ -278,10 +278,10 @@ function desenharFrameBotoes() {
             confirmar: 'Tem certeza que deseja DESLIGAR TODOS OS VÍDEOS E MICROFONES?'
         },
         {
-            nome: 'Focar em qualquer um',
+            nome: 'Foco customizado',
             icone: 'participante',
             classe: 'btn-danger',
-            click: focarEmQualquerUm
+            click: focarCustomizado
         },
         {
             nome: 'Finalizar discurso',
@@ -626,6 +626,17 @@ function abrirPainelParticipantes() {
     }
 }
 
+function iniciarEventosPainelParticipantes() {
+    const btnAbrirPainel = document.querySelector('.footer-button__participants-icon');
+
+    if (!document.getElementById('wc-container-right')) {
+        btnAbrirPainel.click();
+    }
+
+    criarDomListener();
+    btnAbrirPainel.click();
+}
+
 function getParticipantes() {
     return Array.from(document.querySelectorAll('.participants-ul .item-pos.participants-li'));
 }
@@ -677,6 +688,14 @@ function isNomeValido(participante) {
         && nome.split(' ').filter(p => !dispositivos.includes(p.toLowerCase())).length == nome.split(' ').length;
 }
 
+function isMicrofoneLigado(participante) {
+    if (!participante) return false;
+    participante.dispatchEvent(criarEventoMouseOver());
+    return Array
+        .from(participante.querySelectorAll('.participants-item__buttons button'))
+        .some(btn => textoDesligarMicrofone.includes(btn.innerText.toLowerCase()));
+}
+
 function isVideoLigado(participante) {
     if (!participante) return false;
     participante.dispatchEvent(criarEventoMouseOver());
@@ -684,7 +703,7 @@ function isVideoLigado(participante) {
 }
 
 function isSpotlightLigado(participante) {
-    if (!participante) return false
+    if (!participante) return false;
     participante.dispatchEvent(criarEventoMouseOver());
     return getBotoesDropdown(participante).some(btn => textoCancelarSpotlight.includes(btn.innerText.toLowerCase()));
 }
@@ -717,18 +736,40 @@ function clickDropdown(participante, textosBotao, mensagemErro) {
     });
 }
 
-function ligarMicrofoneParticipante(participante) {
-    clickBotao(
-        participante,
-        ['unmute', 'ativar som'],
-        'Não foi possível LIGAR o áudio! Verifique o nome do participante.'
-    );
+function ligarMicrofoneParticipante(participante, tentativaPersistente) {
+    /* cancelar nova tentativa se participante ja ligou microfone */
+    if (isMicrofoneLigado(participante)) return;
+
+    const mensagemErro = 'Não foi possível LIGAR o microfone! Verifique o nome do participante.';
+
+    clickBotao(participante, textoLigarMicrofone, mensagemErro);
+
+    if (participante && tentativaPersistente) {
+        const nomeRotina = `ligar_som_${getNomeParticipante(participante)}`;
+
+        /* iniciar temporizador para aguardar participante liberar microfone */
+        dispararRotina(nomeRotina, 2000, () => {
+            if (isMicrofoneLigado(participante)) {
+                removerAvisoGeral(mensagemErro);
+                encerrarRotina(nomeRotina);
+                atualizarTela();
+            } else {
+                /* registrar log de tentativa em andamento */
+                if (!avisosDeRotinas['tentativasPersistentes'].includes(nomeRotina)) {
+                    avisosDeRotinas['tentativasPersistentes'].push(nomeRotina);
+                    atualizarTela();
+                }
+
+                clickBotao(participante, textoLigarMicrofone, mensagemErro);
+            }
+        });
+    }
 }
 
 function desligarMicrofoneParticipante(participante) {
     clickBotao(
         participante,
-        ['mute', 'desativar som'],
+        textoDesligarMicrofone,
         'Não foi possível DESLIGAR o áudio! Verifique o nome do participante.'
     );
 }
@@ -744,22 +785,22 @@ function ligarVideoParticipante(participante, callback) {
 
     /* se houverem instrucoes para executar apos video ser ligado, ativa um temporizador */
     if (participante && callback) {
-        const nome = getNomeParticipante(participante);
+        const nomeRotina = `ligar_video_${getNomeParticipante(participante)}`;
 
         /* iniciar temporizador para aguardar participante liberar video */
         let repeticoes = 0;
-        dispararRotina(nome, 500, () => {
+        dispararRotina(nomeRotina, 500, () => {
             repeticoes++;
             if (isVideoLigado(participante)) {
-                avisosDeRotinas['tentativaAbrirVideo'] = avisosDeRotinas['tentativaAbrirVideo'].filter(aviso => aviso !== nome);
+                avisosDeRotinas['tentativasPersistentes'] = avisosDeRotinas['tentativasPersistentes'].filter(aviso => aviso !== nomeRotina);
                 removerAvisoGeral(mensagemErro);
-                encerrarRotina(nome);
+                encerrarRotina(nomeRotina);
                 atualizarTela();
                 callback();
             } else {
                 /* registrar log de tentativa em andamento */
-                if (!avisosDeRotinas['tentativaAbrirVideo'].includes(nome)) {
-                    avisosDeRotinas['tentativaAbrirVideo'].push(nome);
+                if (!avisosDeRotinas['tentativasPersistentes'].includes(nomeRotina)) {
+                    avisosDeRotinas['tentativasPersistentes'].push(nomeRotina);
                     atualizarTela();
                 }
                 /* aguardar tempo suficiente para nova tentativa */
@@ -802,35 +843,8 @@ function desligarSpotlight() {
 }
 
 function ligarMicrofones() {
-    const textos = ['mute all', 'unmute all', 'desativar som de todos', 'ativar som de todos'];
-    const textosMuteAll = ['mute all', 'desativar som de todos'];
-    const btn = Array
-        .from(document.querySelectorAll('.participants-section-container__participants-footer button'))
-        .find(btn => textos.includes(btn.innerText.toLowerCase()));
-
-    if (!btn) return;
-
-    /* se botao estiver na opcao silenciar todos, entao sera preciso desligar para depois ligar microfones */
-    if (textosMuteAll.includes(btn.innerText.toLowerCase())) {
-        /* abrir modal para silenciar todos */
-        btn.click();
-
-        const btnConfirmarMute = document.querySelector('.zm-modal-footer-default-actions .zm-btn--primary');
-        const checkboxPermitirUnmute = document.querySelector('.zm-modal-footer-default-checkbox .zm-checkbox');
-
-        /* desmarcar a opcao 'participantes desativem o mudo' */
-        if (checkboxPermitirUnmute) {
-            checkboxPermitirUnmute.setAttribute('aria-checked', 'false');
-            checkboxPermitirUnmute.removeAttribute('class');
-            checkboxPermitirUnmute.setAttribute('class', 'zm-checkbox');
-        }
-
-        /* confirmar opcao silenciar todos para que surja a opcao para liberar microfones */
-        btnConfirmarMute && btnConfirmarMute.click();
-    }
-
-    /* por fim, liberar todos os microfones */
-    btn.click();
+    abrirPainelParticipantes();
+    getParticipantes().forEach(participante => ligarMicrofoneParticipante(participante));
 }
 
 function desligarMicrofones(execoes) {
@@ -879,7 +893,7 @@ function focarNoDirigente() {
     ligarVideoParticipante(dirigente, () => {
         /* quando o dirigente iniciar seu video */
         spotlightParticipante(dirigente);
-        ligarMicrofoneParticipante(dirigente);
+        ligarMicrofoneParticipante(dirigente, true);
         /* para evitar distracoes com autofoco, manter o presidente em foco ate que dirigente inicie seu video */
         desligarVideoParticipante(selecionarParticipante(identificacaoPresidente));
     });
@@ -904,7 +918,7 @@ function focarNoLeitor() {
     ligarVideoParticipante(leitor, () => {
         /* quando o leitor iniciar seu video */
         spotlightParticipante(leitor);
-        ligarMicrofoneParticipante(leitor);
+        ligarMicrofoneParticipante(leitor, true);
     });
 }
 
@@ -922,7 +936,7 @@ function focarNoPresidente() {
     /* ligar video do presidente */
     ligarVideoParticipante(presidente, () => {
         /* quando o presidente iniciar seu video */
-        ligarMicrofoneParticipante(presidente);
+        ligarMicrofoneParticipante(presidente, true);
         spotlightParticipante(presidente);
         desligarVideos([presidente]); /* exceto presidente */
     });
@@ -946,11 +960,11 @@ function focarNoOrador() {
     ligarVideoParticipante(orador, () => {
         /* quando o orador iniciar seu video */
         spotlightParticipante(orador);
-        ligarMicrofoneParticipante(orador);
+        ligarMicrofoneParticipante(orador, true);
     });
 }
 
-function focarEmQualquerUm() {
+function focarCustomizado() {
     abrirPainelParticipantes();
     const texto = prompt('Informe como (nome ou palavra no nome) encontrar o participante.\n\n(Dica: use uma identificação diferente em cada participante)');
     if (!texto) alert('Nome não informado. Nenhuma ação será tomada. Tente novamente');
@@ -969,7 +983,7 @@ function focarEmQualquerUm() {
         /* quando o participante informado iniciar seu video */
         desligarVideos([alvo]);
         spotlightParticipante(alvo);
-        ligarMicrofoneParticipante(alvo);
+        ligarMicrofoneParticipante(alvo, true);
     });
 }
 
@@ -999,7 +1013,7 @@ function finalizarDiscurso() {
     setTimeout(() => ligarVideoParticipante(presidente, () => {
         /* quando o presidente iniciar seu video */
         spotlightParticipante(presidente);
-        ligarMicrofoneParticipante(presidente);
+        ligarMicrofoneParticipante(presidente, true);
     }), 4000);
 
     logarAvisoGeral(aviso);
@@ -1059,12 +1073,14 @@ var identificacaoOrador = 'orador';
 
 var textoPararVideo = ['stop video', 'parar vídeo'];
 var textoCancelarSpotlight = ['cancel the spotlight video', 'cancelar vídeo de destaque'];
+var textoLigarMicrofone = ['ask to unmute', 'pedir para ativar som', 'unmute', 'ativar som'];
+var textoDesligarMicrofone = ['mute', 'desativar som'];
 
 var intervalosEmExecucao = intervalosEmExecucao || {};
 var cache = {};
 var avisosGerais = [];
 var avisosDeRotinas = {
-    tentativaAbrirVideo: [],
+    tentativasPersistentes: [],
     validarVideosLigadosNaAssistencia: [],
     validarNomesForaDoPadrao: [],
     registrarEntradaNaSalaComNomeInvalido: [],
@@ -1078,6 +1094,7 @@ var observer = observer || null;
 criarCss();
 desenharModal();
 criarBotaoOpcoesCustomizadas();
+iniciarEventosPainelParticipantes();
 
 /* TODO: MELHORIAS */
 /* usar icones de cadeado, checkbox_on e checkbox_off nos servicos */
