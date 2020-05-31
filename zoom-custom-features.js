@@ -886,11 +886,12 @@ function focarNoDirigente() {
     /* desligar video de todos participantes, exceto dirigente, leitor e presidente */
     desligarVideos([dirigente, leitor, presidente]);
 
-    /* silenciar todos exceto dirigente */
-    desligarMicrofones([dirigente]);
+    /* silenciar todos exceto dirigente e leitor */
+    desligarMicrofones([dirigente, leitor]);
 
     /* ligar video do dirigente */
     ligarVideoParticipante(dirigente, () => {
+        const dirigente = selecionarParticipante(identificacaoDirigente);
         /* quando o dirigente iniciar seu video */
         spotlightParticipante(dirigente);
         ligarMicrofoneParticipante(dirigente, true);
@@ -911,8 +912,8 @@ function focarNoLeitor() {
     /* desligar video de todos participantes, exceto dirigente e leitor */
     desligarVideos([dirigente, leitor]);
 
-    /* silenciar todos participantes, exceto leitor */
-    desligarMicrofones([leitor]);
+    /* silenciar todos participantes, exceto leitor e dirigente */
+    desligarMicrofones([leitor, dirigente]);
 
     /* ligar video do leitor */
     ligarVideoParticipante(leitor, () => {
@@ -1097,4 +1098,7 @@ criarBotaoOpcoesCustomizadas();
 iniciarEventosPainelParticipantes();
 
 /* TODO: MELHORIAS */
-/* usar icones de cadeado, checkbox_on e checkbox_off nos servicos */
+/*
+usuário adicionar botoes novos de foco
+remover listas
+*/
