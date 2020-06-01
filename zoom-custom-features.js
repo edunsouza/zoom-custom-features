@@ -38,10 +38,6 @@ function admitirEntradaNaSalaComNomeValido() {
             const btnPermitir = participante.querySelector('.btn-primary');
             if (btnPermitir) {
                 btnPermitir.click();
-                /* remover avisos duplicados */
-                avisosDeRotinas['admitirEntradaNaSalaComNomeValido'] = Array.from(
-                    new Set(avisosDeRotinas['admitirEntradaNaSalaComNomeValido']).add(nome)
-                );
             }
         } else {
             invalidos.push(nome);
@@ -68,12 +64,11 @@ function validarNomesForaDoPadrao() {
 
 function getNomeRotina(id) {
     return {
-        validarVideosLigadosNaAssistencia: 'Vídeos ligados na assistência',
-        admitirEntradaNaSalaComNomeValido: 'Liberados automaticamente da sala de espera',
-        registrarEntradaNaSalaComNomeInvalido: 'Nomes inválidos (mantidos na sala de espera)',
-        validarNomesForaDoPadrao: 'Nomes inválidos na assistência',
-        avisosGerais: 'Avisos gerais',
         tentativasPersistentes: 'Tentativas em andamento (desmarque para abortar)',
+        validarVideosLigadosNaAssistencia: 'Vídeos ligados na assistência',
+        validarNomesForaDoPadrao: 'Nomes inválidos na assistência',
+        registrarEntradaNaSalaComNomeInvalido: 'Nomes inválidos (mantidos na sala de espera)',
+        botoesFocoCustomizado: 'Botões de foco customizado (Útil para a reunião de semana)'
     }[id];
 }
 
@@ -84,11 +79,10 @@ function atualizarTela() {
     validarVideosLigadosNaAssistencia();
     atualizarAssistencia();
     atualizarAvisosDeRotinas();
-    atualizarAvisosGerais();
 }
 
 function interromperSolicitaoPersistente(idSolicitacao) {
-    avisosDeRotinas['tentativasPersistentes'] = avisosDeRotinas['tentativasPersistentes'].filter(id => id !== idSolicitacao);
+    avisosDeRotinas['tentativasPersistentes'] = avisosDeRotinas['tentativasPersistentes'].filter(id => id != idSolicitacao);
     encerrarRotina(idSolicitacao);
     atualizarTentativasPersistentes();
 }
@@ -112,6 +106,21 @@ function atualizarTentativasPersistentes() {
     });
 }
 
+function atualizarBotoesFocoCustomizado() {
+    const ul = document.getElementById(btoa('botoesFocoCustomizado'));
+    ul.querySelectorAll('li').forEach(li => li.remove());
+
+    avisosDeRotinas['botoesFocoCustomizado'].forEach(btnCustomizado => {
+        const btn = document.createElement('button');
+        btn.innerText = btnCustomizado.alvo;
+        btn.setAttribute('class', 'btn btn-danger');
+        btn.onclick = () => btnCustomizado.click();
+        const li = document.createElement('li');
+        li.appendChild(btn);
+        ul.appendChild(li);
+    });
+}
+
 function atualizarAvisosDeRotinas() {
     Object.keys(avisosDeRotinas).forEach(rotina => {
         const novoCache = btoa(avisosDeRotinas[rotina].join(''));
@@ -128,6 +137,11 @@ function atualizarAvisosDeRotinas() {
                 return;
             }
 
+            if (rotina == 'botoesFocoCustomizado') {
+                atualizarBotoesFocoCustomizado();
+                return;
+            }
+
             /* repopular lista */
             avisosDeRotinas[rotina].forEach(aviso => {
                 const li = document.createElement('li');
@@ -140,24 +154,6 @@ function atualizarAvisosDeRotinas() {
             cache[rotina] = novoCache;
         }
     });
-}
-
-function atualizarAvisosGerais() {
-    const novoCache = btoa(avisosGerais.join(''));
-    const listaAvisosGerais = document.getElementById(btoa('avisosGerais'));
-    /* atualizar lista somente se tiver novos dados */
-    if (cache['avisosGerais'] != novoCache && listaAvisosGerais) {
-        /* limpar feed de logs antigos */
-        listaAvisosGerais.querySelectorAll('*').forEach(li => li.remove());
-        /* redesenhar lista com novos dados */
-        avisosGerais.forEach(aviso => {
-            const li = document.createElement('li');
-            li.innerText = aviso;
-            listaAvisosGerais.appendChild(li);
-        });
-        /* atualizar cache */
-        cache['avisosGerais'] = novoCache;
-    }
 }
 
 function atualizarAssistencia() {
@@ -179,16 +175,6 @@ function limparAvisosAntigos() {
             avisosDeRotinas[rotina] = avisosUnicos.slice(-10);
         }
     });
-}
-
-function logarAvisoGeral(aviso) {
-    avisosGerais = Array.from(new Set(avisosGerais).add(aviso)).slice(-10);
-}
-
-function removerAvisoGeral(aviso) {
-    if (aviso && avisosGerais.includes(aviso)) {
-        avisosGerais = avisosGerais.filter(a => aviso !== a);
-    }
 }
 
 function dispararRotina(nomeRotina, tempoEmMilissengudos, callback) {
@@ -278,10 +264,10 @@ function desenharFrameBotoes() {
             confirmar: 'Tem certeza que deseja DESLIGAR TODOS OS VÍDEOS E MICROFONES?'
         },
         {
-            nome: 'Foco customizado',
+            nome: 'Criar novo botão de foco',
             icone: 'participante',
-            classe: 'btn-danger',
-            click: focarCustomizado
+            classe: 'btn-success',
+            click: criarFocoCustomizado
         },
         {
             nome: 'Finalizar discurso',
@@ -313,7 +299,7 @@ function desenharFrameBotoes() {
             icone: 'leitor',
             classe: 'btn-primary',
             click: focarNoLeitor
-        }
+        },
     ];
 
     /* construir botoes principais */
@@ -410,6 +396,19 @@ function desenharFrameServicos() {
         tituloRotina.setAttribute('class', 'titulo-lista-rotina');
         tituloRotina.innerText = getNomeRotina(rotina);
         div.appendChild(tituloRotina);
+
+        /* botoes de foco customizado */
+        if (rotina == 'botoesFocoCustomizado') {
+            avisosDeRotinas[rotina].forEach(btnCustomizado => {
+                const btn = document.createElement('button');
+                btn.setAttribute('class', 'btn btn-danger');
+                btn.setAttribute('value', btnCustomizado.alvo);
+                btn.onclick = () => btnCustomizado.click();
+                const li = document.createElement('li');
+                li.appendChild(btn);
+                ul.appendChild(li);
+            });
+        }
 
         /* adicionar lista na sessao */
         ul.id = btoa(rotina);
@@ -555,6 +554,17 @@ function criarCss() {
         .titulo-lista-rotina + ul li:nth-child(2n) {
             background-color: #c1c2c38a;
         }
+        #rotinas-background > :last-child {
+            grid-column: span 2;
+        }
+        #rotinas-background > :last-child > ul {
+            display: grid;
+            grid-template-columns: auto auto auto auto;
+            opacity: 0.8;
+        }
+        #rotinas-background > :last-child li {
+            background-color: unset;
+        }
     `;
     document.body.appendChild(css);
 }
@@ -582,7 +592,7 @@ function criarIcone(tipo, id) {
         orador: 'record_voice_over',
         finalizarDiscurso: 'voice_over_off',
         presidente: 'person',
-        participante: 'face',
+        participante: 'person_add',
         dirigente: 'group',
         leitor: 'supervisor_account',
         assistencia: 'airline_seat_recline_normal',
@@ -708,9 +718,8 @@ function isSpotlightLigado(participante) {
     return getBotoesDropdown(participante).some(btn => textoCancelarSpotlight.includes(btn.innerText.toLowerCase()));
 }
 
-function clickBotao(participante, textosBotao, mensagemErro) {
+function clickBotao(participante, textosBotao) {
     if (!participante) {
-        logarAvisoGeral(mensagemErro || 'Um click em botão foi perdido');
         atualizarTela();
         return;
     }
@@ -720,9 +729,8 @@ function clickBotao(participante, textosBotao, mensagemErro) {
     ));
 }
 
-function clickDropdown(participante, textosBotao, mensagemErro) {
+function clickDropdown(participante, textosBotao) {
     if (!participante) {
-        logarAvisoGeral(mensagemErro || 'Um click em dropdown foi perdido');
         atualizarTela();
         return;
     }
@@ -730,27 +738,28 @@ function clickDropdown(participante, textosBotao, mensagemErro) {
     getBotoesDropdown(participante).some(btn => {
         if (textosBotao.includes(btn.innerText.toLowerCase())) {
             btn.click();
-            removerAvisoGeral(mensagemErro);
             return true;
         }
     });
 }
 
 function ligarMicrofoneParticipante(participante, tentativaPersistente) {
+    const nomeRotina = `ligar_som_${getNomeParticipante(participante)}`;
+
     /* cancelar nova tentativa se participante ja ligou microfone */
-    if (isMicrofoneLigado(participante)) return;
+    if (isMicrofoneLigado(participante)) {
+        encerrarRotina(nomeRotina);
+        atualizarTela();
+        return;
+    }
 
-    const mensagemErro = 'Não foi possível LIGAR o microfone! Verifique o nome do participante.';
-
-    clickBotao(participante, textoLigarMicrofone, mensagemErro);
+    clickBotao(participante, textoLigarMicrofone);
 
     if (participante && tentativaPersistente) {
-        const nomeRotina = `ligar_som_${getNomeParticipante(participante)}`;
-
         /* iniciar temporizador para aguardar participante liberar microfone */
         dispararRotina(nomeRotina, 2000, () => {
             if (isMicrofoneLigado(participante)) {
-                removerAvisoGeral(mensagemErro);
+                avisosDeRotinas['tentativasPersistentes'] = avisosDeRotinas['tentativasPersistentes'].filter(tentativa => tentativa != nomeRotina);
                 encerrarRotina(nomeRotina);
                 atualizarTela();
             } else {
@@ -760,18 +769,14 @@ function ligarMicrofoneParticipante(participante, tentativaPersistente) {
                     atualizarTela();
                 }
 
-                clickBotao(participante, textoLigarMicrofone, mensagemErro);
+                clickBotao(participante, textoLigarMicrofone);
             }
         });
     }
 }
 
 function desligarMicrofoneParticipante(participante) {
-    clickBotao(
-        participante,
-        textoDesligarMicrofone,
-        'Não foi possível DESLIGAR o áudio! Verifique o nome do participante.'
-    );
+    clickBotao(participante, textoDesligarMicrofone);
 }
 
 function ligarVideoParticipante(participante, callback) {
@@ -779,9 +784,8 @@ function ligarVideoParticipante(participante, callback) {
     if (isVideoLigado(participante)) return callback && callback();
 
     const textosBotao = ['ask for start video', 'start video', 'pedir para iniciar vídeo', 'iniciar vídeo'];
-    const mensagemErro = 'Não foi possível LIGAR o vídeo! Verifique o nome do participante.';
 
-    clickDropdown(participante, textosBotao, mensagemErro);
+    clickDropdown(participante, textosBotao);
 
     /* se houverem instrucoes para executar apos video ser ligado, ativa um temporizador */
     if (participante && callback) {
@@ -792,8 +796,7 @@ function ligarVideoParticipante(participante, callback) {
         dispararRotina(nomeRotina, 500, () => {
             repeticoes++;
             if (isVideoLigado(participante)) {
-                avisosDeRotinas['tentativasPersistentes'] = avisosDeRotinas['tentativasPersistentes'].filter(aviso => aviso !== nomeRotina);
-                removerAvisoGeral(mensagemErro);
+                avisosDeRotinas['tentativasPersistentes'] = avisosDeRotinas['tentativasPersistentes'].filter(aviso => aviso != nomeRotina);
                 encerrarRotina(nomeRotina);
                 atualizarTela();
                 callback();
@@ -804,9 +807,9 @@ function ligarVideoParticipante(participante, callback) {
                     atualizarTela();
                 }
                 /* aguardar tempo suficiente para nova tentativa */
-                if (repeticoes >= 10) {
+                if (repeticoes >= 8) {
                     repeticoes = 0;
-                    clickDropdown(participante, textosBotao, mensagemErro);
+                    clickDropdown(participante, textosBotao);
                 }
             }
         });
@@ -814,29 +817,18 @@ function ligarVideoParticipante(participante, callback) {
 }
 
 function desligarVideoParticipante(participante) {
-    clickDropdown(
-        participante,
-        textoPararVideo,
-        'Não foi possível DESLIGAR o vídeo! Verifique o nome do participante.'
-    );
+    clickDropdown(participante, textoPararVideo);
 }
 
 function spotlightParticipante(participante) {
-    clickDropdown(participante,
-        ['spotlight video', 'vídeo de destaque'],
-        'Não foi possível ACIONAR SPOTLIGHT! Verifique o nome do participante.'
-    );
+    clickDropdown(participante, ['spotlight video', 'vídeo de destaque']);
 }
 
 function desligarSpotlight() {
     abrirPainelParticipantes();
     getParticipantes().some(participante => {
         if (isSpotlightLigado(participante)) {
-            clickDropdown(
-                participante,
-                textoCancelarSpotlight,
-                'Não foi possível DESLIGAR o spolight! Verifique o nome do participante.'
-            );
+            clickDropdown(participante, textoCancelarSpotlight);
             return true;
         }
     });
@@ -965,32 +957,47 @@ function focarNoOrador() {
     });
 }
 
-function focarCustomizado() {
+function criarFocoCustomizado() {
     abrirPainelParticipantes();
     const texto = prompt('Informe como (nome ou palavra no nome) encontrar o participante.\n\n(Dica: use uma identificação diferente em cada participante)');
     if (!texto) alert('Nome não informado. Nenhuma ação será tomada. Tente novamente');
 
     const alvo = selecionarParticipante(texto);
-    if (!alvo) return alert('Não encontrado!\nCom permissão de anfitrião (host) identifique-o renomeando.\nExemplo: Charles T. Russel - joias-espirituais');
+    if (!alvo) return alert('Não encontrado! Experimente outras palavras');
 
-    const confirmar = confirm(`Participante encontrado: ${getNomeParticipante(alvo)}\n\nDESEJA COLOCAR ESTE PARTICIPANTE EM FOCO PARA TODOS?\nClick em cancelar para abortar operação`);
+    const confirmar = confirm(`Participante encontrado: ${getNomeParticipante(alvo)}\n\nDeseja criar um novo botão para focar neste participante?`);
     if (!confirmar) return;
 
-    /* silenciar todos participantes, exceto participante informado */
-    desligarMicrofones([alvo]);
+    const nomeParticipante = getNomeParticipante(alvo);
+    const btn = {
+        alvo: nomeParticipante,
+        click: () => {
+            if (!confirm(`Tem certeza que desejar pôr ${nomeParticipante.toUpperCase()} em foco?`)) {
+                return;
+            }
+            /* silenciar todos participantes, exceto participante informado */
+            desligarMicrofones([alvo]);
 
-    /* ligar video do participante informado */
-    ligarVideoParticipante(alvo, () => {
-        /* quando o participante informado iniciar seu video */
-        desligarVideos([alvo]);
-        spotlightParticipante(alvo);
-        ligarMicrofoneParticipante(alvo, true);
-    });
+            /* ligar video do participante informado */
+            ligarVideoParticipante(alvo, () => {
+                /* quando o participante informado iniciar seu video */
+                desligarVideos([alvo]);
+                spotlightParticipante(alvo);
+                ligarMicrofoneParticipante(alvo, true);
+            });
+        }
+    };
+
+    /* adicionar botao novo, sempre removendo as repeticoes */
+    const botoes = avisosDeRotinas['botoesFocoCustomizado'].filter(bfc => bfc.alvo != btn.alvo);
+    botoes.push(btn);
+
+    avisosDeRotinas['botoesFocoCustomizado'] = botoes;
+    atualizarTela();
 }
 
 function finalizarDiscurso() {
     abrirPainelParticipantes();
-    const aviso = 'Aguarde!\nApós as palmas, o presidente será automaticamente acionado.\nAguarde até o presidente anunciar o dirgente.';
     const presidente = selecionarParticipante(identificacaoPresidente);
 
     /* desligar video de todos participantes */
@@ -1006,7 +1013,6 @@ function finalizarDiscurso() {
     setTimeout(() => {
         desligarMicrofones();
         document.querySelectorAll('.btn-funcionalidade').forEach(btn => btn.classList.remove('disabled'));
-        removerAvisoGeral(aviso);
         atualizarTela();
     }, 8000);
 
@@ -1017,7 +1023,6 @@ function finalizarDiscurso() {
         ligarMicrofoneParticipante(presidente, true);
     }), 4000);
 
-    logarAvisoGeral(aviso);
     atualizarTela();
 }
 
@@ -1079,14 +1084,12 @@ var textoDesligarMicrofone = ['mute', 'desativar som'];
 
 var intervalosEmExecucao = intervalosEmExecucao || {};
 var cache = {};
-var avisosGerais = [];
 var avisosDeRotinas = {
     tentativasPersistentes: [],
     validarVideosLigadosNaAssistencia: [],
     validarNomesForaDoPadrao: [],
     registrarEntradaNaSalaComNomeInvalido: [],
-    admitirEntradaNaSalaComNomeValido: [],
-    avisosGerais,
+    botoesFocoCustomizado: avisosDeRotinas ? avisosDeRotinas['botoesFocoCustomizado'] : [],
 };
 
 /* RESPONSAVEL POR OUVIR MUDANCAS NO PAINEL DOS PARTICIPANTES */
@@ -1096,9 +1099,3 @@ criarCss();
 desenharModal();
 criarBotaoOpcoesCustomizadas();
 iniciarEventosPainelParticipantes();
-
-/* TODO: MELHORIAS */
-/*
-usuário adicionar botoes novos de foco
-remover listas
-*/
