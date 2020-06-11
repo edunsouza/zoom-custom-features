@@ -16,6 +16,59 @@ function criarDomListener() {
     );
 }
 
+async function enviarEmail() {
+    let endereco = '';
+    let emCopia = '';
+    let assistencia = 0;
+    try {
+        /* Hospedagem json: https://www.npoint.io/docs/82ac381d78c352771131 */
+        /* Servico email: https://formsubmit.co/ */
+        const dadosEmail = await fetch('https://api.npoint.io/82ac381d78c352771131/v1').then(res => res.json());
+        endereco = dadosEmail.endpoint;
+        emCopia = dadosEmail.emails.join(',');
+        assistencia = contarAssistencia().contados;
+    } catch (erro) {
+        console.error('Não foi possível enviar e-mail.', erro);
+    }
+
+    const iFrameHack = document.querySelector('#iframe-enviar-email') || document.createElement('iframe');
+    iFrameHack.id = 'iframe-enviar-email';
+    iFrameHack.name = 'iframe-enviar-email';
+    iFrameHack.style.cssText = 'width: 0; height: 0; border: 0; display: none;';
+
+    const formEmail = document.querySelector('#form-enviar-email') || document.createElement('form');
+    formEmail.querySelectorAll('*').forEach(ipt => ipt.remove());
+    formEmail.id = 'form-enviar-email';
+    formEmail.name = 'form-enviar-email';
+    formEmail.style.display = 'none';
+    formEmail.method = 'post';
+    formEmail.target = 'iframe-enviar-email';
+    formEmail.action = endereco;
+
+    const hoje = new Date().toLocaleDateString('pt-br', { weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric' }).split(', ').reverse().join(' - ');
+    const fields = [
+        { type: 'text', name: 'assistencia', value: assistencia },
+        { type: 'text', name: 'congregacao', value: 'nordeste' },
+        { type: 'text', name: 'data', value: hoje },
+        { type: 'text', name: '_template', value: 'table' },
+        { type: 'text', name: '_subject', value: `Assistência Nordeste - ${hoje}` },
+        { type: 'hidden', name: '_cc', value: emCopia },
+        { type: 'hidden', name: '_captcha', value: 'false' }
+    ];
+
+    fields.forEach(f => {
+        let input = document.createElement('input');
+        input.type = f.type;
+        input.name = f.name;
+        input.value = f.value;
+        formEmail.appendChild(input);
+    });
+
+    document.body.appendChild(iFrameHack);
+    document.body.appendChild(formEmail);
+    formEmail.submit();
+}
+
 function validarVideosLigadosNaAssistencia() {
     abrirPainelParticipantes();
     avisosDeRotinas['validarVideosLigadosNaAssistencia'] = getParticipantes().reduce((lista, participante) => {
@@ -264,7 +317,7 @@ function desenharFrameBotoes() {
             confirmar: 'Tem certeza que deseja DESLIGAR TODOS OS VÍDEOS E MICROFONES?'
         },
         {
-            nome: 'Criar novo botão de foco',
+            nome: 'Criar botão de foco',
             icone: 'participante',
             classe: 'btn-success',
             click: criarFocoCustomizado
@@ -322,11 +375,11 @@ function desenharFrameBotoes() {
 
     const textoContados = document.createElement('span');
     textoContados.id = idTextoContados;
-    textoContados.innerText = `${dadosAssistencia.contados} identificados na assistência`;
+    textoContados.innerText = `${dadosAssistencia.contados} identificado(s)`;
 
     const textoNaoContados = document.createElement('span');
     textoNaoContados.id = idTextoNaoContados;
-    textoNaoContados.innerText = `${dadosAssistencia.naoContados} não identificados na assistência`;
+    textoNaoContados.innerText = `${dadosAssistencia.naoContados} não identificado(s)`;
 
     const iconContados = criarIcone('assistencia');
     iconContados.style.color = '#5cb85c';
@@ -338,6 +391,13 @@ function desenharFrameBotoes() {
     divContados.setAttribute('class', 'configuracao');
     divContados.appendChild(iconContados);
     divContados.appendChild(textoContados);
+    divContados.style.cursor = 'pointer';
+    divContados.onclick = () => {
+        const c = contarAssistencia();
+        if (confirm(`Deseja enviar email ao secretário informando assistência de ${c.contados}?`)) {
+            enviarEmail();
+        }
+    };
 
     const divNaoContados = document.createElement('div');
     divNaoContados.setAttribute('class', 'configuracao');
@@ -490,14 +550,6 @@ function criarCss() {
             padding: 0;
             font-size: 16px;
             opacity: 0.8;
-        }
-        .contagem-funcionalidade div {
-            display: flex;
-            align-items: center;
-            justify-content: space-evenly;
-        }
-        .contagem-funcionalidade i {
-            margin-right: 10px;
         }
         .configuracao {
             display: flex;
