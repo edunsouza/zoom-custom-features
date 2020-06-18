@@ -117,7 +117,7 @@ function validarNomesForaDoPadrao() {
 
 function getNomeRotina(id) {
     return {
-        tentativasPersistentes: 'Tentativas em andamento (desmarque para abortar)',
+        tentativasPersistentes: 'Rotinas em andamento (click para abortar)',
         validarVideosLigadosNaAssistencia: 'Vídeos ligados na assistência',
         validarNomesForaDoPadrao: 'Nomes inválidos na assistência',
         registrarEntradaNaSalaComNomeInvalido: 'Nomes inválidos (mantidos na sala de espera)',
@@ -168,8 +168,24 @@ function atualizarBotoesFocoCustomizado() {
         btn.innerText = btnCustomizado.alvo;
         btn.setAttribute('class', 'btn btn-danger');
         btn.onclick = () => btnCustomizado.click();
+
+        const icon = criarIcone('fechar');
+        icon.onclick = () => excluirBotaoFocoCustomizado(btnCustomizado.id);
+        icon.style.cssText = `
+            font-size: 30px;
+            cursor: pointer;
+        `;
+
         const li = document.createElement('li');
+        li.style.cssText = `
+            display: grid;
+            grid-template-columns: auto 1fr;
+            max-height: 55px;
+            align-items: center;
+        `;
+
         li.appendChild(btn);
+        li.appendChild(icon);
         ul.appendChild(li);
     });
 }
@@ -247,42 +263,25 @@ function criarBotaoOpcoesCustomizadas() {
     if (btnAntigo) btnAntigo.remove();
 
     /* recriar o botao ao executar script para manter atualizado */
-    const btnAbrirModal = document.createElement('button');
-    btnAbrirModal.id = idBotao;
-    btnAbrirModal.innerText = 'Opções customizadas';
-    btnAbrirModal.style.marginRight = '20px';
-    btnAbrirModal.onclick = abrirModal;
+    const btnOpcoesCustomizadas = document.createElement('button');
+    btnOpcoesCustomizadas.id = idBotao;
+    btnOpcoesCustomizadas.innerText = 'Opções customizadas';
+    btnOpcoesCustomizadas.style.marginRight = '20px';
+    btnOpcoesCustomizadas.onclick = alternarModal;
     /* adicionar botao na barra de acoes do zoom */
-    document.querySelector('#wc-footer').appendChild(btnAbrirModal);
+    document.querySelector('#wc-footer').appendChild(btnOpcoesCustomizadas);
 }
 
 function desenharModal() {
-    const modalBackdrop = document.getElementById(idModalBackdrop);
     const modal = document.getElementById(idModal);
     /* limpar componentes anteriores */
-    if (modalBackdrop) modalBackdrop.remove();
     if (modal) modal.remove();
 
-    const backdrop = desenharModalBackdrop();
     const painelOpcoes = desenharPainelPrincipal();
-
-    /* fechar modal clicando fora do conteudo */
-    backdrop.onclick = () => fecharModal();
-
     /* esconder modal ao iniciar script */
     painelOpcoes.style.display = 'none';
-    backdrop.style.display = 'none';
-
     /* adicionar na tela */
-    document.body.appendChild(backdrop);
     document.body.appendChild(painelOpcoes);
-}
-
-function desenharModalBackdrop() {
-    const backdrop = document.createElement('div');
-    backdrop.id = idModalBackdrop;
-    backdrop.setAttribute('class', 'backdrop-principal');
-    return backdrop;
 }
 
 function desenharPainelPrincipal() {
@@ -317,10 +316,11 @@ function desenharFrameBotoes() {
             confirmar: 'Tem certeza que deseja DESLIGAR TODOS OS VÍDEOS E MICROFONES?'
         },
         {
-            nome: 'Criar botão de foco',
-            icone: 'participante',
-            classe: 'btn-success',
-            click: criarFocoCustomizado
+            nome: `Palmas (ativa por ${tempoDePalmas / 1000}s)`,
+            icone: 'microfone',
+            classe: 'btn-danger btn-palmas',
+            click: liberarPalmas,
+            confirmar: `Tem certeza que deseja LIBERAR AS PALMAS?\n\nOs microfones ficarão ligados por ${tempoDePalmas / 1000} segundos.`
         },
         {
             nome: 'Finalizar discurso',
@@ -352,6 +352,12 @@ function desenharFrameBotoes() {
             icone: 'leitor',
             classe: 'btn-primary',
             click: focarNoLeitor
+        },
+        {
+            nome: 'Criar botão de foco customizado por nome',
+            icone: 'participante',
+            classe: 'btn-success full',
+            click: criarFocoCustomizado
         },
     ];
 
@@ -487,31 +493,25 @@ function desenharFrameServicos() {
 }
 
 function criarCss() {
+    abrirPainelParticipantes();
+    const larguraPainelParticipantes = parseInt(document.querySelector('#wc-container-right').style.width);
+    const alturaBotoesRodape = document.querySelector('#wc-footer').clientHeight;
     const maiorZIndex = Math.max.apply(null, Array.from(document.querySelectorAll('body *')).map(({ style = {} }) => style.zIndex || 0));
-    const css = document.getElementById('estiloCustomizado') || document.createElement('style');
-    css.id = 'estiloCustomizado';
+    const css = document.getElementById('estilo-customizado') || document.createElement('style');
+    css.id = 'estilo-customizado';
     css.innerHTML = `
-        .backdrop-principal {
-            position: fixed;
-            top: 0px;
-            left: 0px;
-            height: ${window.screen.height}px;
-            width: ${window.screen.width}px;
-            background-color: black;
-            opacity: 0.7;
-            z-index: ${maiorZIndex + 1};
-        }
         .modal-principal {
             display: grid;
             grid-template-columns: 2fr 3fr;
+            overflow-y: scroll;
             position: fixed;
-            right: 5%;
-            left: 5%;
-            top: 5%;
-            height: 550px;
+            right: ${larguraPainelParticipantes + 5}px;
+            left: 5px;
+            top: 20px;
+            bottom: ${alturaBotoesRodape + 10}px;
             background-color: #edf2f7e6;
             border-radius: 10px;
-            font-size: 14px;
+            font-size: 12px;
             z-index: ${maiorZIndex + 2};
         }
         .modal-transparente {
@@ -522,11 +522,12 @@ function criarCss() {
         }
         .btn-fechar {
             position: absolute;
-            left: 96%;
-            top: 1%;
+            right: 0px;
+            top: 5px;
             opacity: 0.7;
-            font-size: 50px;
             cursor: pointer;
+            color: #ff4242;
+            font-size: 45px !important;
         }
         .frame-rotinas {
             display: grid;
@@ -538,30 +539,36 @@ function criarCss() {
         .frame-funcionalidades {
             display: grid;
             grid-template-columns: 1fr 1fr;
+            grid-template-rows: repeat(7, 1fr);
             gap: 5px;
             padding: 0;
             margin: 5px;
         }
         .btn-funcionalidade {
             display: flex;
-            flex-direction: row-reverse;
+            flex-direction: column-reverse;
             justify-content: space-evenly;
             align-items: center;
             padding: 0;
-            font-size: 16px;
+            font-size: 14px;
             opacity: 0.8;
+        }
+        .btn-funcionalidade.full {
+            flex-direction: row-reverse;
+            grid-column: span 2;
         }
         .configuracao {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: 14px;
             border-radius: 4px;
             color: #ffffff;
             background-color: #23272b;
         }
         .config-item {
             grid-column: span 2;
+            font-size: 12px;
         }
         .config-item * {
             margin: 0;
@@ -657,18 +664,21 @@ function criarIcone(tipo, id) {
     const icone = document.createElement('i');
     icone.id = id || btoa(Math.random());
     icone.setAttribute('class', 'material-icons-outlined');
-    icone.style.fontSize = '40px';
+    icone.style.fontSize = '35px';
     icone.innerText = tipos[tipo];
     return icone;
 }
 
-function abrirModal() {
-    document.getElementById(idModal).removeAttribute('style');
-    document.getElementById(idModalBackdrop).removeAttribute('style');
+function alternarModal() {
+    const modal = document.getElementById(idModal);
+    if (modal.style.display == 'none') {
+        modal.removeAttribute('style');
+    } else {
+        fecharModal();
+    }
 }
 
 function fecharModal() {
-    document.getElementById(idModalBackdrop).style.display = 'none';
     document.getElementById(idModal).style.display = 'none';
 }
 
@@ -1011,8 +1021,9 @@ function focarNoOrador() {
 
 function criarFocoCustomizado() {
     abrirPainelParticipantes();
-    const texto = prompt('Informe como (nome ou palavra no nome) encontrar o participante.\n\n(Dica: use uma identificação diferente em cada participante)');
-    if (!texto) alert('Nome não informado. Nenhuma ação será tomada. Tente novamente');
+    let texto = prompt('Informe como (nome ou palavra no nome) encontrar o participante.\n\n(Dica: use uma identificação diferente em cada participante)');
+    texto = texto.trim().toLocaleLowerCase();
+    if (!texto) return alert('Nome não informado. Nenhuma ação será tomada. Tente novamente');
 
     const alvo = selecionarParticipante(texto);
     if (!alvo) return alert('Não encontrado! Experimente outras palavras');
@@ -1022,6 +1033,7 @@ function criarFocoCustomizado() {
 
     const nomeParticipante = getNomeParticipante(alvo);
     const btn = {
+        id: btoa(nomeParticipante),
         alvo: nomeParticipante,
         click: () => {
             if (!confirm(`Tem certeza que desejar pôr ${nomeParticipante.toUpperCase()} em foco?`)) {
@@ -1048,6 +1060,25 @@ function criarFocoCustomizado() {
     atualizarTela();
 }
 
+function excluirBotaoFocoCustomizado(id) {
+    if (id) {
+        avisosDeRotinas['botoesFocoCustomizado'] = avisosDeRotinas['botoesFocoCustomizado'].filter(bfc => bfc.id != id);
+        atualizarBotoesFocoCustomizado();
+    }
+}
+
+function liberarPalmas() {
+    abrirPainelParticipantes();
+    /* ligar microfone de todos participantes para as palmas */
+    ligarMicrofones();
+    document.querySelector('.btn-palmas').classList.add('disabled');
+    setTimeout(() => {
+        desligarMicrofones();
+        document.querySelector('.btn-palmas').classList.remove('disabled');
+        atualizarTela();
+    }, tempoDePalmas);
+}
+
 function finalizarDiscurso() {
     abrirPainelParticipantes();
     const presidente = selecionarParticipante(identificacaoPresidente);
@@ -1066,14 +1097,14 @@ function finalizarDiscurso() {
         desligarMicrofones();
         document.querySelectorAll('.btn-funcionalidade').forEach(btn => btn.classList.remove('disabled'));
         atualizarTela();
-    }, 8000);
+    }, tempoDePalmas);
 
     /* ligar video do presidente antes de acabar as palmas */
     setTimeout(() => ligarVideoParticipante(presidente, () => {
         /* quando o presidente iniciar seu video */
         spotlightParticipante(presidente);
         ligarMicrofoneParticipante(presidente, true);
-    }), 4000);
+    }), tempoDePalmas / 2);
 
     atualizarTela();
 }
@@ -1120,8 +1151,8 @@ function contarAssistencia() {
 /* INICIO DO SCRIPT */
 var idTextoContados = 'texto-contados';
 var idTextoNaoContados = 'texto-nao-contados';
-var idModalBackdrop = 'modal-opcoes-reuniao';
 var idModal = 'opcoes-reuniao';
+var tempoDePalmas = 8000;
 
 /* PALAVRAS-CHAVE PARA ENCONTRAR PARTICIPANTES (NOMEAR PARTICIPANTE COM CHAVES ABAIXO) */
 var identificacaoDirigente = 'dirigente';
@@ -1151,3 +1182,7 @@ criarCss();
 desenharModal();
 criarBotaoOpcoesCustomizadas();
 iniciarEventosPainelParticipantes();
+
+/* TODO:
+    opcao renomear invalidos na assistencia
+*/
