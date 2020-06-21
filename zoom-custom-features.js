@@ -215,7 +215,7 @@ function atualizarAvisosDeRotinas() {
             /* repopular lista */
             avisosDeRotinas[rotina].forEach(aviso => {
                 const li = document.createElement('li');
-                li.setAttribute('class', 'checkbox');
+                li.setAttribute('class', 'zebrado');
                 li.innerText = aviso;
                 ulRotina.appendChild(li);
             });
@@ -364,10 +364,16 @@ function desenharFrameBotoes() {
             click: focarNoLeitor
         },
         {
-            nome: 'Criar botão de foco customizado por nome',
+            nome: 'Criar botão de foco',
             icone: 'participante',
-            classe: 'btn-success full',
+            classe: 'btn-success',
             click: criarFocoCustomizado
+        },
+        {
+            nome: 'Baixar mãos',
+            icone: 'mao',
+            classe: 'btn-success',
+            click: abaixarMaos
         },
     ];
 
@@ -427,7 +433,7 @@ function desenharFrameBotoes() {
 
     const textoModoTransparente = document.createElement('label');
     textoModoTransparente.setAttribute('for', 'modo-transparente');
-    textoModoTransparente.innerText = 'Ativar modo transparente (revela vídeo em destaque)';
+    textoModoTransparente.innerText = 'Modo transparente (exibe vídeo em destaque)';
 
     const divModoTransparente = document.createElement('div');
     divModoTransparente.setAttribute('class', 'configuracao config-item');
@@ -560,25 +566,21 @@ function criarCss() {
             justify-content: space-evenly;
             align-items: center;
             padding: 0;
-            font-size: 14px;
+            font-size: 12px;
             opacity: 0.8;
-        }
-        .btn-funcionalidade.full {
-            flex-direction: row-reverse;
-            grid-column: span 2;
         }
         .configuracao {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 12px;
             border-radius: 4px;
             color: #ffffff;
             background-color: #23272b;
         }
         .config-item {
             grid-column: span 2;
-            font-size: 12px;
+            font-size: 14px;
         }
         .config-item * {
             margin: 0;
@@ -613,7 +615,10 @@ function criarCss() {
             align-items: center;
             justify-content: flex-end;
         }
-        .titulo-lista-rotina + ul li.checkbox input {
+        .titulo-lista-rotina + ul li input[type=checkbox] {
+            margin-right: 5px
+        }
+        .titulo-lista-rotina + ul li.zebrado input {
             margin-right: 10px;
         }
         .titulo-lista-rotina + ul::-webkit-scrollbar-thumb {
@@ -621,7 +626,7 @@ function criarCss() {
             border-radius: 10px;
         }
         .titulo-lista-rotina + ul li:nth-child(2n) {
-            background-color: #c1c2c38a;
+            font-weight: bold;
         }
         #rotinas-background > :last-child {
             grid-column: span 2;
@@ -666,9 +671,7 @@ function criarIcone(tipo, id) {
         leitor: 'supervisor_account',
         assistencia: 'airline_seat_recline_normal',
         assistenciaNaoContada: 'airline_seat_recline_extra',
-        cadeado: 'lock',
-        desativado: 'toggle_off',
-        ativado: 'toggle_on',
+        mao: 'pan_tool',
         fechar: 'cancel',
     };
     const icone = document.createElement('i');
@@ -729,6 +732,11 @@ function getNomeParticipante(participante) {
 
 function getBotoesDropdown(participante) {
     return !participante ? [] : Array.from(participante.querySelectorAll('.participants-item__buttons .dropdown-menu a'));
+}
+
+function getOpcaoDropdownMais(textosOpcao) {
+    const opcoes = document.querySelectorAll('#wc-container-right .participants-section-container__participants-footer ul li a');
+    return Array.from(opcoes).find(a => textosOpcao.includes(a.innerText.toLowerCase()));
 }
 
 function criarEventoMouseOver() {
@@ -935,6 +943,32 @@ function desligarVideos(execoes) {
     });
 }
 
+function permitirParticipantesLigarMicrofones(permitir) {
+    try {
+        const opcaoPermitirMicrofones = getOpcaoDropdownMais([
+            'allow participants to unmute themselves',
+            'permitir que os próprios participantes desativem o mudo'
+        ]);
+        const isAtivo = opcaoPermitirMicrofones.querySelector('.i-ok-margin');
+
+        /* clicar na opcao somente se nao estiver como deveria */
+        if ((permitir && !isAtivo) || (!permitir && isAtivo)) {
+            opcaoPermitirMicrofones.click();
+        }
+    } catch {
+        alert('opção "permitir que os próprios participantes desativem o mudo" não encontrada');
+    }
+}
+
+function abaixarMaos() {
+    const opcaoBaixarMaos = getOpcaoDropdownMais([
+        'lower all hands',
+        'abaixar todas as mãos'
+    ]);
+
+    opcaoBaixarMaos && opcaoBaixarMaos.click();
+}
+
 /* FUNCOES AVANCADAS */
 
 function focarNoDirigente() {
@@ -1123,13 +1157,18 @@ function desligarTudo() {
     abrirPainelParticipantes();
     desligarVideos();
     desligarMicrofones();
+    permitirParticipantesLigarMicrofones(false);
 }
 
 function ligarTudo() {
     abrirPainelParticipantes();
-    getParticipantes().forEach(participante => ligarVideoParticipante(participante));
-    ligarMicrofones();
-    desligarSpotlight(); /* deixar foco automático */
+    getParticipantes().forEach(participante => {
+        ligarVideoParticipante(participante);
+        ligarMicrofoneParticipante(participante);
+    });
+    /* deixar foco automático */
+    desligarSpotlight();
+    permitirParticipantesLigarMicrofones(true);
 }
 
 function contarAssistencia() {
