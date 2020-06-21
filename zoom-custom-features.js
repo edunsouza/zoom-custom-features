@@ -132,6 +132,7 @@ function atualizarTela() {
     validarVideosLigadosNaAssistencia();
     atualizarAssistencia();
     atualizarAvisosDeRotinas();
+    enfatizarMaosLevantadas();
 }
 
 function interromperSolicitaoPersistente(idSolicitacao) {
@@ -235,6 +236,15 @@ function atualizarAssistencia() {
         /* atualizar cache */
         cache['atualizarAssistencia'] = novoCache;
     }
+}
+
+function enfatizarMaosLevantadas() {
+    document.querySelectorAll('.participants-item__buttons .button-margin-right.btn.btn-primary').forEach(btn => {
+        if (textoBaixarMaos.includes(btn.innerText.toLowerCase()) && !Array.from(btn.classList).includes('btn-danger')) {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-danger');
+        }
+    });
 }
 
 function limparAvisosAntigos() {
@@ -1164,6 +1174,7 @@ var textoPararVideo = ['stop video', 'parar vídeo'];
 var textoCancelarSpotlight = ['cancel the spotlight video', 'cancelar vídeo de destaque'];
 var textoLigarMicrofone = ['ask to unmute', 'pedir para ativar som', 'unmute', 'ativar som'];
 var textoDesligarMicrofone = ['mute', 'desativar som'];
+var textoBaixarMaos = ['lower hand', 'abaixar mão'];
 
 var intervalosEmExecucao = intervalosEmExecucao || {};
 var cache = {};
