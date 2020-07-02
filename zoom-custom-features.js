@@ -3,7 +3,7 @@ function criarDomListener() {
         observer.disconnect();
     }
 
-    observer = new MutationObserver((mutations, observer) => atualizarTela());
+    observer = new MutationObserver(() => atualizarTela());
 
     observer.observe(
         document.getElementById('wc-container-right'),
@@ -14,6 +14,273 @@ function criarDomListener() {
             attributes: true
         }
     );
+}
+
+function criarElemento(text, eventos = {}) {
+    const dom = new DOMParser().parseFromString(text, 'text/html');
+    const elemento = dom.body.children[0] || dom.head.children[0];
+    Object.keys(eventos).forEach(k => elemento[k] = eventos[k]);
+    return elemento;
+}
+
+function criarFocoCustomizado() {
+    abrirPainelParticipantes();
+    let texto = prompt('Informe um termo (palavra-chave) para buscar participante.\n\n(Dica: use termos diferentes em cada participante)');
+    texto = texto.trim().toLocaleLowerCase();
+    if (!texto) return alert('Nome não informado. Nenhuma ação será tomada. Tente novamente');
+
+    const alvo = selecionarParticipante(texto);
+    if (!alvo) return alert('Não encontrado! Experimente outras palavras');
+
+    const nomeParticipante = getNomeParticipante(alvo);
+    if (!confirm(`Este termo provavelmente encontrará: ${nomeParticipante}\n\nUsar TERMO?`)) {
+        return;
+    }
+
+    const btn = {
+        id: btoa(nomeParticipante),
+        alvo: nomeParticipante,
+        texto: texto,
+        click: () => {
+            if (confirm(`Confirme se deseja focar em: ${getNomeParticipante(selecionarParticipante(texto)).toUpperCase()}`)) {
+                focar(texto);
+            }
+        }
+    };
+
+    /* adicionar botao novo, sempre removendo as repeticoes */
+    const botoes = avisosDeRotinas['botoesFocoCustomizado'].filter(bfc => bfc.alvo != btn.alvo);
+    botoes.push(btn);
+
+    avisosDeRotinas['botoesFocoCustomizado'] = botoes;
+    atualizarTela();
+}
+
+function criarBotaoOpcoesCustomizadas() {
+    const idBotao = 'abrir-opcoes-reuniao';
+    const btnAntigo = document.getElementById(idBotao);
+
+    /* remover botao da barra de acoes do zoom ao reexecutar script */
+    if (btnAntigo) btnAntigo.remove();
+
+    /* recriar o botao ao executar script para manter atualizado */
+    /* adicionar botao na barra de acoes do zoom */
+    document.querySelector('#wc-footer').appendChild(criarElemento(
+        `<button id="${idBotao}" style="margin-right: 20px">Opções customizadas</button>`, {
+        onclick: alternarModal
+    }));
+}
+
+function criarCss() {
+    abrirPainelParticipantes();
+    const larguraPainelParticipantes = parseInt(document.querySelector('#wc-container-right').style.width);
+    const alturaBotoesRodape = document.querySelector('#wc-footer').clientHeight;
+    const maiorZIndex = Math.max.apply(null, Array.from(document.querySelectorAll('body *')).map(({ style = {} }) => style.zIndex || 0));
+    const css = document.getElementById('estilo-customizado') || document.createElement('style');
+    css.id = 'estilo-customizado';
+    css.innerHTML = `
+        .modal-principal {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            overflow-y: scroll;
+            position: fixed;
+            right: ${larguraPainelParticipantes + 5}px;
+            left: 5px;
+            top: 20px;
+            bottom: ${alturaBotoesRodape + 10}px;
+            background-color: #edf2f7e6;
+            font-size: 12px;
+            z-index: ${maiorZIndex + 2};
+        }
+        .modal-transparente {
+            background-color: #ffffff11;
+        }
+        .modal-transparente * {
+            color: #ffffffbb;
+        }
+        .modal-transparente .btn-warning .material-icons-outlined {
+            color: #111111bb;
+        }
+        .frame-rotinas {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 33% 33% 34%;
+            min-height: 90%;
+            padding-bottom: 10px;
+        }
+        .frame-botoes {
+            display: grid;
+            grid-template-columns: 2fr 3fr 3fr;
+            gap: 5px;
+            padding: 0;
+            margin: 5px;
+        }
+        .frame-funcionalidade-fechar {
+            display: grid;
+            grid-template-columns: 1fr 3fr 1fr;
+            align-items: center;
+            text-align: center;
+        }
+        .frame-chamar, .frame-focar, .frame-funcionalidade {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+        }
+        .frame-fechar {
+            display: grid;
+            grid-template-columns: 2fr 3fr 3fr;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            margin-left: 5px;
+            margin-right: 5px;
+        }
+        .btn-fechar {
+            opacity: 0.7;
+            cursor: pointer;
+            color: #ff4242;
+            font-size: 22px !important;
+        }
+        .btn-funcionalidade {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: space-evenly;
+            align-items: center;
+            font-size: 14px;
+            opacity: 0.8;
+            min-height: 40px;
+            font-weight: 500;
+        }
+        .btn-primary { background-color: #1565c0; }
+        .btn-warning { background-color: #ff8f00; color: #111111; }
+        .btn-danger:hover, .btn-danger:focus, .btn-danger:active, .btn-danger:visited { font-weight: 500; }
+        .btn-warning:hover, .btn-warning:focus, .btn-warning:active, .btn-warning:visited {
+            background-color: #ffb300;
+            color: #111111;
+        }
+        .configuracao {
+            display: flex;
+            vertical-align: middle;
+            user-select: none;
+            border-radius: 4px;
+            border: 1px solid transparent;
+            box-shadow: 3px 7px 5px 0px #00000026;
+            padding: 6px 12px;
+            margin-bottom: 0;
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1.42857143;
+            text-align: center;
+            white-space: nowrap;
+            background-image: none;
+        }
+        .titulo-botoes {
+            text-align: center;
+            font-size: 16px;
+            color: #ffffff;
+            background-color: #23272b;
+        }
+        .config-item {
+            grid-column: span 2;
+            font-size: 14px;
+        }
+        .config-item * {
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            cursor: pointer;
+        }
+        .config-item input {
+            margin: 0;
+            margin-right: 10px;
+        }
+        .titulo-lista-rotina {
+            margin: 0px 5px;
+            background-color: #23272b;
+            text-align: center;
+            color: white;
+        }
+        .titulo-lista-rotina + ul {
+            list-style-type: none;
+            overflow-y: scroll;
+            height: 135px;
+            padding: 0px;
+            margin: 0px 10px;
+        }
+        .titulo-lista-rotina + ul li {
+            padding-top: 10px;
+            padding-bottom: 10px;
+        }
+        .titulo-lista-rotina + ul li.checkbox {
+            display: flex;
+            flex-direction: row-reverse;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .titulo-lista-rotina + ul li input[type=checkbox] {
+            margin-right: 5px
+        }
+        .titulo-lista-rotina + ul li.zebrado input {
+            margin-right: 10px;
+        }
+        .titulo-lista-rotina + ul::-webkit-scrollbar-thumb {
+            background-color: #23272b2e;
+            border-radius: 10px;
+        }
+        .titulo-lista-rotina + ul li:nth-child(2n) {
+            font-weight: bold;
+        }
+        #rotinas-background > :last-child {
+            grid-column: span 2;
+        }
+        #rotinas-background > :last-child > ul {
+            display: grid;
+            grid-template-columns: auto auto auto auto;
+            opacity: 0.8;
+        }
+        #rotinas-background > :last-child li {
+            background-color: unset;
+        }
+    `;
+    document.body.appendChild(css);
+}
+
+function criarIcone(tipo, id) {
+    if (!tipo) return;
+
+    const tipos = {
+        camera: 'videocam',
+        cameraFechada: 'videocam_off',
+        microfone: 'mic_none',
+        microfoneFechado: 'mic_off',
+        finalizarDiscurso: 'voice_over_off',
+        orador: 'record_voice_over',
+        presidente: 'person',
+        dirigente: 'group',
+        leitor: 'supervisor_account',
+        tesouros: 'emoji_events',
+        joias: 'wb_iridescent',
+        biblia: 'menu_book',
+        vida1: 'looks_one',
+        vida2: 'looks_two',
+        participante: 'person_add',
+        assistencia: 'airline_seat_recline_normal',
+        assistenciaNaoContada: 'airline_seat_recline_extra',
+        mao: 'pan_tool',
+        fechar: 'cancel',
+    };
+
+    return criarElemento(`
+        <i id="${id || btoa(Math.random())}" class="material-icons-outlined" style="font-size:20px">
+            ${tipos[tipo]}
+        </i>
+    `)
+}
+
+function criarEventoMouseOver() {
+    const eventoFalsoDeMouseOver = new MouseEvent('mouseover', { bubbles: true });
+    eventoFalsoDeMouseOver.simulated = true;
+    return eventoFalsoDeMouseOver;
 }
 
 async function enviarEmail() {
@@ -56,13 +323,7 @@ async function enviarEmail() {
         { type: 'hidden', name: '_captcha', value: 'false' }
     ];
 
-    fields.forEach(f => {
-        let input = document.createElement('input');
-        input.type = f.type;
-        input.name = f.name;
-        input.value = f.value;
-        formEmail.appendChild(input);
-    });
+    fields.forEach(f => formEmail.appendChild(criarElemento(`<input type="${f.type}" name="${f.name}" value="${f.value}" />`)));
 
     document.body.appendChild(iFrameHack);
     document.body.appendChild(formEmail);
@@ -146,16 +407,11 @@ function atualizarTentativasPersistentes() {
     ul.querySelectorAll('li').forEach(li => li.remove());
 
     avisosDeRotinas['tentativasPersistentes'].forEach(alvo => {
-        const check = document.createElement('input');
-        check.setAttribute('type', 'checkbox');
-        check.setAttribute('value', alvo);
-        check.onclick = (e) => interromperSolicitaoPersistente(e.target.value);
-
-        const li = document.createElement('li');
-        li.innerText = alvo;
-        li.setAttribute('class', 'checkbox');
-        li.appendChild(check);
-
+        const input = criarElemento(`<input type="checkbox" value="${alvo}"></input>`, {
+            onclick: (e) => interromperSolicitaoPersistente(e.target.value)
+        });
+        const li = criarElemento(`<li class="checkbox">${alvo}</li>`);
+        li.appendChild(input);
         ul.appendChild(li);
     });
 }
@@ -165,25 +421,21 @@ function atualizarBotoesFocoCustomizado() {
     ul.querySelectorAll('li').forEach(li => li.remove());
 
     avisosDeRotinas['botoesFocoCustomizado'].forEach(btnCustomizado => {
-        const btn = document.createElement('button');
-        btn.innerText = btnCustomizado.alvo;
-        btn.setAttribute('class', 'btn btn-danger');
-        btn.onclick = () => btnCustomizado.click();
+        const nome = getNomeParticipante(selecionarParticipante(btnCustomizado.texto));
+        const btn = criarElemento(`<button ${nome ? '' : 'disabled'} class="btn btn-danger btn-funcionalidade">${nome || 'Não encontrado!'}</button>`, {
+            onclick: e => !e.target.attributes.disabled && btnCustomizado.click()
+        });
 
         const icon = criarIcone('fechar');
         icon.onclick = () => excluirBotaoFocoCustomizado(btnCustomizado.id);
-        icon.style.cssText = `
-            font-size: 30px;
-            cursor: pointer;
-        `;
+        icon.style.cssText = `font-size: 30px; cursor: pointer;`;
 
-        const li = document.createElement('li');
-        li.style.cssText = `
+        const li = criarElemento(`<li style="
             display: grid;
             grid-template-columns: auto 1fr;
             max-height: 55px;
-            align-items: center;
-        `;
+            align-items: center;">
+        </li>`);
 
         li.appendChild(btn);
         li.appendChild(icon);
@@ -214,10 +466,7 @@ function atualizarAvisosDeRotinas() {
 
             /* repopular lista */
             avisosDeRotinas[rotina].forEach(aviso => {
-                const li = document.createElement('li');
-                li.setAttribute('class', 'zebrado');
-                li.innerText = aviso;
-                ulRotina.appendChild(li);
+                ulRotina.appendChild(criarElemento(`<li class="zebrado">${aviso}</li>`));
             });
 
             /* atualizar cache */
@@ -265,106 +514,86 @@ function encerrarRotina(nomeRotina) {
     intervalosEmExecucao[nomeRotina] = clearInterval(intervalosEmExecucao[nomeRotina]);
 }
 
-function criarBotaoOpcoesCustomizadas() {
-    const idBotao = 'abrir-opcoes-reuniao';
-    const btnAntigo = document.getElementById(idBotao);
-
-    /* remover botao da barra de acoes do zoom ao reexecutar script */
-    if (btnAntigo) btnAntigo.remove();
-
-    /* recriar o botao ao executar script para manter atualizado */
-    const btnOpcoesCustomizadas = document.createElement('button');
-    btnOpcoesCustomizadas.id = idBotao;
-    btnOpcoesCustomizadas.innerText = 'Opções customizadas';
-    btnOpcoesCustomizadas.style.marginRight = '20px';
-    btnOpcoesCustomizadas.onclick = alternarModal;
-    /* adicionar botao na barra de acoes do zoom */
-    document.querySelector('#wc-footer').appendChild(btnOpcoesCustomizadas);
-}
-
 function desenharModal() {
     const modal = document.getElementById(idModal);
     /* limpar componentes anteriores */
     if (modal) modal.remove();
 
-    const painelOpcoes = desenharPainelPrincipal();
+    /* importar icones */
+    importarIconesFontAwesome();
+
+    /* construir o quadro inteiro do painel */
+    const painelOpcoes = criarElemento(`<div class="class modal-principal" id="${idModal}"></div>`);
+    /* adicionar os frames ao painel */
+    painelOpcoes.appendChild(desenharFrameBtnFechar());
+    painelOpcoes.appendChild(desenharFrameBotoes());
+    painelOpcoes.appendChild(desenharFrameServicos());
+
     /* esconder modal ao iniciar script */
     painelOpcoes.style.display = 'none';
     /* adicionar na tela */
     document.body.appendChild(painelOpcoes);
 }
 
-function desenharPainelPrincipal() {
-    /* importar icones */
-    importarIconesFontAwesome();
+function desenharFrameBtnFechar() {
+    /* botao fechar modal */
+    const btnFechar = criarIcone('fechar', 'btn-fechar-modal');
+    btnFechar.classList.add('btn-fechar');
+    btnFechar.onclick = fecharModal;
 
-    /* construir o quadro inteiro do painel */
-    const painelOpcoes = document.createElement('div');
-    painelOpcoes.id = idModal;
-    painelOpcoes.setAttribute('class', 'modal-principal');
+    const rowFecharModal = criarElemento(`<div class="frame-fechar"></div>`);
+    rowFecharModal.appendChild(criarElemento(`<span class="titulo-botoes">Chamar</span>`));
+    rowFecharModal.appendChild(criarElemento(`<span class="titulo-botoes">Focar</span>`));
+    rowFecharModal.appendChild(criarElemento(`
+        <span class="titulo-botoes frame-funcionalidade-fechar">
+            <span style="grid-column-start: 2;">Ações</span>
+        </span>
+    `).appendChild(btnFechar).parentElement);
 
-    /* adicionar os frames ao painel */
-    painelOpcoes.appendChild(desenharFrameBotoes());
-    painelOpcoes.appendChild(desenharFrameServicos());
-    return painelOpcoes;
+    return rowFecharModal;
 }
 
 function desenharFrameBotoes() {
-    const funcionalidades = [
+    const criarBotao = ({ nome, confirmar, escrever, texto, click, classe, icone }) => {
+        const btn = criarElemento(`<button class="btn ${classe} btn-funcionalidade">${nome}</button>`, {
+            onclick: () => {
+                if (!confirmar && !escrever) {
+                    return click();
+                } else if (escrever) {
+                    const resp = prompt(escrever) || '';
+                    return resp.toLowerCase() == texto.toLowerCase() ? click() : alert('Texto incorreto!');
+                } else {
+                    return confirm(`CUIDADO!\n\n${confirmar}\n\nClique em cancelar para desfazer`) ? click() : alert('Operação cancelada!');
+                }
+            }
+        });
+
+        if (icone) {
+            const div = document.createElement('div');
+            icone.split(',').forEach(i => div.appendChild(criarIcone(i)));
+            btn.appendChild(div);
+        }
+        return btn;
+    };
+    const { chamar: botoesChamar, focar: botoesFocar } = getBotoesParticipantes();
+    const botoesFuncionalidades = [
         {
-            nome: 'Ligar vídeos e som',
+            nome: 'Ligar Tudo',
             icone: 'camera,microfone',
             classe: 'btn-danger',
             click: ligarTudo,
-            confirmar: 'Tem certeza que deseja LIGAR TODOS OS VÍDEOS E MICROFONES?'
+            escrever: 'Evite acidentes.\nEscreva: "LIGAR TUDO", para confirmar.',
+            texto: "LIGAR TUDO"
         },
         {
-            nome: 'Desligar vídeos e som',
-            icone: 'cameraFechada,microfoneFechado',
-            classe: 'btn-danger',
-            click: desligarTudo,
-            confirmar: 'Tem certeza que deseja DESLIGAR TODOS OS VÍDEOS E MICROFONES?'
-        },
-        {
-            nome: `Palmas (ativa por ${tempoDePalmas / 1000}s)`,
+            nome: `Palmas (${tempoDePalmas / 1000}s)`,
             icone: 'microfone',
             classe: 'btn-danger btn-palmas',
             click: liberarPalmas,
             confirmar: `Tem certeza que deseja LIBERAR AS PALMAS?\n\nOs microfones ficarão ligados por ${tempoDePalmas / 1000} segundos.`
         },
         {
-            nome: 'Finalizar discurso',
-            icone: 'finalizarDiscurso',
-            classe: 'btn-danger',
-            click: finalizarDiscurso,
-            confirmar: 'Tem certeza que deseja FINALIZAR O DISCURSO?\n\nOs microfones serão ligados (por alguns segundos) para as palmas e o presidente será acionado após as palmas.'
-        },
-        {
-            nome: 'Focar no presidente',
-            icone: 'presidente',
-            classe: 'btn-primary',
-            click: focarNoPresidente
-        },
-        {
-            nome: 'Focar no orador',
-            icone: 'orador',
-            classe: 'btn-primary',
-            click: focarNoOrador
-        },
-        {
-            nome: 'Focar no dirigente',
-            icone: 'dirigente',
-            classe: 'btn-primary',
-            click: focarNoDirigente
-        },
-        {
-            nome: 'Focar no leitor',
-            icone: 'leitor',
-            classe: 'btn-primary',
-            click: focarNoLeitor
-        },
-        {
-            nome: 'Criar botão de foco',
+            nome: 'Criar foco',
             icone: 'participante',
             classe: 'btn-success',
             click: criarFocoCustomizado
@@ -375,33 +604,27 @@ function desenharFrameBotoes() {
             classe: 'btn-success',
             click: abaixarMaos
         },
+        {
+            nome: 'Desligar tudo',
+            icone: 'cameraFechada,microfoneFechado',
+            classe: 'btn-danger',
+            click: desligarTudo,
+            escrever: 'Evite acidentes.\nEscreva: "QUERO DESLIGAR", para confirmar.',
+            texto: "QUERO DESLIGAR"
+        },
+        {
+            nome: 'Finalizar discurso',
+            icone: 'finalizarDiscurso',
+            classe: 'btn-danger',
+            click: finalizarDiscurso,
+            confirmar: 'Tem certeza que deseja FINALIZAR O DISCURSO?\n\nOs microfones serão ligados (por alguns segundos) para as palmas e o presidente será acionado após as palmas.'
+        },
     ];
-
-    /* construir botoes principais */
-    const criarBotao = ({ nome, confirmar, click, classe, icone }) => {
-        const btn = document.createElement('button');
-        btn.innerText = nome;
-        btn.onclick = () => !confirmar ? click() : confirm(`CUIDADO!\n\n${confirmar}\n\nClique em cancelar para desfazer`) && click();
-        btn.setAttribute('class', `btn ${classe} btn-funcionalidade`);
-
-        if (icone) {
-            const div = document.createElement('div');
-            icone.split(',').forEach(i => div.appendChild(criarIcone(i)));
-            btn.appendChild(div);
-        }
-        return btn;
-    };
 
     /* contagem da assistencia na ultima linha */
     const dadosAssistencia = contarAssistencia();
-
-    const textoContados = document.createElement('span');
-    textoContados.id = idTextoContados;
-    textoContados.innerText = `${dadosAssistencia.contados} identificado(s)`;
-
-    const textoNaoContados = document.createElement('span');
-    textoNaoContados.id = idTextoNaoContados;
-    textoNaoContados.innerText = `${dadosAssistencia.naoContados} não identificado(s)`;
+    const textoContados = criarElemento(`<span id="${idTextoContados}">${dadosAssistencia.contados} identificado(s)</span>`);
+    const textoNaoContados = criarElemento(`<span id="${idTextoNaoContados}">${dadosAssistencia.naoContados} não identificado(s)</span>`);
 
     const iconContados = criarIcone('assistencia');
     iconContados.style.color = '#5cb85c';
@@ -409,86 +632,73 @@ function desenharFrameBotoes() {
     const iconNaoContados = criarIcone('assistenciaNaoContada');
     iconNaoContados.style.color = '#ff4242';
 
-    const divContados = document.createElement('div');
-    divContados.setAttribute('class', 'configuracao');
+    const divContados = criarElemento(`<div class="configuracao" style="cursor: pointer"></div>`, {
+        onclick: () => {
+            const msg = `Evite acidentes.\nEscreva: "ENVIAR" para enviar email ao secretário informando assistência de ${contarAssistencia().contados}`;
+            const resp = prompt(msg) || '';
+            return resp.toLowerCase() == "enviar" ? enviarEmail() : alert('Texto incorreto. Email NÃO enviado!');
+        }
+    });
     divContados.appendChild(iconContados);
     divContados.appendChild(textoContados);
-    divContados.style.cursor = 'pointer';
-    divContados.onclick = () => {
-        const c = contarAssistencia();
-        if (confirm(`Deseja enviar email ao secretário informando assistência de ${c.contados}?`)) {
-            enviarEmail();
-        }
-    };
 
-    const divNaoContados = document.createElement('div');
-    divNaoContados.setAttribute('class', 'configuracao');
+    const divNaoContados = criarElemento(`<div class="configuracao"></div>`);
     divNaoContados.appendChild(iconNaoContados);
     divNaoContados.appendChild(textoNaoContados);
 
-    const inputModoTransparente = document.createElement('input');
-    inputModoTransparente.id = 'modo-transparente';
-    inputModoTransparente.setAttribute('type', 'checkbox');
-    inputModoTransparente.onchange = (evento) => alternarModoTransparente(evento);
+    const inputModoTransparente = criarElemento(`<input id="modo-transparente" type="checkbox"></input>`, {
+        onchange: (evento) => alternarModoTransparente(evento)
+    });
 
-    const textoModoTransparente = document.createElement('label');
-    textoModoTransparente.setAttribute('for', 'modo-transparente');
-    textoModoTransparente.innerText = 'Modo transparente (exibe vídeo em destaque)';
-
-    const divModoTransparente = document.createElement('div');
-    divModoTransparente.setAttribute('class', 'configuracao config-item');
+    const textoModoTransparente = criarElemento(`<label for="modo-transparente">Modo transparente (exibe vídeo em destaque)</label>`);
+    const divModoTransparente = criarElemento('<div class="config-item"></div>');
     divModoTransparente.appendChild(inputModoTransparente);
     divModoTransparente.appendChild(textoModoTransparente);
 
-    /* construtir o frame com botoes */
-    const frameBotoes = document.createElement('div');
-    frameBotoes.setAttribute('class', 'frame-funcionalidades');
+    /* construtir os frames de botoes */
+    const frameBotoes = criarElemento(`<div class="frame-botoes"></div>`);
+    const frameChamar = criarElemento(`<div class="frame-chamar"></div>`);
+    const frameFocar = criarElemento(`<div class="frame-focar"></div>`);
+    const frameFuncionalidades = criarElemento(`<div class="frame-funcionalidade"></div>`);
 
-    /* adicionar os botoes no frame */
-    funcionalidades.forEach(f => frameBotoes.appendChild(criarBotao(f)));
-    frameBotoes.appendChild(divContados);
-    frameBotoes.appendChild(divNaoContados);
-    frameBotoes.appendChild(divModoTransparente);
+    /* adicionar os botoes nos frames */
+    botoesChamar.forEach(c => frameChamar.appendChild(criarBotao(c)));
+    botoesFocar.forEach(f => frameFocar.appendChild(criarBotao(f)));
+    botoesFuncionalidades.forEach(f => frameFuncionalidades.appendChild(criarBotao(f)));
+    frameFuncionalidades.appendChild(divContados);
+    frameFuncionalidades.appendChild(divNaoContados);
+    frameFuncionalidades.appendChild(divModoTransparente);
+
+    /* popular os frames */
+    frameBotoes.appendChild(frameChamar);
+    frameBotoes.appendChild(frameFocar);
+    frameBotoes.appendChild(frameFuncionalidades);
     return frameBotoes;
 }
 
 function desenharFrameServicos() {
     /* bloco dos servicos */
-    const servicos = document.createElement('div');
-    servicos.id = 'rotinas-background';
-    servicos.setAttribute('class', 'frame-rotinas');
-
-    /* botao fechar modal */
-    const btnFechar = criarIcone('fechar', 'btn-fechar-modal');
-    btnFechar.onclick = fecharModal;
-    btnFechar.classList.add('btn-fechar');
-
-    /* titulo das rotinas */
-    const titulo = document.createElement('h3');
-    titulo.style.textAlign = 'center';
-    titulo.innerText = 'O que está acontecendo agora';
+    const servicos = criarElemento('<div id="rotinas-background" class="frame-rotinas"></div>');
 
     /* criar listas de logs das rotinas */
     Object.keys(avisosDeRotinas).forEach(rotina => {
         const div = document.createElement('div');
-        const tituloRotina = document.createElement('p');
+        const tituloRotina = criarElemento(`<p class="titulo-lista-rotina">${getNomeRotina(rotina)}</p>`);
         const ul = document.createElement('ul');
 
         /* adicionar titulo na sessao */
-        tituloRotina.setAttribute('class', 'titulo-lista-rotina');
-        tituloRotina.innerText = getNomeRotina(rotina);
         div.appendChild(tituloRotina);
 
         /* botoes de foco customizado */
         if (rotina == 'botoesFocoCustomizado') {
             avisosDeRotinas[rotina].forEach(btnCustomizado => {
-                const btn = document.createElement('button');
-                btn.setAttribute('class', 'btn btn-danger');
-                btn.setAttribute('value', btnCustomizado.alvo);
-                btn.onclick = () => btnCustomizado.click();
-                const li = document.createElement('li');
-                li.appendChild(btn);
-                ul.appendChild(li);
+                ul.appendChild(
+                    document.createElement('li').appendChild(
+                        criarElemento(`<button class="btn btn-danger btn-funcionalidade" value="${btnCustomizado.alvo}"></button>`, {
+                            onclick: () => btnCustomizado.click()
+                        })
+                    ).parentElement
+                );
             });
         }
 
@@ -502,184 +712,44 @@ function desenharFrameServicos() {
 
     /* construtir o frame com servicos */
     const frameServicos = document.createElement('div');
-    frameServicos.appendChild(btnFechar);
-    frameServicos.appendChild(titulo);
     frameServicos.appendChild(servicos);
     return frameServicos;
 }
 
-function criarCss() {
-    abrirPainelParticipantes();
-    const larguraPainelParticipantes = parseInt(document.querySelector('#wc-container-right').style.width);
-    const alturaBotoesRodape = document.querySelector('#wc-footer').clientHeight;
-    const maiorZIndex = Math.max.apply(null, Array.from(document.querySelectorAll('body *')).map(({ style = {} }) => style.zIndex || 0));
-    const css = document.getElementById('estilo-customizado') || document.createElement('style');
-    css.id = 'estilo-customizado';
-    css.innerHTML = `
-        .modal-principal {
-            display: grid;
-            grid-template-columns: 2fr 3fr;
-            overflow-y: scroll;
-            position: fixed;
-            right: ${larguraPainelParticipantes + 5}px;
-            left: 5px;
-            top: 20px;
-            bottom: ${alturaBotoesRodape + 10}px;
-            background-color: #edf2f7e6;
-            border-radius: 10px;
-            font-size: 12px;
-            z-index: ${maiorZIndex + 2};
-        }
-        .modal-transparente {
-            background-color: #ffffff11;
-        }
-        .modal-transparente * {
-            color: #ffffffbb;
-        }
-        .btn-fechar {
-            position: absolute;
-            right: 0px;
-            top: 5px;
-            opacity: 0.7;
-            cursor: pointer;
-            color: #ff4242;
-            font-size: 45px !important;
-        }
-        .frame-rotinas {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 33% 33% 34%;
-            min-height: 90%;
-            padding-bottom: 10px;
-        }
-        .frame-funcionalidades {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: repeat(7, 1fr);
-            gap: 5px;
-            padding: 0;
-            margin: 5px;
-        }
-        .btn-funcionalidade {
-            display: flex;
-            flex-direction: column-reverse;
-            justify-content: space-evenly;
-            align-items: center;
-            padding: 0;
-            font-size: 12px;
-            opacity: 0.8;
-        }
-        .configuracao {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            border-radius: 4px;
-            color: #ffffff;
-            background-color: #23272b;
-        }
-        .config-item {
-            grid-column: span 2;
-            font-size: 14px;
-        }
-        .config-item * {
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            cursor: pointer;
-        }
-        .config-item input {
-            margin: 0;
-            margin-right: 10px;
-        }
-        .titulo-lista-rotina {
-            margin: 0px 5px;
-            background-color: #23272b;
-            text-align: center;
-            color: white;
-        }
-        .titulo-lista-rotina + ul {
-            list-style-type: none;
-            overflow-y: scroll;
-            height: 135px;
-            padding: 0px;
-            margin: 0px 10px;
-        }
-        .titulo-lista-rotina + ul li {
-            padding-top: 10px;
-            padding-bottom: 10px;
-        }
-        .titulo-lista-rotina + ul li.checkbox {
-            display: flex;
-            flex-direction: row-reverse;
-            align-items: center;
-            justify-content: flex-end;
-        }
-        .titulo-lista-rotina + ul li input[type=checkbox] {
-            margin-right: 5px
-        }
-        .titulo-lista-rotina + ul li.zebrado input {
-            margin-right: 10px;
-        }
-        .titulo-lista-rotina + ul::-webkit-scrollbar-thumb {
-            background-color: #23272b2e;
-            border-radius: 10px;
-        }
-        .titulo-lista-rotina + ul li:nth-child(2n) {
-            font-weight: bold;
-        }
-        #rotinas-background > :last-child {
-            grid-column: span 2;
-        }
-        #rotinas-background > :last-child > ul {
-            display: grid;
-            grid-template-columns: auto auto auto auto;
-            opacity: 0.8;
-        }
-        #rotinas-background > :last-child li {
-            background-color: unset;
-        }
-    `;
-    document.body.appendChild(css);
+function getBotoesParticipantes() {
+    const capital = str => str[0].toUpperCase() + str.substring(1, str.length);
+    const isReuniaoSemana = new Date().toLocaleDateString('pt-br', { weekday: 'long' }).includes('feira');
+    const botoesFocar = [
+        { nome: capital(identificacaoDirigente), icone: 'dirigente', classe: 'btn-primary', click: focarDirigente },
+        { nome: capital(identificacaoLeitor), icone: 'leitor', classe: 'btn-primary', click: focarLeitor },
+        { nome: capital(identificacaoPresidente), icone: 'presidente', classe: 'btn-warning', click: focarPresidente },
+        !isReuniaoSemana && { nome: capital(identificacaoOrador), icone: 'orador', classe: 'btn-primary', click: focarOrador },
+        isReuniaoSemana && { nome: capital(identificacaoTesouros), icone: 'tesouros', classe: 'btn-primary', click: () => focar(identificacaoTesouros) },
+        isReuniaoSemana && { nome: capital(identificacaoJoias), icone: 'joias', classe: 'btn-primary', click: () => focar(identificacaoJoias) },
+        isReuniaoSemana && { nome: capital(identificacaoBiblia), icone: 'biblia', classe: 'btn-primary', click: () => focar(identificacaoBiblia) },
+        isReuniaoSemana && { nome: capital(identificacaoVida1), icone: 'vida1', classe: 'btn-primary', click: () => focar(identificacaoVida1) },
+        isReuniaoSemana && { nome: capital(identificacaoVida2), icone: 'vida2', classe: 'btn-primary', click: () => focar(identificacaoVida2) },
+    ];
+    return {
+        focar: botoesFocar.filter(Boolean),
+        chamar: botoesFocar.reduce((lista, btn) => {
+            if (btn) lista.push({
+                nome: btn.nome,
+                classe: btn.nome.toLowerCase() != identificacaoPresidente ? 'btn-success' : 'btn-warning',
+                click: () => chamar(btn.nome.toLowerCase())
+            });
+            return lista;
+        }, [])
+    };
 }
 
 function importarIconesFontAwesome() {
     const importIcones = document.querySelector('#icones');
     /* nao duplicar tag de import dos icones */
     if (!importIcones) {
-        const link = document.createElement('link');
-        link.setAttribute('href', 'https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
-        link.setAttribute('rel', 'stylesheet');
-        link.setAttribute('id', 'icones');
-        document.head.appendChild(link);
+        const url = 'https://fonts.googleapis.com/icon?family=Material+Icons+Outlined';
+        document.head.appendChild(criarElemento(`<link rel="stylesheet" href="${url}" id="icones"> </link>`));
     }
-}
-
-function criarIcone(tipo, id) {
-    if (!tipo) return;
-
-    const tipos = {
-        camera: 'videocam',
-        cameraFechada: 'videocam_off',
-        microfone: 'mic_none',
-        microfoneFechado: 'mic_off',
-        orador: 'record_voice_over',
-        finalizarDiscurso: 'voice_over_off',
-        presidente: 'person',
-        participante: 'person_add',
-        dirigente: 'group',
-        leitor: 'supervisor_account',
-        assistencia: 'airline_seat_recline_normal',
-        assistenciaNaoContada: 'airline_seat_recline_extra',
-        mao: 'pan_tool',
-        fechar: 'cancel',
-    };
-    const icone = document.createElement('i');
-    icone.id = id || btoa(Math.random());
-    icone.setAttribute('class', 'material-icons-outlined');
-    icone.style.fontSize = '35px';
-    icone.innerText = tipos[tipo];
-    return icone;
 }
 
 function alternarModal() {
@@ -739,16 +809,11 @@ function getOpcaoDropdownMais(textosOpcao) {
     return Array.from(opcoes).find(a => textosOpcao.includes(a.innerText.toLowerCase()));
 }
 
-function criarEventoMouseOver() {
-    const eventoFalsoDeMouseOver = new MouseEvent('mouseover', { bubbles: true });
-    eventoFalsoDeMouseOver.simulated = true;
-    return eventoFalsoDeMouseOver;
-}
-
 function selecionarParticipante(funcao) {
+    if (!funcao) return;
     return getParticipantes().find(participante => {
-        const nome = getNomeParticipante(participante);
-        return nome && nome.toLowerCase().includes(funcao);
+        const nome = getNomeParticipante(participante).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        return nome && nome.includes(funcao.toLowerCase());
     });
 }
 
@@ -971,7 +1036,7 @@ function abaixarMaos() {
 
 /* FUNCOES AVANCADAS */
 
-function focarNoDirigente() {
+function focarDirigente() {
     abrirPainelParticipantes();
     const dirigente = selecionarParticipante(identificacaoDirigente);
     const presidente = selecionarParticipante(identificacaoPresidente);
@@ -998,7 +1063,7 @@ function focarNoDirigente() {
     });
 }
 
-function focarNoLeitor() {
+function focarLeitor() {
     abrirPainelParticipantes();
     const leitor = selecionarParticipante(identificacaoLeitor);
     const dirigente = selecionarParticipante(identificacaoDirigente);
@@ -1021,7 +1086,7 @@ function focarNoLeitor() {
     });
 }
 
-function focarNoPresidente() {
+function focarPresidente() {
     abrirPainelParticipantes();
     const presidente = selecionarParticipante(identificacaoPresidente);
 
@@ -1041,7 +1106,7 @@ function focarNoPresidente() {
     });
 }
 
-function focarNoOrador() {
+function focarOrador() {
     abrirPainelParticipantes();
     const orador = selecionarParticipante(identificacaoOrador);
 
@@ -1063,45 +1128,36 @@ function focarNoOrador() {
     });
 }
 
-function criarFocoCustomizado() {
+function focar(funcao) {
+    const alvo = selecionarParticipante(funcao);
+
+    if (!funcao || !alvo) return alert(`Participante: "${funcao}" não encontrado`);
+
     abrirPainelParticipantes();
-    let texto = prompt('Informe como (nome ou palavra no nome) encontrar o participante.\n\n(Dica: use uma identificação diferente em cada participante)');
-    texto = texto.trim().toLocaleLowerCase();
-    if (!texto) return alert('Nome não informado. Nenhuma ação será tomada. Tente novamente');
 
-    const alvo = selecionarParticipante(texto);
-    if (!alvo) return alert('Não encontrado! Experimente outras palavras');
+    /* ligar video do participante informado */
+    ligarVideoParticipante(alvo, () => {
+        const participante = selecionarParticipante(funcao);
+        /* quando o participante informado iniciar seu video */
+        desligarVideos([participante]);
+        desligarMicrofones([participante]);
+        spotlightParticipante(participante);
+        ligarMicrofoneParticipante(participante, true);
+    });
+}
 
-    const confirmar = confirm(`Participante encontrado: ${getNomeParticipante(alvo)}\n\nDeseja criar um novo botão para focar neste participante?`);
-    if (!confirmar) return;
+function chamar(funcao) {
+    const alvo = selecionarParticipante(funcao);
 
-    const nomeParticipante = getNomeParticipante(alvo);
-    const btn = {
-        id: btoa(nomeParticipante),
-        alvo: nomeParticipante,
-        click: () => {
-            if (!confirm(`Tem certeza que desejar pôr ${nomeParticipante.toUpperCase()} em foco?`)) {
-                return;
-            }
-            /* silenciar todos participantes, exceto participante informado */
-            desligarMicrofones([alvo]);
+    if (!funcao || !alvo) return alert(`Participante: "${funcao}" não encontrado`);
 
-            /* ligar video do participante informado */
-            ligarVideoParticipante(alvo, () => {
-                /* quando o participante informado iniciar seu video */
-                desligarVideos([alvo]);
-                spotlightParticipante(alvo);
-                ligarMicrofoneParticipante(alvo, true);
-            });
-        }
-    };
+    abrirPainelParticipantes();
 
-    /* adicionar botao novo, sempre removendo as repeticoes */
-    const botoes = avisosDeRotinas['botoesFocoCustomizado'].filter(bfc => bfc.alvo != btn.alvo);
-    botoes.push(btn);
-
-    avisosDeRotinas['botoesFocoCustomizado'] = botoes;
-    atualizarTela();
+    /* ligar video do participante informado */
+    ligarVideoParticipante(alvo, () => {
+        /* quando o participante informado iniciar seu video */
+        ligarMicrofoneParticipante(selecionarParticipante(funcao), true);
+    });
 }
 
 function excluirBotaoFocoCustomizado(id) {
@@ -1208,6 +1264,11 @@ var identificacaoDirigente = 'dirigente';
 var identificacaoPresidente = 'presidente';
 var identificacaoLeitor = 'leitor';
 var identificacaoOrador = 'orador';
+var identificacaoTesouros = 'tesouros';
+var identificacaoJoias = 'joias';
+var identificacaoBiblia = 'biblia';
+var identificacaoVida1 = 'nossa-vida-1';
+var identificacaoVida2 = 'nossa-vida-2';
 
 var textoPararVideo = ['stop video', 'parar vídeo'];
 var textoCancelarSpotlight = ['cancel the spotlight video', 'cancelar vídeo de destaque'];
@@ -1232,7 +1293,3 @@ criarCss();
 desenharModal();
 criarBotaoOpcoesCustomizadas();
 iniciarEventosPainelParticipantes();
-
-/* TODO:
-    opcao renomear invalidos na assistencia
-*/
