@@ -66,7 +66,7 @@ function criarBotaoOpcoesCustomizadas() {
 
     /* recriar o botao ao executar script para manter atualizado */
     /* adicionar botao na barra de acoes do zoom */
-    document.querySelector('#wc-footer').appendChild(criarElemento(
+    document.querySelector('#wc-footer .footer__inner').appendChild(criarElemento(
         `<button id="${idBotao}" style="margin-right: 20px">Opções customizadas</button>`, {
         onclick: alternarModal
     }));
@@ -237,7 +237,6 @@ function criarCss() {
             margin: 0;
             margin-right: 10px;
         }
-        .div-rotina { max-width: 250px; }
         .div-rotina p {
             margin: 0px;
             background-color: #23272b;
