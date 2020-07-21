@@ -1,4 +1,4 @@
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 const moment = require('moment');
 
 const getHtmlBody = (assistencia = 'Não informado', congregacao = 'Nordeste', reuniao) => {
@@ -24,26 +24,20 @@ module.exports = async (req, res) => {
     try {
         const { assistencia, congregacao } = req.body;
         const reuniao = moment.locale('pt-br') && moment().format('DD/MM/YYYY - dddd');
-        const transporter = await nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: {
-                user: process.env.EMAIL_SENDER,
-                pass: process.env.EMAIL_PWD,
-            }
-        });
-        await transporter.sendMail({
-            from: `"Automação da Congregação Nordeste" <${process.env.EMAIL_SENDER}>`,
-            to: process.env.EMAIL_TO,
+
+        sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+        const msg = {
+            from: `Automação - Nordeste <${process.env.EMAIL_SENDER}>`,
+            to: (process.env.EMAIL_TO || '').split(','),
             subject: `Assistência Nordeste - ${reuniao}`,
             html: getHtmlBody(assistencia, congregacao, reuniao)
-        });
+        };
+        await sgMail.send(msg);
 
         res.status(200).json({ success: true, message: 'E-mail enviado com sucesso!' });
     } catch (error) {
-        // console.log(error);
-        // res.status(500).json({ success: false, message: 'Dados incorretos!' });
-        res.status(500).json({ success: false, error: error, jsonError: JSON.stringify(error, null, 4) });
+        console.log(error);
+        error.response && console.log(error.response.body);
+        res.status(500).json({ success: false, message: 'Dados incorretos!' });
     }
 }
