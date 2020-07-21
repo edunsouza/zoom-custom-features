@@ -34,10 +34,10 @@ module.exports = async (req, res) => {
         };
         await sgMail.send(msg);
 
-        res.status(200).json({ success: true, message: 'E-mail enviado com sucesso!' });
+        res.status(200).json({ success: true, message: 'E-mail enviado com sucesso!', body: req.body });
     } catch (error) {
         console.log(error);
         error.response && console.log(error.response.body);
-        res.status(500).json({ success: false, message: 'Dados incorretos!' });
+        res.status(500).json({ success: false, message: 'Dados incorretos!', body: req.body });
     }
 }
