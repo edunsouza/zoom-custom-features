@@ -1,0 +1,17 @@
+{
+    "routes": [
+        {
+            "src": "/",
+            "methods": [
+                "GET"
+            ],
+            "dest": "/zoom-custom-features.js"
+        }
+    ],
+    "redirects": [
+        {
+            "source": "/",
+            "destination": "/zoom-custom-features.js"
+        }
+    ]
+}
