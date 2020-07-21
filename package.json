@@ -1,0 +1,24 @@
+{
+  "name": "zoom-custom-features",
+  "version": "1.0.0",
+  "description": "Zoom script hosted on Vercel for use of serverless functions",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/edunsouza/zoom-custom-features.git"
+  },
+  "scripts": {},
+  "keywords": [
+    "zoom cloud meetings",
+    "zoom script",
+    "zoom",
+    "vercel",
+    "serverless"
+  ],
+  "author": "Eduardo Nascimento Souza",
+  "license": "ISC",
+  "homepage": "https://github.com/edunsouza/zoom-custom-features",
+  "dependencies": {
+    "moment": "^2.27.0",
+    "nodemailer": "^6.4.10"
+  }
+}
