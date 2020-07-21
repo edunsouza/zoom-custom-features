@@ -42,7 +42,8 @@ module.exports = async (req, res) => {
 
         res.status(200).json({ success: true, message: 'E-mail enviado com sucesso!' });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ success: false, message: 'Dados incorretos!' });
+        // console.log(error);
+        // res.status(500).json({ success: false, message: 'Dados incorretos!' });
+        res.status(500).json({ success: false, error: error, jsonError: JSON.stringify(error, null, 4) });
     }
 }
