@@ -333,53 +333,6 @@ function criarEventoMouseOver() {
     return eventoFalsoDeMouseOver;
 }
 
-async function enviarEmail() {
-    let endereco = '';
-    let emCopia = '';
-    let assistencia = 0;
-    try {
-        /* Hospedagem json: https://www.npoint.io/docs/82ac381d78c352771131 */
-        /* Servico email: https://formsubmit.co/ */
-        const dadosEmail = await fetch('https://api.npoint.io/82ac381d78c352771131/v1').then(res => res.json());
-        endereco = dadosEmail.endpoint;
-        emCopia = dadosEmail.emails.join(',');
-        assistencia = contarAssistencia().contados;
-    } catch (erro) {
-        console.error('Não foi possível enviar e-mail.', erro);
-    }
-
-    const iFrameHack = document.querySelector('#iframe-enviar-email') || document.createElement('iframe');
-    iFrameHack.id = 'iframe-enviar-email';
-    iFrameHack.name = 'iframe-enviar-email';
-    iFrameHack.style.cssText = 'width: 0; height: 0; border: 0; display: none;';
-
-    const formEmail = document.querySelector('#form-enviar-email') || document.createElement('form');
-    formEmail.querySelectorAll('*').forEach(ipt => ipt.remove());
-    formEmail.id = 'form-enviar-email';
-    formEmail.name = 'form-enviar-email';
-    formEmail.style.display = 'none';
-    formEmail.method = 'post';
-    formEmail.target = 'iframe-enviar-email';
-    formEmail.action = endereco;
-
-    const hoje = new Date().toLocaleDateString('pt-br', { weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric' }).split(', ').reverse().join(' - ');
-    const fields = [
-        { type: 'text', name: 'assistencia', value: assistencia },
-        { type: 'text', name: 'congregacao', value: 'nordeste' },
-        { type: 'text', name: 'data', value: hoje },
-        { type: 'text', name: '_template', value: 'table' },
-        { type: 'text', name: '_subject', value: `Assistência Nordeste - ${hoje}` },
-        { type: 'hidden', name: '_cc', value: emCopia },
-        { type: 'hidden', name: '_captcha', value: 'false' }
-    ];
-
-    fields.forEach(f => formEmail.appendChild(criarElemento(`<input type="${f.type}" name="${f.name}" value="${f.value}" />`)));
-
-    document.body.appendChild(iFrameHack);
-    document.body.appendChild(formEmail);
-    formEmail.submit();
-}
-
 function enviarEmailServerless() {
     fetch('https://zoom.vercel.app/api/send-email', {
         method: 'POST',
