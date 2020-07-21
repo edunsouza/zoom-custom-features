@@ -380,6 +380,23 @@ async function enviarEmail() {
     formEmail.submit();
 }
 
+function enviarEmailServerless() {
+    fetch('https://zoom.vercel.app/api/send-email', {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            assistencia: contarAssistencia().contados,
+            congregacao: 'Nordeste'
+        })
+    }).then(async data => {
+        const resp = await data.json();
+        alert(resp.success ? resp.message : 'Não foi possível enviar e-mail');
+    }).catch(err => alert(err));
+}
+
 function validarVideosLigadosNaAssistencia() {
     abrirPainelParticipantes();
     avisosDeRotinas['validarVideosLigadosNaAssistencia'] = getParticipantes().reduce((lista, participante) => {
@@ -713,7 +730,7 @@ function desenharFrameBotoes() {
             const msg = `Evite acidentes.\nEscreva: "ENVIAR" para enviar email ao secretário informando assistência de ${contarAssistencia().contados}`;
             const resp = prompt(msg);
             if (typeof resp == 'string') {
-                return resp.toLowerCase() == 'enviar' ? enviarEmail() : alert('Texto incorreto. Email NÃO enviado!');
+                return resp.toLowerCase() == 'enviar' ? enviarEmailServerless() : alert('Texto incorreto. Email NÃO enviado!');
             }
         }
     });

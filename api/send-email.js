@@ -20,7 +20,15 @@ const getHtmlBody = (assistencia = 'Não informado', congregacao = 'Nordeste', r
     `;
 };
 
-module.exports = async (req, res) => {
+const allowCors = fn => async (req, res) => {
+    res.setHeader('Access-Control-Allow-Credentials', true);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+    return await fn(req, res);
+}
+
+const sendEmail = async (req, res) => {
     try {
         const { assistencia, congregacao } = req.body;
         const reuniao = moment.locale('pt-br') && moment().format('DD/MM/YYYY - dddd');
@@ -41,3 +49,5 @@ module.exports = async (req, res) => {
         res.status(500).json({ success: false, message: 'Dados incorretos!', body: req.body });
     }
 }
+
+module.exports = allowCors(sendEmail);
