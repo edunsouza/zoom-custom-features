@@ -2,16 +2,10 @@
     "routes": [
         {
             "src": "/",
-            "methods": [
-                "GET"
-            ],
+            "headers": {
+                "Access-Control-Allow-Origin": "*"
+            },
             "dest": "/zoom-custom-features.js"
-        }
-    ],
-    "redirects": [
-        {
-            "source": "/",
-            "destination": "/zoom-custom-features.js"
         }
     ]
 }
