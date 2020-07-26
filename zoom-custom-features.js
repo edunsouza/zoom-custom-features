@@ -23,40 +23,6 @@ function criarElemento(text, eventos = {}) {
     return elemento;
 }
 
-function criarFocoCustomizado() {
-    abrirPainelParticipantes();
-    let texto = prompt('Informe um termo (palavra-chave) para buscar participante.\n\n(Dica: use termos diferentes em cada participante)');
-    if (typeof texto != 'string') return;
-    texto = texto.trim().toLocaleLowerCase();
-    if (!texto) return alert('Nome não informado. Nenhuma ação será tomada. Tente novamente');
-
-    const alvo = selecionarParticipante(texto);
-    if (!alvo) return alert('Não encontrado! Experimente outras palavras');
-
-    const nomeParticipante = getNomeParticipante(alvo);
-    if (!confirm(`Este termo provavelmente encontrará: ${nomeParticipante}\n\nUsar TERMO?`)) {
-        return;
-    }
-
-    const btn = {
-        id: btoa(nomeParticipante),
-        alvo: nomeParticipante,
-        texto: texto,
-        click: () => {
-            if (confirm(`Confirme se deseja focar em: ${getNomeParticipante(selecionarParticipante(texto)).toUpperCase()}`)) {
-                focar(texto);
-            }
-        }
-    };
-
-    /* adicionar botao novo, sempre removendo as repeticoes */
-    const botoes = avisosDeRotinas['botoesFocoCustomizado'].filter(bfc => bfc.alvo != btn.alvo);
-    botoes.push(btn);
-
-    avisosDeRotinas['botoesFocoCustomizado'] = botoes;
-    atualizarTela();
-}
-
 function criarBotaoOpcoesCustomizadas() {
     const idBotao = 'abrir-opcoes-reuniao';
     const btnAntigo = document.getElementById(idBotao);
@@ -72,6 +38,41 @@ function criarBotaoOpcoesCustomizadas() {
     }));
 }
 
+function criarBotaoFocoCustomizado(participantes, nome) {
+    return {
+        nome,
+        id: btoa(nome),
+        validar: () => {
+            abrirPainelParticipantes();
+            return participantes.every(p => selecionarParticipante(p.funcao));
+        },
+        click: () => {
+            if (!confirm(`Deseja ativar o foco: ${nome.toUpperCase()}?`)) return;
+            abrirPainelParticipantes();
+            const alvosComVideo = [];
+            const alvosComMicrofone = [];
+
+            participantes.forEach(({ funcao, video, microfone, focar }) => {
+                const p = selecionarParticipante(funcao);
+                video && alvosComVideo.push(p);
+                microfone && alvosComMicrofone.push(p);
+
+                if (video) {
+                    ligarVideoParticipante(p, () => {
+                        focar && spotlightParticipante(p);
+                        microfone && ligarMicrofoneParticipante(p, true);
+                    });
+                } else if (microfone) {
+                    ligarMicrofoneParticipante(p, true);
+                }
+            });
+
+            desligarMicrofones(alvosComMicrofone);
+            desligarVideos(alvosComVideo);
+        }
+    };
+}
+
 function criarCss() {
     abrirPainelParticipantes();
     const larguraPainelParticipantes = parseInt(document.querySelector('#wc-container-right').style.width);
@@ -83,7 +84,7 @@ function criarCss() {
         .modal-principal {
             display: grid;
             grid-template-rows: 1fr 1fr;
-            overflow-y: scroll;
+            overflow-y: hidden;
             position: fixed;
             right: ${larguraPainelParticipantes + 5}px;
             left: 5px;
@@ -201,9 +202,20 @@ function criarCss() {
             background-color: #ffb300;
             color: #111111;
         }
+        .btn-primary-outline {
+            background-color: transparent !important;
+            color: #1665c0 !important;
+            border-color: #1665c0 !important;
+        }
+        .alert-danger {
+            background-color: #f3958e9c;
+            color: #a94442;
+        }
+        .alert-danger::-webkit-input-placeholder, .alert-danger::placeholder { color: #a94442; }
         .configuracao {
             display: flex;
             justify-content: center;
+            align-items: center;
             user-select: none;
             border-radius: 4px;
             border: 1px solid #afb4b7;
@@ -294,6 +306,57 @@ function criarCss() {
             line-height: 14px;
             padding: 0px;
         }
+        #modal-foco-customizado {
+            position: absolute;
+            left: 0%;
+            top: 0%;
+            background-color: #0000008a;
+            width: 100%;
+            height: 100%;
+        }
+        .corpo-modal-foco-customizado {
+            display: grid;
+            grid-template-rows: repeat(7, 60px);
+            grid-gap: 10px;
+            overflow-y: scroll;
+            margin: auto;
+            margin-top: 5%;
+            padding: 30px;
+            height: 80%;
+            width: 75%;
+            background-color: #ffffffc7;
+        }
+        .opcoes-modal-foco-customizado {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            align-items: center;
+            justify-content: center;
+        }
+        .opcoes-modal-foco-customizado * { margin: 0 5px; }
+        .campos-modal-foco-customizado {
+            display: grid;
+            grid-template-columns: 3fr 2fr 2fr 2fr 2fr;
+            grid-template-rows: 40px 20px;
+            align-items: center;
+            justify-items: center;
+            height: 60px;
+        }
+        .campos-modal-foco-customizado input ~ i {
+            color: #ff4242;
+            font-size: 40px;
+        }
+        .campos-modal-foco-customizado input:checked ~ i {
+            color: #5cb85c;
+            font-size: 40px;
+        }
+        .campos-modal-foco-customizado label {
+            user-select: none;
+            cursor: pointer;
+            margin-bottom: 0;
+        }
+        .campos-modal-foco-customizado input[type="checkbox"] {
+            cursor: pointer;
+        }
     `;
     document.body.appendChild(css);
 }
@@ -331,6 +394,10 @@ function criarEventoMouseOver() {
     const eventoFalsoDeMouseOver = new MouseEvent('mouseover', { bubbles: true });
     eventoFalsoDeMouseOver.simulated = true;
     return eventoFalsoDeMouseOver;
+}
+
+function getTextoPuro(texto) {
+    return !texto ? '' : texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
 function enviarEmailServerless() {
@@ -477,14 +544,15 @@ function atualizarBotoesFocoCustomizado() {
     const ul = document.getElementById(btoa('botoesFocoCustomizado'));
     ul.querySelectorAll('li').forEach(li => li.remove());
 
-    avisosDeRotinas['botoesFocoCustomizado'].forEach(btnCustomizado => {
-        const nome = getNomeParticipante(selecionarParticipante(btnCustomizado.texto));
-        const btn = criarElemento(`<button ${nome ? '' : 'disabled'} class="btn-sm">${nome || 'Não encontrado!'}</button>`, {
-            onclick: e => !e.target.attributes.disabled && btnCustomizado.click()
+    avisosDeRotinas['botoesFocoCustomizado'].forEach(({ nome, click, id, validar }) => {
+        const isValido = validar();
+        nome = isValido ? nome : 'Não encontrado!';
+        const btn = criarElemento(`<button ${isValido || 'disabled'} class="btn-sm">${nome}</button>`, {
+            onclick: e => !e.target.attributes.disabled && click()
         });
 
         const icon = criarIcone('fechar');
-        icon.onclick = () => excluirBotaoFocoCustomizado(btnCustomizado.id);
+        icon.onclick = () => excluirBotaoFocoCustomizado(id);
         icon.style.cssText = `font-size: 22px; cursor: pointer;`;
 
         const li = criarElemento(`<li class="btn-foco-customizado"></li>`);
@@ -570,11 +638,197 @@ function desenharModal() {
     /* adicionar os frames ao painel */
     painelOpcoes.appendChild(desenharFrameBotoes());
     painelOpcoes.appendChild(desenharFrameServicos());
+    painelOpcoes.appendChild(desenharModalFocoCustomizado());
 
     /* esconder modal ao iniciar script */
     painelOpcoes.style.display = 'none';
     /* adicionar na tela */
     document.body.appendChild(painelOpcoes);
+}
+
+function desenharModalFocoCustomizado() {
+    const modalDrop = document.getElementById(idModalFocoCustomizado) || criarElemento(`<div id="${idModalFocoCustomizado}"></div>`);
+
+    /* limpar modal anterior */
+    modalDrop.style.display = 'none';
+    modalDrop.querySelectorAll('*').forEach(ipt => ipt.remove());
+
+    /* criar botoes principais */
+    const btnAdicionarNovoFoco = criarElemento('<button class="btn btn-success" name="novo-participante">Novo participante</button>', {
+        onclick: () => document.querySelector('.corpo-modal-foco-customizado').appendChild(criarCamposModalFocoCustomizado())
+    });
+
+    const btnSalvar = criarElemento('<button class="btn btn-primary" name="salvar">Salvar</button>', {
+        onclick: () => {
+            const camposValidos = validarCamposModalFocoCustomizado();
+            if (!camposValidos) return;
+
+            const { participantes, inputNomeFoco } = camposValidos;
+            const nomeBtnFoco = getTextoPuro(inputNomeFoco.value);
+            const btn = criarBotaoFocoCustomizado(participantes, nomeBtnFoco);
+
+            /* adicionar botao novo, sempre removendo as repeticoes */
+            avisosDeRotinas['botoesFocoCustomizado'] = [btn, ...avisosDeRotinas.botoesFocoCustomizado.filter(b => b.id != btn.id)];
+            atualizarTela();
+
+            fecharModalFocoCustomizado();
+        }
+    });
+
+    const btnCancelar = criarElemento('<button class="btn btn-primary-outline" name="cancelar" style="grid-column-start: 5;">Cancelar</button>');
+
+    const inputNomeFocoCustomizado = criarElemento(`
+        <div class="input-group" style="margin: auto 5px;">
+            <span class="input-group-addon">Informe o nome do botão:</span>
+            <input id="nome-foco-customizado" name="nome" type="text" class="form-control" placeholder="Primeira Visita">
+        </div>
+    `);
+
+    /* eventos fechar modal */
+    btnCancelar.onclick = fecharModalFocoCustomizado;
+    modalDrop.onclick = ({ target }) => (target != modalDrop) || fecharModalFocoCustomizado();
+
+    /* desenhar modal */
+    const cabecalhoModal = criarElemento('<div class="opcoes-modal-foco-customizado"/>');
+    cabecalhoModal.appendChild(btnAdicionarNovoFoco);
+    cabecalhoModal.appendChild(btnSalvar);
+    cabecalhoModal.appendChild(btnCancelar);
+
+    const avisoErroModal = criarElemento(`
+        <div class="alert alert-danger" id="aviso-erro-modal" style="display: none; font-size: 18px; margin: auto 0;">
+            <span class="glyphicon glyphicon-exclamation-sign"></span>
+            <span name="placeholder-erro"></span>
+        </div>
+    `);
+
+    const modal = criarElemento('<div class="corpo-modal-foco-customizado"/>');
+    modal.appendChild(avisoErroModal);
+    modal.appendChild(cabecalhoModal);
+    modal.appendChild(inputNomeFocoCustomizado);
+    modal.appendChild(criarCamposModalFocoCustomizado());
+
+    modalDrop.appendChild(modal);
+    return modalDrop;
+}
+
+function criarCamposModalFocoCustomizado() {
+    const sufixo = btoa(Math.random()).replace(/[^0-9a-zA-Z]/, '');
+    const cores = { on: 'color: #5cb85c;', off: 'color: #ff4242;' };
+    const textos = {
+        video: { on: 'Solicitar Vídeo', off: 'Sem Vídeo' },
+        mic: { on: 'Solicitar Microfone', off: 'Sem Microfone' },
+        spot: { on: 'Com Spotlight', off: 'Sem Spotlight' }
+    };
+    const icones = {
+        video: { on: 'videocam', off: 'videocam_off' },
+        mic: { on: 'mic_none', off: 'mic_off' },
+        spot: { on: 'gps_fixed', off: 'gps_not_fixed' }
+    };
+    const campos = criarElemento(`
+        <div class="campos-modal-foco-customizado">
+            <div class="input-group" style="grid-row: span 2; grid-column: span 2; margin: auto 0 auto 5px; width: calc(100% - 5px);">
+                <input type="text" class="form-control" name="funcao" placeholder="Participante ou Função" />
+                <span class="input-group-btn">
+                    <button name="validar-texto" class="btn btn-primary">Validar texto</button>
+                </span>
+            </div>
+
+            <label>
+                <input type="checkbox" style="display: none;" name="video" id="${'video' + sufixo}">
+                <i class="i-sm material-icons-outlined" data-on="${icones.video.on}" data-off="${icones.video.off}">${icones.video.off}</i>
+            </label>
+
+            <label>
+                <input type="checkbox" style="display: none;" name="microfone" id="${'microfone' + sufixo}" checked>
+                <i class="i-sm material-icons-outlined" data-on="${icones.mic.on}" data-off="${icones.mic.off}">${icones.mic.on}</i>
+            </label>
+
+            <label>
+                <input type="checkbox" style="display: none;" name="focar" id="${'focar' + sufixo}">
+                <i class="i-sm material-icons-outlined" data-on="${icones.spot.on}" data-off="${icones.spot.off}">${icones.spot.off}</i>
+            </label>
+
+            <label data-on="${textos.video.on}" data-off="${textos.video.off}" for="${'video' + sufixo}" style="${cores.off} grid-column-start: 3;">
+                ${textos.video.off}
+            </label>
+            <label data-on="${textos.mic.on}" data-off="${textos.mic.off}" for="${'microfone' + sufixo}" style="${cores.on}">
+                ${textos.mic.on}
+            </label>
+            <label data-on="${textos.spot.on}" data-off="${textos.spot.off}" for="${'focar' + sufixo}" style="${cores.off}">
+                ${textos.spot.off}
+            </label>
+        </div>
+    `);
+
+    /* eventos */
+    campos.querySelector('button[name="validar-texto"]').onclick = validarFuncaoAlvoFocoCustomizado;
+    campos.querySelectorAll('input[type="checkbox"]').forEach(i => {
+        i.onchange = ({ target }) => {
+            const icon = target.nextElementSibling;
+            const label = document.querySelector(`label[for="${target.id}"]`);
+            icon.innerText = target.checked ? icon.dataset.on : icon.dataset.off;
+            label.innerText = target.checked ? label.dataset.on : label.dataset.off;
+            label.style.color = target.checked ? '#5cb85c' : '#ff4242';
+        };
+    });
+
+    return campos;
+}
+
+function validarFuncaoAlvoFocoCustomizado({ target }) {
+    abrirPainelParticipantes();
+    const campoTexto = target.parentElement.previousElementSibling;
+    const encontrado = selecionarParticipante(campoTexto.value);
+    if (encontrado) {
+        campoTexto.classList.remove('alert-danger');
+        alert(`Participante encontrado: ${getNomeParticipante(encontrado)}`);
+    } else {
+        campoTexto.classList.add('alert-danger');
+        campoTexto.value
+            ? alert(`Nenhum participante encontrado pelo termo ${campoTexto.value.toUpperCase()}`)
+            : alert(`Informe algum texto para encontrar o participante`);
+    }
+}
+
+function validarCamposModalFocoCustomizado() {
+    let erros = false;
+    const avisoErro = document.querySelector('#aviso-erro-modal span[name="placeholder-erro"]');
+    const estiloErro = 'alert-danger';
+    const inputNomeFoco = document.querySelector(`#${idModalFocoCustomizado} input[name="nome"]`);
+    const participantes = [];
+
+    if (!inputNomeFoco.value) {
+        inputNomeFoco.classList.add(estiloErro);
+        avisoErro.innerText = 'Informe nome para o novo botão. Preencha o(s) campo(s) em vermelho';
+        avisoErro.parentElement.style.display = 'block';
+        return;
+    }
+
+    abrirPainelParticipantes();
+
+    document.querySelectorAll(`#${idModalFocoCustomizado} .campos-modal-foco-customizado`).forEach(campos => {
+        const foco = {};
+
+        campos.querySelectorAll('input[type="checkbox"]').forEach(({ name, checked }) => foco[name] = checked);
+        campos.querySelectorAll('input[type="text"]').forEach(({ value, classList }) => {
+            if (selecionarParticipante(value)) {
+                foco.funcao = value;
+            } else {
+                classList.add(estiloErro);
+                erros = true;
+            }
+        });
+
+        participantes.push(foco);
+    });
+
+    if (erros) {
+        avisoErro.innerText = 'Preencha o(s) campo(s) em vermelho e selecione "validar texto"';
+        avisoErro.parentElement.style.display = 'block';
+        return;
+    }
+
+    return { participantes, inputNomeFoco };
 }
 
 function desenharFrameBtnFechar() {
@@ -641,7 +895,7 @@ function desenharFrameBotoes() {
             nome: 'Criar foco',
             icone: 'participante',
             classe: 'btn-success',
-            click: criarFocoCustomizado
+            click: abrirModalFocoCustomizado
         },
         {
             nome: 'Abaixar mãos',
@@ -742,7 +996,7 @@ function desenharFrameServicos() {
             avisosDeRotinas[rotina].forEach(btnCustomizado => {
                 ul.appendChild(
                     document.createElement('li').appendChild(
-                        criarElemento(`<button class="btn btn-danger btn-funcionalidade" value="${btnCustomizado.alvo}"></button>`, {
+                        criarElemento(`<button class="btn btn-danger btn-funcionalidade">${btnCustomizado.nome}</button>`, {
                             onclick: () => btnCustomizado.click()
                         })
                     ).parentElement
@@ -828,6 +1082,17 @@ function fecharModal() {
     document.getElementById(idModal).style.display = 'none';
 }
 
+function abrirModalFocoCustomizado() {
+    desenharModalFocoCustomizado();
+    document.getElementById(idModalFocoCustomizado).style.display = 'block';
+}
+
+function fecharModalFocoCustomizado() {
+    const modal = document.getElementById(idModalFocoCustomizado);
+    modal.querySelectorAll('*').forEach(i => i.remove());
+    modal.style.display = 'none';
+}
+
 function alternarModoTransparente(evento) {
     const modal = document.getElementById(idModal);
     if (evento.target.checked) {
@@ -875,8 +1140,8 @@ function getOpcaoDropdownMais(textosOpcao) {
 function selecionarParticipante(funcao) {
     if (!funcao) return;
     return getParticipantes().find(participante => {
-        const nome = getNomeParticipante(participante).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-        return nome && nome.includes(funcao.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase());
+        const nome = getTextoPuro(getNomeParticipante(participante));
+        return nome && nome.includes(getTextoPuro(funcao));
     });
 }
 
@@ -1339,6 +1604,7 @@ function contarAssistencia() {
 var idTextoContados = 'texto-contados';
 var idTextoNaoContados = 'texto-nao-contados';
 var idModal = 'opcoes-reuniao';
+var idModalFocoCustomizado = 'modal-foco-customizado';
 var tempoDePalmas = 8000;
 
 /* PALAVRAS-CHAVE PARA ENCONTRAR PARTICIPANTES (NOMEAR PARTICIPANTE COM CHAVES ABAIXO) */
