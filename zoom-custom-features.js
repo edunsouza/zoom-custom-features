@@ -109,6 +109,25 @@ function criarCss() {
         .modal-transparente .frame-rotinas {
             background-color: #21212147;
         }
+        .modal-transparente #modal-foco-customizado .input-group-addon,
+        .modal-transparente #modal-foco-customizado input {
+            color: #555555;
+        }
+        .modal-transparente #modal-foco-customizado .btn-primary,
+        .modal-transparente #modal-foco-customizado .btn-success {
+            color: #ffffff;
+        }
+        .modal-transparente #modal-foco-customizado .alert-danger * {
+            color: #a94442;
+        }
+        #modal-foco-customizado {
+            position: absolute;
+            left: 0%;
+            top: 0%;
+            background-color: #0000008a;
+            width: 100%;
+            height: 100%;
+        }
         .frame-rotinas {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr 1fr;
@@ -305,14 +324,6 @@ function criarCss() {
             align-items: center;
             line-height: 14px;
             padding: 0px;
-        }
-        #modal-foco-customizado {
-            position: absolute;
-            left: 0%;
-            top: 0%;
-            background-color: #0000008a;
-            width: 100%;
-            height: 100%;
         }
         .corpo-modal-foco-customizado {
             display: grid;
