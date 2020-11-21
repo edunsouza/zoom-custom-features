@@ -19,6 +19,7 @@
   "homepage": "https://github.com/edunsouza/zoom-custom-features",
   "dependencies": {
     "@sendgrid/mail": "^7.2.1",
+    "axios": "^0.21.0",
     "moment": "^2.27.0"
   }
 }

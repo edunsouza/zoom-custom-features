@@ -1,5 +1,6 @@
 const sgMail = require('@sendgrid/mail');
 const moment = require('moment');
+const axios = require('axios');
 require('moment/locale/pt-br');
 
 const getHtmlBody = (assistencia = 'Não informado', congregacao = 'Nordeste', reuniao) => {
@@ -30,7 +31,7 @@ const allowCors = fn => async (req, res) => {
         return res.status(200).end();
     }
     return await fn(req, res);
-}
+};
 
 const sendEmail = async (req, res) => {
     try {
@@ -40,6 +41,20 @@ const sendEmail = async (req, res) => {
         if (!assistencia || assistencia < 1) {
             return res.status(500).json({ success: false, message: 'Assistência não informada!' });
         }
+
+        // log metrics
+        axios({
+            method: 'post',
+            url: process.env.METRICS_ENDPOINT || 'http://designacoes.edunsouza.xyz/api/v1/attendance',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            data: {
+                id: congregacao,
+                attendance: assistencia
+            }
+        });
 
         sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
@@ -55,6 +70,6 @@ const sendEmail = async (req, res) => {
         console.log(JSON.stringify(error, null, 4));
         res.status(500).json({ success: false, message: 'Dados incorretos!' });
     }
-}
+};
 
 module.exports = allowCors(sendEmail);
