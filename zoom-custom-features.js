@@ -486,7 +486,7 @@ function enviarEmailServerless() {
     }).catch(err => alert(err));
 }
 
-function validarVideosLigadosNaAssistencia() {
+function atualizarVideosLigadosNaAssistencia() {
     abrirPainelParticipantes();
     avisosDeRotinas.validarVideosLigadosNaAssistencia = getParticipantes().reduce((lista, participante) => {
         if (isVideoLigado(participante)) {
@@ -496,7 +496,7 @@ function validarVideosLigadosNaAssistencia() {
     }, []);
 }
 
-function validarMicrofonesLigadosNaAssistencia() {
+function atualizarMicrofonesLigadosNaAssistencia() {
     abrirPainelParticipantes();
     avisosDeRotinas.validarMicrofonesLigadosNaAssistencia = getParticipantes().reduce((lista, participante) => {
         if (isMicrofoneLigado(participante)) {
@@ -508,7 +508,7 @@ function validarMicrofonesLigadosNaAssistencia() {
 
 function admitirEntradaNaSalaComNomeValido() {
     abrirPainelParticipantes();
-    Array.from(document.querySelectorAll('.waiting-room-list-conatiner__ul li')).forEach(participante => {
+    document.querySelectorAll('.waiting-room-list-conatiner__ul li').forEach(participante => {
         const nome = getNomeParticipante(participante);
         /* verificar se participante tem nome valido */
         if (isNomeValido(participante)) {
@@ -522,7 +522,7 @@ function admitirEntradaNaSalaComNomeValido() {
     });
 }
 
-function validarNomesForaDoPadrao() {
+function atualizarNomesForaDoPadrao() {
     abrirPainelParticipantes();
     const nomesInvalidos = [];
 
@@ -551,12 +551,12 @@ function atualizarTela() {
     clearTimeout(config.ultimaMudanca);
     config.ultimaMudanca = setTimeout(() => {
         limparAvisosAntigos();
-        validarNomesForaDoPadrao();
+        atualizarNomesForaDoPadrao();
         admitirEntradaNaSalaComNomeValido();
-        validarVideosLigadosNaAssistencia();
-        validarMicrofonesLigadosNaAssistencia();
-        atualizarBotoesFocoPadrao();
+        atualizarVideosLigadosNaAssistencia();
+        atualizarMicrofonesLigadosNaAssistencia();
         atualizarAvisosDeRotinas();
+        atualizarBotoesFocoPadrao();
         atualizarMaosLevantadas();
         atualizarAssistencia();
     }, 100);
@@ -694,29 +694,37 @@ function atualizarMaosLevantadas() {
     const lista = document.querySelector('#maos-comentarios');
     removerFilhos(lista);
 
-    const onclick = ({ target }) => {
-        const comentarista = selecionarParticipante(target.parentElement.querySelector('span').innerText);
-        const noPalco = getParticipantes().filter(p => isVideoLigado(p));
-        ligarMicrofoneParticipante(comentarista);
-        desligarMicrofones([comentarista, ...noPalco]);
-        abaixarMaos([comentarista]);
+    const participante = selecionarParticipante(observados.comentarista);
+    if (isMicrofoneLigado(participante)) {
+        abaixarMaoParticipante(participante);
+        delete observados.comentarista;
     }
 
     /* busca todas maos levantadas e adiciona na lista */
     getParticipantes().forEach(participante => {
-        if (isMaoLevantada(participante)) {
-            const li = criarElemento(`
-                <li>
-                    <button class="btn-xs btn-comentaristas">
-                        <i class="material-icons-outlined">pan_tool</i>
-                        <i class="material-icons-outlined">mic_none</i>
-                        <span>${getNomeParticipante(participante)}</span>
-                    </button>
-                </li>
-            `);
-            li.querySelector('.btn-comentaristas').onclick = onclick;
-            lista.appendChild(li);
-        }
+        if (!isMaoLevantada(participante)) return;
+
+        const nome = getNomeParticipante(participante);
+        const li = criarElemento('<li></li>');
+        const btn = criarElemento(`<button data-participante="${nome}" class="btn-xs btn-comentaristas"></button>`, {
+            onclick: ({ target }) => {
+                const nomeParticipante = target.dataset.participante;
+                const participante = selecionarParticipante(nomeParticipante);
+                observados.comentarista = nomeParticipante;
+
+                abaixarMaos([participante]);
+                ligarMicrofoneParticipante(participante);
+                desligarMicrofones([
+                    participante,
+                    ...getParticipantes().filter(participante => isVideoLigado(participante))
+                ]);
+            }
+        });
+
+        btn.appendChild(criarElemento(`<i data-participante="${nome}" class="material-icons-outlined">mic_none</i>`));
+        btn.appendChild(criarElemento(`<span data-participante="${nome}">${nome}</span>`));
+        li.appendChild(btn);
+        lista.appendChild(li);
     });
 }
 
@@ -744,10 +752,14 @@ function limparAvisosAntigos() {
 function dispararRotina(nomeRotina, tempoEmMilissengudos, callback) {
     encerrarRotina(nomeRotina);
     intervalosEmExecucao[nomeRotina] = setInterval(() => callback(), tempoEmMilissengudos);
+    avisosDeRotinas.tentativasPersistentes = Array.from(new Set([...avisosDeRotinas.tentativasPersistentes, nomeRotina]));
+    atualizarTela();
 }
 
 function encerrarRotina(nomeRotina) {
     intervalosEmExecucao[nomeRotina] = clearInterval(intervalosEmExecucao[nomeRotina]);
+    avisosDeRotinas.tentativasPersistentes = avisosDeRotinas.tentativasPersistentes.filter(tentativa => tentativa != nomeRotina);
+    atualizarTela();
 }
 
 function desenharModal() {
@@ -1074,7 +1086,14 @@ function desenharFrameBotoes() {
     divNaoContados.appendChild(textoNaoContados);
 
     const inputModoTransparente = criarElemento(`<input id="modo-transparente" type="checkbox"></input>`, {
-        onchange: (evento) => alternarModoTransparente(evento)
+        onchange: ({ target }) => {
+            const modal = document.getElementById(idGerais.modal);
+            if (target.checked) {
+                modal.classList.add('modal-transparente');
+            } else {
+                modal.classList.remove('modal-transparente');
+            }
+        }
     });
 
     const textoModoTransparente = criarElemento(`<label for="modo-transparente">Modo transparente (exibe vídeo em destaque)</label>`);
@@ -1142,10 +1161,10 @@ function desenharFrameServicos() {
         <div class="div-rotina grid-comentarios">
             <p>Comentários</p>
             <div id="acoes-rapidas-comentarios">
-                <button class="btn btn-xs btn-primary">Desligar microfones*</button>
+                <button class="btn btn-xs btn-primary">Silenciar todos*</button>
                 <button class="btn btn-xs btn-success">Abaixar mãos</button>
             </div>
-            <div class="legenda">*Exceto de vídeos ligados</div>
+            <div class="legenda">*Exceto com vídeos ligados</div>
             <ul id="maos-comentarios"></ul>
         </div>
     `));
@@ -1214,15 +1233,6 @@ function fecharModalFocoCustomizado() {
     const modal = document.getElementById(idGerais.modalFocoCustomizado);
     removerFilhos(modal);
     modal.style.display = 'none';
-}
-
-function alternarModoTransparente(evento) {
-    const modal = document.getElementById(idGerais.modal);
-    if (evento.target.checked) {
-        modal.classList.add('modal-transparente');
-    } else {
-        modal.classList.remove('modal-transparente');
-    }
 }
 
 function abrirPainelParticipantes() {
@@ -1354,6 +1364,15 @@ function expulsarParticipante(participante) {
     clickDropdown(participante, textosOpcoes.expulsar);
 }
 
+function abaixarMaoParticipante(participante) {
+    if (!participante) return;
+    abrirPainelParticipantes();
+    const btn = Array.from(participante.querySelectorAll('.participants-item__buttons .button-margin-right')).find(btn => {
+        return textosOpcoes.abaixarMaos.includes(btn.innerText.toLowerCase());
+    });
+    btn && btn.click();
+}
+
 function ligarMicrofoneParticipante(participante, tentativaPersistente) {
     const nomeRotina = `ligar_som_${getNomeParticipante(participante)}`;
 
@@ -1370,7 +1389,6 @@ function ligarMicrofoneParticipante(participante, tentativaPersistente) {
         /* iniciar temporizador para aguardar participante liberar microfone */
         dispararRotina(nomeRotina, 2000, () => {
             if (isMicrofoneLigado(participante)) {
-                avisosDeRotinas.tentativasPersistentes = avisosDeRotinas.tentativasPersistentes.filter(tentativa => tentativa != nomeRotina);
                 encerrarRotina(nomeRotina);
                 atualizarTela();
             } else {
@@ -1489,21 +1507,35 @@ function abaixarMaos(excecoes) {
     });
 }
 
-function silenciarComentaristas() {
+function contarAssistencia() {
     abrirPainelParticipantes();
+    let assistencia = 0;
+    const nomesForaPadrao = [];
+
     getParticipantes().forEach(participante => {
-        if (!isVideoLigado(participante)) {
-            desligarMicrofoneParticipante(participante);
+        const nome = getNomeParticipante(participante);
+
+        if (!isNomeValido(participante)) {
+            nomesForaPadrao.push(nome);
+            return;
+        }
+
+        const quantidade = parseInt(nome.replace(/\(|\{|\[/, '').trim());
+        if (quantidade > 0) {
+            assistencia += quantidade;
         }
     });
+
+    return {
+        contados: assistencia,
+        naoContados: nomesForaPadrao.length,
+        nomesInvalidos: nomesForaPadrao
+    };
 }
 
 function permitirParticipantesLigarMicrofones(permitir) {
     try {
-        const opcaoPermitirMicrofones = getOpcaoDropdownMais([
-            'allow participants to unmute themselves',
-            'permitir que os próprios participantes desativem o mudo'
-        ]);
+        const opcaoPermitirMicrofones = getOpcaoDropdownMais(textosOpcoes.permitirMicrofones);
         const isAtivo = opcaoPermitirMicrofones.querySelector('.i-ok-margin');
 
         /* clicar na opcao somente se nao estiver como deveria */
@@ -1511,7 +1543,35 @@ function permitirParticipantesLigarMicrofones(permitir) {
             opcaoPermitirMicrofones.click();
         }
     } catch {
-        alert('opção "permitir que os próprios participantes desativem o mudo" não encontrada');
+        alert(`opção "${textosOpcoes.permitirMicrofones[1]}" não encontrada`);
+    }
+}
+
+function silenciarParticipantesAoEntrar(silenciar) {
+    try {
+        const opcaoSilenciarAoEntrar = getOpcaoDropdownMais(textosOpcoes.silenciarAoEntrar);
+        const isAtivo = opcaoSilenciarAoEntrar.querySelector('.i-ok-margin');
+
+        /* clicar na opcao somente se nao estiver como deveria */
+        if ((silenciar && !isAtivo) || (!silenciar && isAtivo)) {
+            opcaoSilenciarAoEntrar.click();
+
+            /* desmarcar a opcao que permite os participantes ligarem o microfone */
+            setTimeout(() => {
+                const opcaoPermitirMicrofones = document.querySelector('.zm-modal-footer-default-checkbox');
+                if (opcaoPermitirMicrofones) {
+
+                    if (opcaoPermitirMicrofones.querySelector('.zm-checkbox-checked')) {
+                        opcaoPermitirMicrofones.querySelector('.zm-checkbox-message').click();
+                    }
+
+                    document.querySelector('.zm-modal-footer-default-actions .zm-btn__outline--blue').click();
+                }
+            }, 100);
+
+        }
+    } catch {
+        alert(`opção "${textosOpcoes.silenciarAoEntrar[1]}" não encontrada`);
     }
 }
 
@@ -1671,7 +1731,7 @@ function finalizarDiscurso() {
     /* desativar botoes durante as palmas para evitar interrupcoes acidentais */
     document.querySelectorAll('.btn-funcionalidade').forEach(btn => btn.classList.add('disabled'));
 
-    /* Aguardar tempo suficiente de palmas (8 segundos) */
+    /* Aguardar tempo suficiente de palmas */
     setTimeout(() => {
         desligarMicrofones([presidente]);
         document.querySelectorAll('.btn-funcionalidade').forEach(btn => btn.classList.remove('disabled'));
@@ -1693,6 +1753,7 @@ function desligarTudo() {
     desligarVideos();
     desligarMicrofones();
     permitirParticipantesLigarMicrofones(false);
+    silenciarParticipantesAoEntrar(true);
 }
 
 function ligarTudo() {
@@ -1704,32 +1765,16 @@ function ligarTudo() {
     /* deixar foco automático */
     desligarSpotlight();
     permitirParticipantesLigarMicrofones(true);
+    silenciarParticipantesAoEntrar(false);
 }
 
-function contarAssistencia() {
+function silenciarComentaristas() {
     abrirPainelParticipantes();
-    let assistencia = 0;
-    const nomesForaPadrao = [];
-
     getParticipantes().forEach(participante => {
-        const nome = getNomeParticipante(participante);
-
-        if (!isNomeValido(participante)) {
-            nomesForaPadrao.push(nome);
-            return;
-        }
-
-        const quantidade = parseInt(nome.replace(/\(|\{|\[/, '').trim());
-        if (quantidade > 0) {
-            assistencia += quantidade;
+        if (!isVideoLigado(participante)) {
+            desligarMicrofoneParticipante(participante);
         }
     });
-
-    return {
-        contados: assistencia,
-        naoContados: nomesForaPadrao.length,
-        nomesInvalidos: nomesForaPadrao
-    };
 }
 
 /* IDENTIFICADORES GERAIS */
@@ -1762,12 +1807,17 @@ var textosOpcoes = {
     desligarMicrofone: ['mute', 'desativar som'],
     abaixarMaos: ['lower hand', 'abaixar mão'],
     renomear: ['rename', 'renomear'],
-    expulsar: ['colocar na sala de espera', 'put in waiting room'],
+    expulsar: ['put in waiting room', 'colocar na sala de espera'],
+    permitirMicrofones: ['allow participants to unmute themselves', 'permitir que os próprios participantes desativem o mudo'],
+    silenciarAoEntrar: ['mute participants on entry', 'desativar som dos participantes ao entrar']
 };
 
 /* CONTROLE E CONFIGURACOES */
 var intervalosEmExecucao = intervalosEmExecucao || {};
 var observador = observador || null;
+var observados = {
+    comentarista: null
+};
 var avisosDeRotinas = {
     tentativasPersistentes: [],
     validarNomesForaDoPadrao: [],
