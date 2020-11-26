@@ -9,6 +9,12 @@ function criarDomListener() {
     });
 }
 
+function criarEventoMouseOver() {
+    const eventoFalsoDeMouseOver = new MouseEvent('mouseover', { bubbles: true });
+    eventoFalsoDeMouseOver.simulated = true;
+    return eventoFalsoDeMouseOver;
+}
+
 function criarElemento(text, eventos) {
     const dom = new DOMParser().parseFromString(text.replace(/\s+/g, ' '), 'text/html');
     const elemento = dom.body.children[0] || dom.head.children[0];
@@ -16,86 +22,34 @@ function criarElemento(text, eventos) {
     return elemento;
 }
 
-function criarMenuCustomizado(elemento, options) {
-    if (!elemento || !elemento.addEventListener || !Array.isArray(options)) return;
+function criarIcone(tipo, id) {
+    if (!tipo) return;
 
-    if (!document.getElementById(idGerais.menuCustomizado)) {
-        document.body.appendChild(criarElemento(`<div id="${idGerais.menuCustomizado}" class="menu-contexto"></div>`));
-    }
-
-    const menu = document.getElementById(idGerais.menuCustomizado);
-
-    document.body.removeEventListener('click', config.limparMenuCustomizado);
-
-    config.limparMenuCustomizado = e => {
-        if (e.path.find(elemento => elemento.id == 'wc-container-right')) return;
-
-        const ctxMenu = document.getElementById(idGerais.menuCustomizado);
-
-        if (ctxMenu) {
-            ctxMenu.style.display = 'none';
-        }
+    const tipos = {
+        camera: 'videocam',
+        cameraFechada: 'videocam_off',
+        microfone: 'mic_none',
+        microfoneFechado: 'mic_off',
+        finalizarDiscurso: 'voice_over_off',
+        orador: 'record_voice_over',
+        presidente: 'person',
+        dirigente: 'group',
+        leitor: 'supervisor_account',
+        tesouros: 'emoji_events',
+        joias: 'wb_iridescent',
+        biblia: 'menu_book',
+        vida1: 'looks_one',
+        vida2: 'looks_two',
+        participante: 'person_add',
+        assistencia: 'airline_seat_recline_normal',
+        assistenciaNaoContada: 'airline_seat_recline_extra',
+        mao: 'pan_tool',
+        mais: 'more_vert',
+        fechar: 'cancel',
     };
 
-    document.body.addEventListener('click', config.limparMenuCustomizado);
-    elemento.addEventListener('contextmenu', e => {
-        removerFilhos(menu);
-        options.forEach(({ texto, click: onclick }) => menu.appendChild(criarElemento(`<span>${texto}</span>`, { onclick })));
-        menu.style.top = e.pageY;
-        menu.style.left = e.pageX;
-        menu.style.display = 'grid';
-        e.preventDefault();
-    });
-}
-
-function criarBotaoOpcoesCustomizadas() {
-    const idBotao = 'abrir-opcoes-reuniao';
-    const btnAntigo = document.getElementById(idBotao);
-
-    /* remover botao da barra de acoes do zoom ao reexecutar script */
-    if (btnAntigo) btnAntigo.remove();
-
-    /* recriar o botao ao executar script para manter atualizado */
-    /* adicionar botao na barra de acoes do zoom */
-    document.querySelector('#wc-footer .footer__inner').appendChild(criarElemento(
-        `<button id="${idBotao}" style="margin-right: 20px">Opções customizadas</button>`, {
-        onclick: alternarModal
-    }));
-}
-
-function criarBotaoFocoCustomizado(participantes, nome) {
-    return {
-        nome,
-        id: btoa(nome),
-        validar: () => {
-            abrirPainelParticipantes();
-            return participantes.every(p => selecionarParticipante(p.funcao));
-        },
-        click: () => {
-            if (!confirm(`Deseja ativar o foco: ${nome.toUpperCase()}?`)) return;
-            abrirPainelParticipantes();
-            const alvosComVideo = [];
-            const alvosComMicrofone = [];
-
-            participantes.forEach(({ funcao, video, microfone, focar }) => {
-                const p = selecionarParticipante(funcao);
-                video && alvosComVideo.push(p);
-                microfone && alvosComMicrofone.push(p);
-
-                if (video) {
-                    ligarVideoParticipante(p, () => {
-                        focar && spotlightParticipante(p);
-                        microfone && ligarMicrofoneParticipante(p, true);
-                    });
-                } else if (microfone) {
-                    ligarMicrofoneParticipante(p, true);
-                }
-            });
-
-            desligarMicrofones(alvosComMicrofone);
-            desligarVideos(alvosComVideo);
-        }
-    };
+    id = id ? `id="${id}"` : '';
+    return criarElemento(`<i ${id} class="i-sm material-icons-outlined">${tipos[tipo]}</i>`);
 }
 
 function criarCss() {
@@ -119,33 +73,15 @@ function criarCss() {
             font-size: 12px;
             z-index: ${maiorZIndex + 2};
         }
-        .modal-transparente {
-            background-color: #ffffff11;
-        }
-        .modal-transparente * {
-            color: #ffffffbb;
-        }
-        .modal-transparente .btn-warning .material-icons-outlined {
-            color: #111111bb;
-        }
-        .modal-transparente .configuracao, .modal-transparente .config-item {
-            background-color: #24282ccf;
-        }
-        .modal-transparente .frame-rotinas {
-            background-color: #21212147;
-        }
-        .modal-transparente #modal-foco-customizado .input-group-addon,
-        .modal-transparente #modal-foco-customizado input {
-            color: #555555;
-        }
-        .modal-transparente #modal-foco-customizado .btn-primary,
-        .modal-transparente #modal-foco-customizado .btn-success {
-            color: #ffffff;
-        }
-        .modal-transparente #modal-foco-customizado .alert-danger * {
-            color: #a94442;
-        }
-        #modal-foco-customizado {
+        .modal-transparente { background-color: #ffffff11; }
+        .modal-transparente * { color: #ffffffbb; }
+        .modal-transparente .btn-warning .material-icons-outlined { color: #111111bb; }
+        .modal-transparente .configuracao, .modal-transparente .config-item { background-color: #24282ccf; }
+        .modal-transparente .frame-rotinas { background-color: #21212147; }
+        .modal-transparente #modal-customizado .input-group-addon, .modal-transparente #modal-customizado input { color: #555555; }
+        .modal-transparente #modal-customizado .btn-primary, .modal-transparente #modal-customizado .btn-success { color: #ffffff; }
+        .modal-transparente #modal-customizado .alert-danger * { color: #a94442; }
+        #modal-customizado {
             position: absolute;
             left: 0%;
             top: 0%;
@@ -361,7 +297,7 @@ function criarCss() {
             font-weight: bold;
             color: #427dc6;
         }
-        .corpo-modal-foco-customizado {
+        .corpo-modal-customizado {
             display: grid;
             grid-template-rows: repeat(7, 60px);
             grid-gap: 10px;
@@ -373,14 +309,20 @@ function criarCss() {
             width: 75%;
             background-color: #ffffffc7;
         }
-        .opcoes-modal-foco-customizado {
+        .opcoes-modal-customizado {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
             align-items: center;
             justify-content: center;
         }
-        .opcoes-modal-foco-customizado * { margin: 0 5px; }
-        .campos-modal-foco-customizado {
+        .opcoes-modal-customizado * { margin: 0 5px; }
+        .opcoes-modal-customizado .fechar { grid-column-start: 5; }
+        .opcoes-modal-customizado .opcoes {
+            grid-column: span 3;
+            user-select: none;
+            margin: 10px;
+        }
+        .campos-modal-customizado {
             display: grid;
             grid-template-columns: 3fr 2fr 2fr 2fr 2fr;
             grid-template-rows: 40px 20px;
@@ -388,21 +330,18 @@ function criarCss() {
             justify-items: center;
             height: 60px;
         }
-        .campos-modal-foco-customizado input ~ i {
+        .campos-modal-customizado input ~ i {
             color: #ff4242;
             font-size: 40px;
         }
-        .campos-modal-foco-customizado input:checked ~ i {
+        .campos-modal-customizado input:checked ~ i {
             color: #5cb85c;
             font-size: 40px;
         }
-        .campos-modal-foco-customizado label {
+        .campos-modal-customizado label {
             user-select: none;
             cursor: pointer;
             margin-bottom: 0;
-        }
-        input[type=checkbox] {
-            cursor: pointer;
         }
         .menu-contexto {
             position: absolute;
@@ -422,68 +361,301 @@ function criarCss() {
             background-color: #427dc6;
             color: white;
         }
+        input[type=checkbox], label[for] {
+            cursor: pointer;
+        }
     `;
     document.body.appendChild(css);
 }
 
-function criarIcone(tipo, id) {
-    if (!tipo) return;
+function criarBotaoOpcoesCustomizadas() {
+    const idBotao = 'abrir-opcoes-reuniao';
+    const btnAntigo = document.getElementById(idBotao);
 
-    const tipos = {
-        camera: 'videocam',
-        cameraFechada: 'videocam_off',
-        microfone: 'mic_none',
-        microfoneFechado: 'mic_off',
-        finalizarDiscurso: 'voice_over_off',
-        orador: 'record_voice_over',
-        presidente: 'person',
-        dirigente: 'group',
-        leitor: 'supervisor_account',
-        tesouros: 'emoji_events',
-        joias: 'wb_iridescent',
-        biblia: 'menu_book',
-        vida1: 'looks_one',
-        vida2: 'looks_two',
-        participante: 'person_add',
-        assistencia: 'airline_seat_recline_normal',
-        assistenciaNaoContada: 'airline_seat_recline_extra',
-        mao: 'pan_tool',
-        fechar: 'cancel',
+    /* remover botao da barra de acoes do zoom ao reexecutar script */
+    if (btnAntigo) btnAntigo.remove();
+
+    /* recriar o botao ao executar script para manter atualizado */
+    /* adicionar botao na barra de acoes do zoom */
+    document.querySelector('#wc-footer .footer__inner').appendChild(criarElemento(
+        `<button id="${idBotao}" style="margin-right: 20px">Opções customizadas</button>`, {
+        onclick: alternarModal
+    }));
+}
+
+function criarModalCustomizado() {
+    const modalDrop = document.getElementById(idGerais.modalCustomizado) || criarElemento(`<div id="${idGerais.modalCustomizado}"></div>`);
+    modalDrop.style.display = 'none';
+    modalDrop.onclick = evento => evento.target !== modalDrop || fecharModalCustomizado();
+
+    removerFilhos(modalDrop);
+    return modalDrop;
+}
+
+function criarMenuCustomizado(elemento, options) {
+    if (!elemento || !elemento.addEventListener || !Array.isArray(options)) return;
+
+    if (!document.getElementById(idGerais.menuCustomizado)) {
+        document.body.appendChild(criarElemento(`<div id="${idGerais.menuCustomizado}" class="menu-contexto"></div>`));
+    }
+
+    const menu = document.getElementById(idGerais.menuCustomizado);
+
+    document.body.removeEventListener('click', config.limparMenuCustomizado);
+
+    config.limparMenuCustomizado = e => {
+        if (e.path.find(elemento => elemento.id == 'wc-container-right')) return;
+
+        const ctxMenu = document.getElementById(idGerais.menuCustomizado);
+
+        if (ctxMenu) {
+            ctxMenu.style.display = 'none';
+        }
     };
 
-    id = id ? `id="${id}"` : '';
-    return criarElemento(`<i ${id} class="i-sm material-icons-outlined">${tipos[tipo]}</i>`);
+    document.body.addEventListener('click', config.limparMenuCustomizado);
+    elemento.addEventListener('contextmenu', e => {
+        removerFilhos(menu);
+        options.forEach(({ texto, click: onclick }) => menu.appendChild(criarElemento(`<span>${texto}</span>`, { onclick })));
+        menu.style.top = e.pageY;
+        menu.style.left = e.pageX;
+        menu.style.display = 'grid';
+        e.preventDefault();
+    });
 }
 
-function criarEventoMouseOver() {
-    const eventoFalsoDeMouseOver = new MouseEvent('mouseover', { bubbles: true });
-    eventoFalsoDeMouseOver.simulated = true;
-    return eventoFalsoDeMouseOver;
+function criarBotaoFocoCustomizado(participantes, nome) {
+    return {
+        nome,
+        id: btoa(nome),
+        validar: () => {
+            abrirPainelParticipantes();
+            return participantes.every(p => selecionarParticipante(p.funcao));
+        },
+        click: () => {
+            if (!confirm(`Deseja ativar o foco: ${nome.toUpperCase()}?`)) return;
+            abrirPainelParticipantes();
+            const alvosComVideo = [];
+            const alvosComMicrofone = [];
+
+            participantes.forEach(({ funcao, video, microfone, focar }) => {
+                const p = selecionarParticipante(funcao);
+                video && alvosComVideo.push(p);
+                microfone && alvosComMicrofone.push(p);
+
+                if (video) {
+                    ligarVideoParticipante(p, () => {
+                        focar && spotlightParticipante(p);
+                        microfone && ligarMicrofoneParticipante(p, true);
+                    });
+                } else if (microfone) {
+                    ligarMicrofoneParticipante(p, true);
+                }
+            });
+
+            desligarMicrofones(alvosComMicrofone);
+            desligarVideos(alvosComVideo);
+        }
+    };
 }
 
-function removerFilhos(elemento) {
-    elemento && elemento.querySelectorAll && elemento.querySelectorAll('*').forEach(child => child.remove());
+function criarCamposModalFocoCustomizado() {
+    const sufixo = Math.random().toString(36).substring(2);
+    const cores = { on: 'color: #5cb85c;', off: 'color: #ff4242;' };
+    const textos = {
+        video: { on: 'Solicitar Vídeo', off: 'Sem Vídeo' },
+        mic: { on: 'Solicitar Microfone', off: 'Sem Microfone' },
+        spot: { on: 'Com Spotlight', off: 'Sem Spotlight' }
+    };
+    const icones = {
+        video: { on: 'videocam', off: 'videocam_off' },
+        mic: { on: 'mic_none', off: 'mic_off' },
+        spot: { on: 'gps_fixed', off: 'gps_not_fixed' }
+    };
+    const campos = criarElemento(`
+        <div class="campos-modal-customizado">
+            <div class="input-group" style="grid-row: span 2; grid-column: span 2; margin: auto 0 auto 5px; width: calc(100% - 5px);">
+                <input type="text" class="form-control" name="funcao" placeholder="Participante ou Função" />
+                <span class="input-group-btn">
+                    <button name="validar-texto" class="btn btn-primary">Validar texto</button>
+                </span>
+            </div>
+
+            <label>
+                <input type="checkbox" style="display: none;" name="video" id="${'video' + sufixo}">
+                <i class="i-sm material-icons-outlined" data-on="${icones.video.on}" data-off="${icones.video.off}">${icones.video.off}</i>
+            </label>
+
+            <label>
+                <input type="checkbox" style="display: none;" name="microfone" id="${'microfone' + sufixo}" checked>
+                <i class="i-sm material-icons-outlined" data-on="${icones.mic.on}" data-off="${icones.mic.off}">${icones.mic.on}</i>
+            </label>
+
+            <label>
+                <input type="checkbox" style="display: none;" name="focar" id="${'focar' + sufixo}">
+                <i class="i-sm material-icons-outlined" data-on="${icones.spot.on}" data-off="${icones.spot.off}">${icones.spot.off}</i>
+            </label>
+
+            <label data-on="${textos.video.on}" data-off="${textos.video.off}" for="${'video' + sufixo}" style="${cores.off} grid-column-start: 3;">
+                ${textos.video.off}
+            </label>
+            <label data-on="${textos.mic.on}" data-off="${textos.mic.off}" for="${'microfone' + sufixo}" style="${cores.on}">
+                ${textos.mic.on}
+            </label>
+            <label data-on="${textos.spot.on}" data-off="${textos.spot.off}" for="${'focar' + sufixo}" style="${cores.off}">
+                ${textos.spot.off}
+            </label>
+        </div>
+    `);
+
+    /* eventos */
+    campos.querySelector('button[name="validar-texto"]').onclick = validarFuncaoAlvoFocoCustomizado;
+    campos.querySelectorAll('input[type="checkbox"]').forEach(i => {
+        i.onchange = ({ target }) => {
+            const icon = target.nextElementSibling;
+            const label = document.querySelector(`label[for="${target.id}"]`);
+            icon.innerText = target.checked ? icon.dataset.on : icon.dataset.off;
+            label.innerText = target.checked ? label.dataset.on : label.dataset.off;
+            label.style.color = target.checked ? '#5cb85c' : '#ff4242';
+        };
+    });
+
+    return campos;
+}
+
+function getNomeRotina(id) {
+    return {
+        tentativasPersistentes: 'Rodando (marque para abortar)',
+        validarVideosLigadosNaAssistencia: 'Vídeos ligados',
+        validarMicrofonesLigadosNaAssistencia: 'Microfones ligados',
+        validarNomesForaDoPadrao: 'Nomes inválidos',
+        botoesFocoCustomizado: 'Foco customizado'
+    }[id];
 }
 
 function getTextoPuro(texto) {
     return !texto ? '' : texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
-function enviarEmailServerless() {
-    fetch('https://zoom.vercel.app/api/send-email', {
-        method: 'POST',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            assistencia: contarAssistencia().contados,
-            congregacao: 'Nordeste'
-        })
-    }).then(async data => {
-        const resp = await data.json();
-        alert(resp.success ? resp.message : 'Não foi possível enviar e-mail');
-    }).catch(err => alert(err));
+function getParticipantes() {
+    return Array.from(document.querySelectorAll('.participants-ul .item-pos.participants-li'));
+}
+
+function getNomeParticipante(participante) {
+    return !participante ? '' : participante.querySelector('.participants-item__display-name').innerText;
+}
+
+function getBotoesDropdown(participante) {
+    return !participante ? [] : Array.from(participante.querySelectorAll('.participants-item__buttons .dropdown-menu a'));
+}
+
+function getOpcaoDropdownMais(textosOpcao) {
+    const opcoes = document.querySelectorAll('#wc-container-right .participants-section-container__participants-footer ul li a');
+    return Array.from(opcoes).find(a => textosOpcao.includes(a.innerText.toLowerCase()));
+}
+
+function getBotoesParticipantes() {
+    const capital = str => str[0].toUpperCase() + str.substring(1, str.length);
+    const isReuniaoSemana = new Date().toLocaleDateString('pt-br', { weekday: 'long' }).includes('feira');
+    const botoesFocar = [
+        { nome: capital(idParticipantes.dirigente), icone: 'dirigente', classe: 'btn-primary', click: focarDirigente },
+        { nome: capital(idParticipantes.leitor), icone: 'leitor', classe: 'btn-primary', click: focarLeitor },
+        { nome: capital(idParticipantes.presidente), icone: 'presidente', classe: 'btn-warning', click: focarPresidente },
+        !isReuniaoSemana && { nome: capital(idParticipantes.orador), icone: 'orador', classe: 'btn-primary', click: focarOrador },
+        isReuniaoSemana && { nome: capital(idParticipantes.tesouros), icone: 'tesouros', classe: 'btn-primary', click: () => focar(idParticipantes.tesouros) },
+        isReuniaoSemana && { nome: capital(idParticipantes.joias), icone: 'joias', classe: 'btn-primary', click: () => focar(idParticipantes.joias) },
+        isReuniaoSemana && { nome: capital(idParticipantes.biblia), icone: 'biblia', classe: 'btn-primary', click: () => focar(idParticipantes.biblia) },
+        isReuniaoSemana && { nome: capital(idParticipantes.vida1), icone: 'vida1', classe: 'btn-primary', click: () => focar(idParticipantes.vida1) },
+        isReuniaoSemana && { nome: capital(idParticipantes.vida2), icone: 'vida2', classe: 'btn-primary', click: () => focar(idParticipantes.vida2) },
+    ];
+    return {
+        focar: botoesFocar.filter(Boolean),
+        chamar: botoesFocar.reduce((lista, btn) => {
+            if (btn) lista.push({
+                nome: btn.nome,
+                classe: btn.nome.toLowerCase() != idParticipantes.presidente ? 'btn-success' : 'btn-warning',
+                click: () => chamar(btn.nome.toLowerCase())
+            });
+            return lista;
+        }, [])
+    };
+}
+
+function isNomeValido(participante) {
+    const nome = getNomeParticipante(participante);
+    /* valida se nome comeca com (ou [ ou {, seguido de 0 a 9 */
+    const regexPadrao = /^\s*[\(\[\{]\s*[0-9]/i;
+    const dispositivos = [
+        'galaxy',
+        'note',
+        'samsung',
+        'apple',
+        'huawei',
+        'xiaomi',
+        'oppo',
+        'vivo',
+        'lg',
+        'lenovo',
+        'motorola',
+        'moto',
+        'nokia',
+        'tecno'
+    ];
+    /* texto deve conter nome [marca/dispositivo nao sao validos], quantidade [formato: "(x) nome pessoa"] */
+    return nome
+        && regexPadrao.test(nome)
+        && nome.split(' ').filter(p => !dispositivos.includes(p.toLowerCase())).length == nome.split(' ').length;
+}
+
+function isMicrofoneLigado(participante) {
+    if (!participante) return false;
+    participante.dispatchEvent(criarEventoMouseOver());
+    return Array
+        .from(participante.querySelectorAll('.participants-item__buttons button'))
+        .some(btn => textosOpcoes.desligarMicrofone.includes(btn.innerText.toLowerCase()));
+}
+
+function isVideoLigado(participante) {
+    if (!participante) return false;
+    participante.dispatchEvent(criarEventoMouseOver());
+    return getBotoesDropdown(participante).some(btn => textosOpcoes.pararVideo.includes(btn.innerText.toLowerCase()));
+}
+
+function isSpotlightLigado(participante) {
+    if (!participante) return false;
+    participante.dispatchEvent(criarEventoMouseOver());
+    return getBotoesDropdown(participante).some(btn => textosOpcoes.cancelarSpotlight.includes(btn.innerText.toLowerCase()));
+}
+
+function isMaoLevantada(participante) {
+    return participante && Array
+        .from(participante.querySelectorAll('.participants-item__buttons button.button-margin-right'))
+        .some(btn => textosOpcoes.abaixarMaos.includes(btn.innerText.toLowerCase()));
+}
+
+function clickBotao(participante, textosBotao) {
+    if (!participante) {
+        atualizarTela();
+        return;
+    }
+    participante.dispatchEvent(criarEventoMouseOver());
+    Array.from(participante.querySelectorAll('.participants-item__buttons button')).some(btn => (
+        btn && textosBotao.includes(btn.innerText.toLowerCase()) && !btn.click()
+    ));
+}
+
+function clickDropdown(participante, textosBotao) {
+    if (!participante) {
+        atualizarTela();
+        return;
+    }
+    participante.dispatchEvent(criarEventoMouseOver());
+    getBotoesDropdown(participante).some(btn => {
+        if (textosBotao.includes(btn.innerText.toLowerCase())) {
+            btn.click();
+            return true;
+        }
+    });
 }
 
 function atualizarVideosLigadosNaAssistencia() {
@@ -506,22 +678,6 @@ function atualizarMicrofonesLigadosNaAssistencia() {
     }, []);
 }
 
-function admitirEntradaNaSalaComNomeValido() {
-    abrirPainelParticipantes();
-    document.querySelectorAll('.waiting-room-list-conatiner__ul li').forEach(participante => {
-        const nome = getNomeParticipante(participante);
-        /* verificar se participante tem nome valido */
-        if (isNomeValido(participante)) {
-            participante.dispatchEvent(criarEventoMouseOver());
-            /* selecionar botao que permite entrada do participante */
-            const btnPermitir = participante.querySelector('.btn-primary');
-            if (btnPermitir) {
-                btnPermitir.click();
-            }
-        }
-    });
-}
-
 function atualizarNomesForaDoPadrao() {
     abrirPainelParticipantes();
     const nomesInvalidos = [];
@@ -535,16 +691,6 @@ function atualizarNomesForaDoPadrao() {
     });
 
     avisosDeRotinas.validarNomesForaDoPadrao = nomesInvalidos;
-}
-
-function getNomeRotina(id) {
-    return {
-        tentativasPersistentes: 'Rodando (marque para abortar)',
-        validarVideosLigadosNaAssistencia: 'Vídeos ligados',
-        validarMicrofonesLigadosNaAssistencia: 'Microfones ligados',
-        validarNomesForaDoPadrao: 'Nomes inválidos',
-        botoesFocoCustomizado: 'Foco customizado'
-    }[id];
 }
 
 function atualizarTela() {
@@ -740,28 +886,6 @@ function atualizarAssistencia() {
     }
 }
 
-function limparAvisosAntigos() {
-    Object.keys(avisosDeRotinas).forEach(rotina => {
-        if (rotina != 'tentativasPersistentes' && avisosDeRotinas[rotina].length > 10) {
-            const avisosUnicos = Array.from(new Set(avisosDeRotinas[rotina]));
-            avisosDeRotinas[rotina] = avisosUnicos.slice(-10);
-        }
-    });
-}
-
-function dispararRotina(nomeRotina, tempoEmMilissengudos, callback) {
-    encerrarRotina(nomeRotina);
-    intervalosEmExecucao[nomeRotina] = setInterval(() => callback(), tempoEmMilissengudos);
-    avisosDeRotinas.tentativasPersistentes = Array.from(new Set([...avisosDeRotinas.tentativasPersistentes, nomeRotina]));
-    atualizarTela();
-}
-
-function encerrarRotina(nomeRotina) {
-    intervalosEmExecucao[nomeRotina] = clearInterval(intervalosEmExecucao[nomeRotina]);
-    avisosDeRotinas.tentativasPersistentes = avisosDeRotinas.tentativasPersistentes.filter(tentativa => tentativa != nomeRotina);
-    atualizarTela();
-}
-
 function desenharModal() {
     const modal = document.getElementById(idGerais.modal);
     /* limpar componentes anteriores */
@@ -784,18 +908,14 @@ function desenharModal() {
 }
 
 function desenharModalFocoCustomizado() {
-    const modalDrop = document.getElementById(idGerais.modalFocoCustomizado) || criarElemento(`<div id="${idGerais.modalFocoCustomizado}"></div>`);
-
-    /* limpar modal anterior */
-    modalDrop.style.display = 'none';
-    removerFilhos(modalDrop);
+    const modalDrop = criarModalCustomizado();
 
     /* criar botoes principais */
-    const btnAdicionarNovoFoco = criarElemento('<button class="btn btn-success" name="novo-participante">Novo participante</button>', {
-        onclick: () => document.querySelector('.corpo-modal-foco-customizado').appendChild(criarCamposModalFocoCustomizado())
+    const btnAdicionarNovoFoco = criarElemento('<button class="btn btn-success">Novo participante</button>', {
+        onclick: () => document.querySelector('.corpo-modal-customizado').appendChild(criarCamposModalFocoCustomizado())
     });
 
-    const btnSalvar = criarElemento('<button class="btn btn-primary" name="salvar">Salvar</button>', {
+    const btnSalvar = criarElemento('<button class="btn btn-primary">Salvar</button>', {
         onclick: () => {
             const camposValidos = validarCamposModalFocoCustomizado();
             if (!camposValidos) return;
@@ -808,11 +928,13 @@ function desenharModalFocoCustomizado() {
             avisosDeRotinas.botoesFocoCustomizado = [btn, ...avisosDeRotinas.botoesFocoCustomizado.filter(b => b.id != btn.id)];
             atualizarTela();
 
-            fecharModalFocoCustomizado();
+            fecharModalCustomizado();
         }
     });
 
-    const btnCancelar = criarElemento('<button class="btn btn-primary-outline" name="cancelar" style="grid-column-start: 5;">Cancelar</button>');
+    const btnCancelar = criarElemento('<button class="btn btn-primary-outline fechar">Cancelar</button>', {
+        onclick: fecharModalCustomizado
+    });
 
     const inputNomeFocoCustomizado = criarElemento(`
         <div class="input-group" style="margin: auto 5px;">
@@ -821,12 +943,8 @@ function desenharModalFocoCustomizado() {
         </div>
     `);
 
-    /* eventos fechar modal */
-    btnCancelar.onclick = fecharModalFocoCustomizado;
-    modalDrop.onclick = ({ target }) => (target != modalDrop) || fecharModalFocoCustomizado();
-
     /* desenhar modal */
-    const cabecalhoModal = criarElemento('<div class="opcoes-modal-foco-customizado"/>');
+    const cabecalhoModal = criarElemento('<div class="opcoes-modal-customizado"/>');
     cabecalhoModal.appendChild(btnAdicionarNovoFoco);
     cabecalhoModal.appendChild(btnSalvar);
     cabecalhoModal.appendChild(btnCancelar);
@@ -838,7 +956,7 @@ function desenharModalFocoCustomizado() {
         </div>
     `);
 
-    const modal = criarElemento('<div class="corpo-modal-foco-customizado"/>');
+    const modal = criarElemento('<div class="corpo-modal-customizado"></div>');
     modal.appendChild(avisoErroModal);
     modal.appendChild(cabecalhoModal);
     modal.appendChild(inputNomeFocoCustomizado);
@@ -848,124 +966,35 @@ function desenharModalFocoCustomizado() {
     return modalDrop;
 }
 
-function criarCamposModalFocoCustomizado() {
-    const sufixo = btoa(Math.random()).replace(/[^0-9a-zA-Z]/, '');
-    const cores = { on: 'color: #5cb85c;', off: 'color: #ff4242;' };
-    const textos = {
-        video: { on: 'Solicitar Vídeo', off: 'Sem Vídeo' },
-        mic: { on: 'Solicitar Microfone', off: 'Sem Microfone' },
-        spot: { on: 'Com Spotlight', off: 'Sem Spotlight' }
-    };
-    const icones = {
-        video: { on: 'videocam', off: 'videocam_off' },
-        mic: { on: 'mic_none', off: 'mic_off' },
-        spot: { on: 'gps_fixed', off: 'gps_not_fixed' }
-    };
-    const campos = criarElemento(`
-        <div class="campos-modal-foco-customizado">
-            <div class="input-group" style="grid-row: span 2; grid-column: span 2; margin: auto 0 auto 5px; width: calc(100% - 5px);">
-                <input type="text" class="form-control" name="funcao" placeholder="Participante ou Função" />
-                <span class="input-group-btn">
-                    <button name="validar-texto" class="btn btn-primary">Validar texto</button>
-                </span>
-            </div>
+function desenharModalVerMais() {
+    const modalDrop = criarModalCustomizado();
 
-            <label>
-                <input type="checkbox" style="display: none;" name="video" id="${'video' + sufixo}">
-                <i class="i-sm material-icons-outlined" data-on="${icones.video.on}" data-off="${icones.video.off}">${icones.video.off}</i>
-            </label>
+    const btnFechar = criarElemento('<button class="btn btn-primary-outline fechar">Fechar</button>', {
+        onclick: fecharModalCustomizado
+    });
 
-            <label>
-                <input type="checkbox" style="display: none;" name="microfone" id="${'microfone' + sufixo}" checked>
-                <i class="i-sm material-icons-outlined" data-on="${icones.mic.on}" data-off="${icones.mic.off}">${icones.mic.on}</i>
-            </label>
-
-            <label>
-                <input type="checkbox" style="display: none;" name="focar" id="${'focar' + sufixo}">
-                <i class="i-sm material-icons-outlined" data-on="${icones.spot.on}" data-off="${icones.spot.off}">${icones.spot.off}</i>
-            </label>
-
-            <label data-on="${textos.video.on}" data-off="${textos.video.off}" for="${'video' + sufixo}" style="${cores.off} grid-column-start: 3;">
-                ${textos.video.off}
-            </label>
-            <label data-on="${textos.mic.on}" data-off="${textos.mic.off}" for="${'microfone' + sufixo}" style="${cores.on}">
-                ${textos.mic.on}
-            </label>
-            <label data-on="${textos.spot.on}" data-off="${textos.spot.off}" for="${'focar' + sufixo}" style="${cores.off}">
-                ${textos.spot.off}
-            </label>
+    const opcaoSalaDeEspera = criarElemento(`
+        <div class="opcoes">
+            <label for="liberar-sala-espera">Liberar sala de espera para todos</label>
         </div>
     `);
 
-    /* eventos */
-    campos.querySelector('button[name="validar-texto"]').onclick = validarFuncaoAlvoFocoCustomizado;
-    campos.querySelectorAll('input[type="checkbox"]').forEach(i => {
-        i.onchange = ({ target }) => {
-            const icon = target.nextElementSibling;
-            const label = document.querySelector(`label[for="${target.id}"]`);
-            icon.innerText = target.checked ? icon.dataset.on : icon.dataset.off;
-            label.innerText = target.checked ? label.dataset.on : label.dataset.off;
-            label.style.color = target.checked ? '#5cb85c' : '#ff4242';
-        };
-    });
+    opcaoSalaDeEspera.appendChild(
+        criarElemento(`<input type="checkbox" id="liberar-sala-espera" ${observados.liberarSalaDeEspera ? 'checked' : ''}/>`, {
+            onchange: () => observados.liberarSalaDeEspera = !observados.liberarSalaDeEspera
+        })
+    );
 
-    return campos;
-}
+    /* desenhar modal */
+    const cabecalhoModal = criarElemento('<div class="opcoes-modal-customizado"/>');
+    cabecalhoModal.appendChild(opcaoSalaDeEspera);
+    cabecalhoModal.appendChild(btnFechar);
 
-function validarFuncaoAlvoFocoCustomizado({ target }) {
-    abrirPainelParticipantes();
-    const campoTexto = target.parentElement.previousElementSibling;
-    const encontrado = selecionarParticipante(campoTexto.value);
-    if (encontrado) {
-        campoTexto.classList.remove('alert-danger');
-        alert(`Participante encontrado: ${getNomeParticipante(encontrado)}`);
-    } else {
-        campoTexto.classList.add('alert-danger');
-        campoTexto.value
-            ? alert(`Nenhum participante encontrado pelo termo ${campoTexto.value.toUpperCase()}`)
-            : alert(`Informe algum texto para encontrar o participante`);
-    }
-}
+    const modal = criarElemento('<div class="corpo-modal-customizado"/>');
+    modal.appendChild(cabecalhoModal);
 
-function validarCamposModalFocoCustomizado() {
-    let erros = false;
-    const avisoErro = document.querySelector('#aviso-erro-modal span[name="placeholder-erro"]');
-    const estiloErro = 'alert-danger';
-    const inputNomeFoco = document.querySelector(`#${idGerais.modalFocoCustomizado} input[name="nome"]`);
-    const participantes = [];
-
-    if (!inputNomeFoco.value) {
-        inputNomeFoco.classList.add(estiloErro);
-        avisoErro.innerText = 'Informe nome para o novo botão. Preencha o(s) campo(s) em vermelho';
-        avisoErro.parentElement.style.display = 'block';
-        return;
-    }
-
-    abrirPainelParticipantes();
-
-    document.querySelectorAll(`#${idGerais.modalFocoCustomizado} .campos-modal-foco-customizado`).forEach(campos => {
-        const foco = {};
-
-        campos.querySelectorAll('input[type="checkbox"]').forEach(({ name, checked }) => foco[name] = checked);
-        campos.querySelectorAll('input[type="text"]').forEach(({ value, classList }) => {
-            if (selecionarParticipante(value)) {
-                foco.funcao = value;
-            } else {
-                classList.add(estiloErro);
-                erros = true;
-            }
-        });
-
-        participantes.push(foco);
-    });
-
-    if (erros) {
-        avisoErro.innerText = 'Preencha o(s) campo(s) em vermelho e selecione "validar texto"';
-        avisoErro.parentElement.style.display = 'block';
-        return;
-    }
-
-    return { participantes, inputNomeFoco };
+    modalDrop.appendChild(modal);
+    return modalDrop;
 }
 
 function desenharFrameBtnFechar() {
@@ -1035,10 +1064,10 @@ function desenharFrameBotoes() {
             click: abrirModalFocoCustomizado
         },
         {
-            nome: 'Abaixar mãos',
-            icone: 'mao',
+            nome: 'Mais opções',
+            icone: 'mais',
             classe: 'btn-success',
-            click: abaixarMaos
+            click: abrirModalVerMais
         },
         {
             nome: 'Desligar tudo',
@@ -1175,64 +1204,18 @@ function desenharFrameServicos() {
     return servicos;
 }
 
-function getBotoesParticipantes() {
-    const capital = str => str[0].toUpperCase() + str.substring(1, str.length);
-    const isReuniaoSemana = new Date().toLocaleDateString('pt-br', { weekday: 'long' }).includes('feira');
-    const botoesFocar = [
-        { nome: capital(idParticipantes.dirigente), icone: 'dirigente', classe: 'btn-primary', click: focarDirigente },
-        { nome: capital(idParticipantes.leitor), icone: 'leitor', classe: 'btn-primary', click: focarLeitor },
-        { nome: capital(idParticipantes.presidente), icone: 'presidente', classe: 'btn-warning', click: focarPresidente },
-        !isReuniaoSemana && { nome: capital(idParticipantes.orador), icone: 'orador', classe: 'btn-primary', click: focarOrador },
-        isReuniaoSemana && { nome: capital(idParticipantes.tesouros), icone: 'tesouros', classe: 'btn-primary', click: () => focar(idParticipantes.tesouros) },
-        isReuniaoSemana && { nome: capital(idParticipantes.joias), icone: 'joias', classe: 'btn-primary', click: () => focar(idParticipantes.joias) },
-        isReuniaoSemana && { nome: capital(idParticipantes.biblia), icone: 'biblia', classe: 'btn-primary', click: () => focar(idParticipantes.biblia) },
-        isReuniaoSemana && { nome: capital(idParticipantes.vida1), icone: 'vida1', classe: 'btn-primary', click: () => focar(idParticipantes.vida1) },
-        isReuniaoSemana && { nome: capital(idParticipantes.vida2), icone: 'vida2', classe: 'btn-primary', click: () => focar(idParticipantes.vida2) },
-    ];
-    return {
-        focar: botoesFocar.filter(Boolean),
-        chamar: botoesFocar.reduce((lista, btn) => {
-            if (btn) lista.push({
-                nome: btn.nome,
-                classe: btn.nome.toLowerCase() != idParticipantes.presidente ? 'btn-success' : 'btn-warning',
-                click: () => chamar(btn.nome.toLowerCase())
-            });
-            return lista;
-        }, [])
-    };
-}
-
-function importarIconesFontAwesome() {
-    const importIcones = document.querySelector('#icones');
-    /* nao duplicar tag de import dos icones */
-    if (!importIcones) {
-        const url = 'https://fonts.googleapis.com/icon?family=Material+Icons+Outlined';
-        document.head.appendChild(criarElemento(`<link rel="stylesheet" href="${url}" id="icones"> </link>`));
-    }
-}
-
-function alternarModal() {
-    const modal = document.getElementById(idGerais.modal);
-    if (modal.style.display == 'none') {
-        modal.removeAttribute('style');
-    } else {
-        fecharModal();
-    }
-}
-
-function fecharModal() {
-    document.getElementById(idGerais.modal).style.display = 'none';
-}
-
 function abrirModalFocoCustomizado() {
     desenharModalFocoCustomizado();
-    document.getElementById(idGerais.modalFocoCustomizado).style.display = 'block';
+    abrirModalCustomizado();
 }
 
-function fecharModalFocoCustomizado() {
-    const modal = document.getElementById(idGerais.modalFocoCustomizado);
-    removerFilhos(modal);
-    modal.style.display = 'none';
+function abrirModalVerMais() {
+    desenharModalVerMais();
+    abrirModalCustomizado();
+}
+
+function abrirModalCustomizado() {
+    document.getElementById(idGerais.modalCustomizado).style.display = 'block';
 }
 
 function abrirPainelParticipantes() {
@@ -1242,135 +1225,70 @@ function abrirPainelParticipantes() {
     }
 }
 
-function iniciarEventosPainelParticipantes() {
-    const btnAbrirPainel = document.querySelector('.footer-button__participants-icon');
-
-    if (!document.getElementById('wc-container-right')) {
-        btnAbrirPainel.click();
-    }
-
-    criarDomListener();
-    btnAbrirPainel.click();
+function fecharModal() {
+    document.getElementById(idGerais.modal).style.display = 'none';
 }
 
-function getParticipantes() {
-    return Array.from(document.querySelectorAll('.participants-ul .item-pos.participants-li'));
+function fecharModalCustomizado() {
+    const modal = document.getElementById(idGerais.modalCustomizado);
+    removerFilhos(modal);
+    modal.style.display = 'none';
 }
 
-function getNomeParticipante(participante) {
-    return !participante ? '' : participante.querySelector('.participants-item__display-name').innerText;
-}
-
-function getBotoesDropdown(participante) {
-    return !participante ? [] : Array.from(participante.querySelectorAll('.participants-item__buttons .dropdown-menu a'));
-}
-
-function getOpcaoDropdownMais(textosOpcao) {
-    const opcoes = document.querySelectorAll('#wc-container-right .participants-section-container__participants-footer ul li a');
-    return Array.from(opcoes).find(a => textosOpcao.includes(a.innerText.toLowerCase()));
-}
-
-function selecionarParticipante(funcao) {
-    if (!funcao) return;
-    return getParticipantes().find(participante => {
-        const nome = getTextoPuro(getNomeParticipante(participante));
-        return nome && nome.includes(getTextoPuro(funcao));
-    });
-}
-
-function isNomeValido(participante) {
-    const nome = getNomeParticipante(participante);
-    /* valida se nome comeca com (ou [ ou {, seguido de 0 a 9 */
-    const regexPadrao = /^\s*[\(\[\{]\s*[0-9]/i;
-    const dispositivos = [
-        'galaxy',
-        'note',
-        'samsung',
-        'apple',
-        'huawei',
-        'xiaomi',
-        'oppo',
-        'vivo',
-        'lg',
-        'lenovo',
-        'motorola',
-        'moto',
-        'nokia',
-        'tecno'
-    ];
-    /* texto deve conter nome [marca/dispositivo nao sao validos], quantidade [formato: "(x) nome pessoa"] */
-    return nome
-        && regexPadrao.test(nome)
-        && nome.split(' ').filter(p => !dispositivos.includes(p.toLowerCase())).length == nome.split(' ').length;
-}
-
-function isMicrofoneLigado(participante) {
-    if (!participante) return false;
-    participante.dispatchEvent(criarEventoMouseOver());
-    return Array
-        .from(participante.querySelectorAll('.participants-item__buttons button'))
-        .some(btn => textosOpcoes.desligarMicrofone.includes(btn.innerText.toLowerCase()));
-}
-
-function isVideoLigado(participante) {
-    if (!participante) return false;
-    participante.dispatchEvent(criarEventoMouseOver());
-    return getBotoesDropdown(participante).some(btn => textosOpcoes.pararVideo.includes(btn.innerText.toLowerCase()));
-}
-
-function isSpotlightLigado(participante) {
-    if (!participante) return false;
-    participante.dispatchEvent(criarEventoMouseOver());
-    return getBotoesDropdown(participante).some(btn => textosOpcoes.cancelarSpotlight.includes(btn.innerText.toLowerCase()));
-}
-
-function isMaoLevantada(participante) {
-    return participante && Array
-        .from(participante.querySelectorAll('.participants-item__buttons button.button-margin-right'))
-        .some(btn => textosOpcoes.abaixarMaos.includes(btn.innerText.toLowerCase()));
-}
-
-function clickBotao(participante, textosBotao) {
-    if (!participante) {
-        atualizarTela();
-        return;
-    }
-    participante.dispatchEvent(criarEventoMouseOver());
-    Array.from(participante.querySelectorAll('.participants-item__buttons button')).some(btn => (
-        btn && textosBotao.includes(btn.innerText.toLowerCase()) && !btn.click()
-    ));
-}
-
-function clickDropdown(participante, textosBotao) {
-    if (!participante) {
-        atualizarTela();
-        return;
-    }
-    participante.dispatchEvent(criarEventoMouseOver());
-    getBotoesDropdown(participante).some(btn => {
-        if (textosBotao.includes(btn.innerText.toLowerCase())) {
-            btn.click();
-            return true;
-        }
-    });
-}
-
-function renomearParticipante(participante) {
-    clickDropdown(participante, textosOpcoes.renomear);
-    clickBotao(participante, textosOpcoes.renomear);
-}
-
-function expulsarParticipante(participante) {
-    clickDropdown(participante, textosOpcoes.expulsar);
-}
-
-function abaixarMaoParticipante(participante) {
-    if (!participante) return;
+function validarFuncaoAlvoFocoCustomizado({ target }) {
     abrirPainelParticipantes();
-    const btn = Array.from(participante.querySelectorAll('.participants-item__buttons .button-margin-right')).find(btn => {
-        return textosOpcoes.abaixarMaos.includes(btn.innerText.toLowerCase());
+    const campoTexto = target.parentElement.previousElementSibling;
+    const encontrado = selecionarParticipante(campoTexto.value);
+    if (encontrado) {
+        campoTexto.classList.remove('alert-danger');
+        alert(`Participante encontrado: ${getNomeParticipante(encontrado)}`);
+    } else {
+        campoTexto.classList.add('alert-danger');
+        campoTexto.value
+            ? alert(`Nenhum participante encontrado pelo termo ${campoTexto.value.toUpperCase()}`)
+            : alert(`Informe algum texto para encontrar o participante`);
+    }
+}
+
+function validarCamposModalFocoCustomizado() {
+    let erros = false;
+    const avisoErro = document.querySelector('#aviso-erro-modal span[name="placeholder-erro"]');
+    const estiloErro = 'alert-danger';
+    const inputNomeFoco = document.querySelector(`#${idGerais.modalCustomizado} input[name="nome"]`);
+    const participantes = [];
+
+    if (!inputNomeFoco.value) {
+        inputNomeFoco.classList.add(estiloErro);
+        avisoErro.innerText = 'Informe nome para o novo botão. Preencha o(s) campo(s) em vermelho';
+        avisoErro.parentElement.style.display = 'block';
+        return;
+    }
+
+    abrirPainelParticipantes();
+
+    document.querySelectorAll(`#${idGerais.modalCustomizado} .campos-modal-customizado`).forEach(campos => {
+        const foco = {};
+
+        campos.querySelectorAll('input[type="checkbox"]').forEach(({ name, checked }) => foco[name] = checked);
+        campos.querySelectorAll('input[type="text"]').forEach(({ value, classList }) => {
+            if (selecionarParticipante(value)) {
+                foco.funcao = value;
+            } else {
+                classList.add(estiloErro);
+                erros = true;
+            }
+        });
+
+        participantes.push(foco);
     });
-    btn && btn.click();
+
+    if (erros) {
+        avisoErro.innerText = 'Preencha o(s) campo(s) em vermelho e selecione "validar texto"';
+        avisoErro.parentElement.style.display = 'block';
+        return;
+    }
+
+    return { participantes, inputNomeFoco };
 }
 
 function ligarMicrofoneParticipante(participante, tentativaPersistente) {
@@ -1402,10 +1320,6 @@ function ligarMicrofoneParticipante(participante, tentativaPersistente) {
             }
         });
     }
-}
-
-function desligarMicrofoneParticipante(participante) {
-    clickBotao(participante, textosOpcoes.desligarMicrofone);
 }
 
 function ligarVideoParticipante(participante, callback) {
@@ -1445,27 +1359,29 @@ function ligarVideoParticipante(participante, callback) {
     }
 }
 
-function desligarVideoParticipante(participante) {
-    clickDropdown(participante, textosOpcoes.pararVideo);
-}
-
-function spotlightParticipante(participante) {
-    clickDropdown(participante, ['spotlight video', 'vídeo de destaque']);
-}
-
-function desligarSpotlight() {
-    abrirPainelParticipantes();
-    getParticipantes().some(participante => {
-        if (isSpotlightLigado(participante)) {
-            clickDropdown(participante, textosOpcoes.cancelarSpotlight);
-            return true;
-        }
-    });
-}
-
 function ligarMicrofones() {
     abrirPainelParticipantes();
     getParticipantes().forEach(participante => ligarMicrofoneParticipante(participante));
+}
+
+function ligarTudo() {
+    abrirPainelParticipantes();
+    getParticipantes().forEach(participante => {
+        ligarVideoParticipante(participante);
+        ligarMicrofoneParticipante(participante);
+    });
+    /* deixar foco automático */
+    desligarSpotlight();
+    permitirParticipantesLigarMicrofones(true);
+    silenciarParticipantesAoEntrar(false);
+}
+
+function desligarMicrofoneParticipante(participante) {
+    clickBotao(participante, textosOpcoes.desligarMicrofone);
+}
+
+function desligarVideoParticipante(participante) {
+    clickDropdown(participante, textosOpcoes.pararVideo);
 }
 
 function desligarMicrofones(excecoes) {
@@ -1492,90 +1408,40 @@ function desligarVideos(excecoes) {
     });
 }
 
-function abaixarMaos(excecoes) {
+function desligarSpotlight() {
     abrirPainelParticipantes();
-    excecoes = Array.isArray(excecoes) ? excecoes.map(p => getNomeParticipante(p)) : [];
-    getParticipantes().forEach(participante => {
-        /* abaixar mao de todos participantes que nao estejam na lista de excecoes */
-        if (!excecoes.includes(getNomeParticipante(participante))) {
-            const btn = Array.from(participante.querySelectorAll('.participants-item__buttons .button-margin-right')).find(btn => {
-                return textosOpcoes.abaixarMaos.includes(btn.innerText.toLowerCase());
-            });
-
-            btn && btn.click();
+    getParticipantes().some(participante => {
+        if (isSpotlightLigado(participante)) {
+            clickDropdown(participante, textosOpcoes.cancelarSpotlight);
+            return true;
         }
     });
 }
 
-function contarAssistencia() {
+function desligarTudo() {
     abrirPainelParticipantes();
-    let assistencia = 0;
-    const nomesForaPadrao = [];
+    desligarVideos();
+    desligarMicrofones();
+    permitirParticipantesLigarMicrofones(false);
+    silenciarParticipantesAoEntrar(true);
+}
 
-    getParticipantes().forEach(participante => {
-        const nome = getNomeParticipante(participante);
+function focar(funcao) {
+    abrirPainelParticipantes();
+    const alvo = selecionarParticipante(funcao);
 
-        if (!isNomeValido(participante)) {
-            nomesForaPadrao.push(nome);
-            return;
-        }
+    if (!funcao || !alvo) return alert(`Participante: "${funcao}" não encontrado`);
 
-        const quantidade = parseInt(nome.replace(/\(|\{|\[/, '').trim());
-        if (quantidade > 0) {
-            assistencia += quantidade;
-        }
+    /* ligar video do participante informado */
+    ligarVideoParticipante(alvo, () => {
+        const participante = selecionarParticipante(funcao);
+        /* quando o participante informado iniciar seu video */
+        desligarVideos([participante]);
+        desligarMicrofones([participante]);
+        spotlightParticipante(participante);
+        ligarMicrofoneParticipante(participante, true);
     });
-
-    return {
-        contados: assistencia,
-        naoContados: nomesForaPadrao.length,
-        nomesInvalidos: nomesForaPadrao
-    };
 }
-
-function permitirParticipantesLigarMicrofones(permitir) {
-    try {
-        const opcaoPermitirMicrofones = getOpcaoDropdownMais(textosOpcoes.permitirMicrofones);
-        const isAtivo = opcaoPermitirMicrofones.querySelector('.i-ok-margin');
-
-        /* clicar na opcao somente se nao estiver como deveria */
-        if ((permitir && !isAtivo) || (!permitir && isAtivo)) {
-            opcaoPermitirMicrofones.click();
-        }
-    } catch {
-        alert(`opção "${textosOpcoes.permitirMicrofones[1]}" não encontrada`);
-    }
-}
-
-function silenciarParticipantesAoEntrar(silenciar) {
-    try {
-        const opcaoSilenciarAoEntrar = getOpcaoDropdownMais(textosOpcoes.silenciarAoEntrar);
-        const isAtivo = opcaoSilenciarAoEntrar.querySelector('.i-ok-margin');
-
-        /* clicar na opcao somente se nao estiver como deveria */
-        if ((silenciar && !isAtivo) || (!silenciar && isAtivo)) {
-            opcaoSilenciarAoEntrar.click();
-
-            /* desmarcar a opcao que permite os participantes ligarem o microfone */
-            setTimeout(() => {
-                const opcaoPermitirMicrofones = document.querySelector('.zm-modal-footer-default-checkbox');
-                if (opcaoPermitirMicrofones) {
-
-                    if (opcaoPermitirMicrofones.querySelector('.zm-checkbox-checked')) {
-                        opcaoPermitirMicrofones.querySelector('.zm-checkbox-message').click();
-                    }
-
-                    document.querySelector('.zm-modal-footer-default-actions .zm-btn__outline--blue').click();
-                }
-            }, 100);
-
-        }
-    } catch {
-        alert(`opção "${textosOpcoes.silenciarAoEntrar[1]}" não encontrada`);
-    }
-}
-
-/* FUNCOES AVANCADAS */
 
 function focarDirigente() {
     abrirPainelParticipantes();
@@ -1669,21 +1535,211 @@ function focarOrador() {
     });
 }
 
-function focar(funcao) {
+function silenciarComentaristas() {
     abrirPainelParticipantes();
-    const alvo = selecionarParticipante(funcao);
-
-    if (!funcao || !alvo) return alert(`Participante: "${funcao}" não encontrado`);
-
-    /* ligar video do participante informado */
-    ligarVideoParticipante(alvo, () => {
-        const participante = selecionarParticipante(funcao);
-        /* quando o participante informado iniciar seu video */
-        desligarVideos([participante]);
-        desligarMicrofones([participante]);
-        spotlightParticipante(participante);
-        ligarMicrofoneParticipante(participante, true);
+    getParticipantes().forEach(participante => {
+        if (!isVideoLigado(participante)) {
+            desligarMicrofoneParticipante(participante);
+        }
     });
+}
+
+function silenciarParticipantesAoEntrar(silenciar) {
+    try {
+        const opcaoSilenciarAoEntrar = getOpcaoDropdownMais(textosOpcoes.silenciarAoEntrar);
+        const isAtivo = opcaoSilenciarAoEntrar.querySelector('.i-ok-margin');
+
+        /* clicar na opcao somente se nao estiver como deveria */
+        if ((silenciar && !isAtivo) || (!silenciar && isAtivo)) {
+            opcaoSilenciarAoEntrar.click();
+
+            /* desmarcar a opcao que permite os participantes ligarem o microfone */
+            setTimeout(() => {
+                const opcaoPermitirMicrofones = document.querySelector('.zm-modal-footer-default-checkbox');
+                if (opcaoPermitirMicrofones) {
+
+                    if (opcaoPermitirMicrofones.querySelector('.zm-checkbox-checked')) {
+                        opcaoPermitirMicrofones.querySelector('.zm-checkbox-message').click();
+                    }
+
+                    document.querySelector('.zm-modal-footer-default-actions .zm-btn__outline--blue').click();
+                }
+            }, 100);
+
+        }
+    } catch {
+        alert(`opção "${textosOpcoes.silenciarAoEntrar[1]}" não encontrada`);
+    }
+}
+
+function abaixarMaoParticipante(participante) {
+    if (!participante) return;
+    abrirPainelParticipantes();
+    const btn = Array.from(participante.querySelectorAll('.participants-item__buttons .button-margin-right')).find(btn => {
+        return textosOpcoes.abaixarMaos.includes(btn.innerText.toLowerCase());
+    });
+    btn && btn.click();
+}
+
+function abaixarMaos(excecoes) {
+    abrirPainelParticipantes();
+    excecoes = Array.isArray(excecoes) ? excecoes.map(p => getNomeParticipante(p)) : [];
+    getParticipantes().forEach(participante => {
+        /* abaixar mao de todos participantes que nao estejam na lista de excecoes */
+        if (!excecoes.includes(getNomeParticipante(participante))) {
+            const btn = Array.from(participante.querySelectorAll('.participants-item__buttons .button-margin-right')).find(btn => {
+                return textosOpcoes.abaixarMaos.includes(btn.innerText.toLowerCase());
+            });
+
+            btn && btn.click();
+        }
+    });
+}
+
+function enviarEmailServerless() {
+    fetch('https://zoom.vercel.app/api/send-email', {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            assistencia: contarAssistencia().contados,
+            congregacao: 'Nordeste'
+        })
+    }).then(async data => {
+        const resp = await data.json();
+        alert(resp.success ? resp.message : 'Não foi possível enviar e-mail');
+    }).catch(err => alert(err));
+}
+
+function importarIconesFontAwesome() {
+    const importIcones = document.querySelector('#icones');
+    /* nao duplicar tag de import dos icones */
+    if (!importIcones) {
+        const url = 'https://fonts.googleapis.com/icon?family=Material+Icons+Outlined';
+        document.head.appendChild(criarElemento(`<link rel="stylesheet" href="${url}" id="icones"> </link>`));
+    }
+}
+
+function removerFilhos(elemento) {
+    elemento && elemento.querySelectorAll && elemento.querySelectorAll('*').forEach(child => child.remove());
+}
+
+function admitirEntradaNaSalaComNomeValido() {
+    abrirPainelParticipantes();
+    document.querySelectorAll('.waiting-room-list-conatiner__ul li').forEach(participante => {
+        if (isNomeValido(participante) || observados.liberarSalaDeEspera) {
+            participante.dispatchEvent(criarEventoMouseOver());
+            const btnPermitir = participante.querySelector('.btn-primary');
+            if (btnPermitir) {
+                btnPermitir.click();
+            }
+        }
+    });
+}
+
+function limparAvisosAntigos() {
+    Object.keys(avisosDeRotinas).forEach(rotina => {
+        if (rotina != 'tentativasPersistentes' && avisosDeRotinas[rotina].length > 10) {
+            const avisosUnicos = Array.from(new Set(avisosDeRotinas[rotina]));
+            avisosDeRotinas[rotina] = avisosUnicos.slice(-10);
+        }
+    });
+}
+
+function dispararRotina(nomeRotina, tempoEmMilissengudos, callback) {
+    encerrarRotina(nomeRotina);
+    intervalosEmExecucao[nomeRotina] = setInterval(() => callback(), tempoEmMilissengudos);
+    avisosDeRotinas.tentativasPersistentes = Array.from(new Set([...avisosDeRotinas.tentativasPersistentes, nomeRotina]));
+    atualizarTela();
+}
+
+function encerrarRotina(nomeRotina) {
+    intervalosEmExecucao[nomeRotina] = clearInterval(intervalosEmExecucao[nomeRotina]);
+    avisosDeRotinas.tentativasPersistentes = avisosDeRotinas.tentativasPersistentes.filter(tentativa => tentativa != nomeRotina);
+    atualizarTela();
+}
+
+function alternarModal() {
+    const modal = document.getElementById(idGerais.modal);
+    if (modal.style.display == 'none') {
+        modal.removeAttribute('style');
+    } else {
+        fecharModal();
+    }
+}
+
+function iniciarEventosPainelParticipantes() {
+    const btnAbrirPainel = document.querySelector('.footer-button__participants-icon');
+
+    if (!document.getElementById('wc-container-right')) {
+        btnAbrirPainel.click();
+    }
+
+    criarDomListener();
+    btnAbrirPainel.click();
+}
+
+function selecionarParticipante(funcao) {
+    if (!funcao) return;
+    return getParticipantes().find(participante => {
+        const nome = getTextoPuro(getNomeParticipante(participante));
+        return nome && nome.includes(getTextoPuro(funcao));
+    });
+}
+
+function renomearParticipante(participante) {
+    clickDropdown(participante, textosOpcoes.renomear);
+    clickBotao(participante, textosOpcoes.renomear);
+}
+
+function expulsarParticipante(participante) {
+    clickDropdown(participante, textosOpcoes.expulsar);
+}
+
+function spotlightParticipante(participante) {
+    clickDropdown(participante, ['spotlight video', 'vídeo de destaque']);
+}
+
+function contarAssistencia() {
+    abrirPainelParticipantes();
+    let assistencia = 0;
+    const nomesForaPadrao = [];
+
+    getParticipantes().forEach(participante => {
+        const nome = getNomeParticipante(participante);
+
+        if (!isNomeValido(participante)) {
+            nomesForaPadrao.push(nome);
+            return;
+        }
+
+        const quantidade = parseInt(nome.replace(/\(|\{|\[/, '').trim());
+        if (quantidade > 0) {
+            assistencia += quantidade;
+        }
+    });
+
+    return {
+        contados: assistencia,
+        naoContados: nomesForaPadrao.length,
+        nomesInvalidos: nomesForaPadrao
+    };
+}
+
+function permitirParticipantesLigarMicrofones(permitir) {
+    try {
+        const opcaoPermitirMicrofones = getOpcaoDropdownMais(textosOpcoes.permitirMicrofones);
+        const isAtivo = opcaoPermitirMicrofones.querySelector('.i-ok-margin');
+
+        /* clicar na opcao somente se nao estiver como deveria */
+        if ((permitir && !isAtivo) || (!permitir && isAtivo)) {
+            opcaoPermitirMicrofones.click();
+        }
+    } catch {
+        alert(`opção "${textosOpcoes.permitirMicrofones[1]}" não encontrada`);
+    }
 }
 
 function chamar(funcao) {
@@ -1748,41 +1804,12 @@ function finalizarDiscurso() {
     atualizarTela();
 }
 
-function desligarTudo() {
-    abrirPainelParticipantes();
-    desligarVideos();
-    desligarMicrofones();
-    permitirParticipantesLigarMicrofones(false);
-    silenciarParticipantesAoEntrar(true);
-}
-
-function ligarTudo() {
-    abrirPainelParticipantes();
-    getParticipantes().forEach(participante => {
-        ligarVideoParticipante(participante);
-        ligarMicrofoneParticipante(participante);
-    });
-    /* deixar foco automático */
-    desligarSpotlight();
-    permitirParticipantesLigarMicrofones(true);
-    silenciarParticipantesAoEntrar(false);
-}
-
-function silenciarComentaristas() {
-    abrirPainelParticipantes();
-    getParticipantes().forEach(participante => {
-        if (!isVideoLigado(participante)) {
-            desligarMicrofoneParticipante(participante);
-        }
-    });
-}
-
 /* IDENTIFICADORES GERAIS */
 var idGerais = {
     textoContados: 'texto-contados',
     textoNaoContados: 'texto-nao-contados',
     modal: 'opcoes-reuniao',
-    modalFocoCustomizado: 'modal-foco-customizado',
+    modalCustomizado: 'modal-customizado',
     menuCustomizado: 'menu-de-contexto'
 };
 
@@ -1816,7 +1843,8 @@ var textosOpcoes = {
 var intervalosEmExecucao = intervalosEmExecucao || {};
 var observador = observador || null;
 var observados = {
-    comentarista: null
+    comentarista: null,
+    liberarSalaDeEspera: false
 };
 var avisosDeRotinas = {
     tentativasPersistentes: [],
