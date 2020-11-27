@@ -44,7 +44,7 @@ function criarIcone(tipo, id) {
         assistencia: 'airline_seat_recline_normal',
         assistenciaNaoContada: 'airline_seat_recline_extra',
         mao: 'pan_tool',
-        mais: 'more_vert',
+        mais: 'add_circle_outline',
         fechar: 'cancel',
     };
 
@@ -74,7 +74,7 @@ function criarCss() {
             z-index: ${maiorZIndex + 2};
         }
         .modal-transparente { background-color: #ffffff11; }
-        .modal-transparente * { color: #ffffffbb; }
+        .modal-transparente .frame-botoes *, .modal-transparente .frame-rotinas * { color: #ffffffbb; }
         .modal-transparente .btn-warning .material-icons-outlined { color: #111111bb; }
         .modal-transparente .configuracao, .modal-transparente .config-item { background-color: #24282ccf; }
         .modal-transparente .frame-rotinas { background-color: #21212147; }
@@ -307,6 +307,7 @@ function criarCss() {
             padding: 30px;
             height: 80%;
             width: 75%;
+            border-radius: 10px;
             background-color: #ffffffc7;
         }
         .opcoes-modal-customizado {
@@ -411,9 +412,9 @@ function criarMenuCustomizado(elemento, options) {
 
     const menu = document.getElementById(idGerais.menuCustomizado);
 
-    document.body.removeEventListener('click', config.limparMenuCustomizado);
+    document.body.removeEventListener('click', config.eventoLimparMenu);
 
-    config.limparMenuCustomizado = e => {
+    config.eventoLimparMenu = e => {
         if (e.path.find(elemento => elemento.id == 'wc-container-right')) return;
 
         const ctxMenu = document.getElementById(idGerais.menuCustomizado);
@@ -423,7 +424,7 @@ function criarMenuCustomizado(elemento, options) {
         }
     };
 
-    document.body.addEventListener('click', config.limparMenuCustomizado);
+    document.body.addEventListener('click', config.eventoLimparMenu);
     elemento.addEventListener('contextmenu', e => {
         removerFilhos(menu);
         options.forEach(({ texto, click: onclick }) => menu.appendChild(criarElemento(`<span>${texto}</span>`, { onclick })));
@@ -533,15 +534,56 @@ function criarCamposModalFocoCustomizado() {
     return campos;
 }
 
-function criarOpcaoGrande({ id, texto, marcada, aoSelecionar }) {
+function criarCamposOpcaoGrande({ id, texto, marcada, aoSelecionar }) {
     const opcao = criarElemento(`
-        <div class="opcao-grande">
+        <div class="opcao-grande h5">
             <input id="${id}" type="checkbox" ${marcada ? 'checked' : ''}/>
             <label for="${id}">${texto}</label>
         </div>
     `);
     opcao.querySelector(`#${id}`).onchange = aoSelecionar;
     return opcao;
+}
+
+function criarCamposRenomearFuncoes(funcao) {
+    funcao = getTextoPuro(funcao);
+    const div = criarElemento(`
+        <div style="display: flex;">
+            <div class="input-group" style="flex: 3; margin: 5px 0 0 0;">
+                <span class="input-group-addon" style="min-width: 120px; font-weight: 600;">${funcao}:</span>
+                <input id="renomear-${funcao}" value="${idParticipantes[funcao]}" type="text" class="form-control">
+                <span class="input-group-btn">
+                    <button class="btn btn-primary">Salvar</button>
+                </span>
+            </div>
+            <span style="flex: 2; align-self: center; margin-left: 10px;" class="text-primary">
+                ${getNomeParticipante(selecionarParticipante(idParticipantes[funcao]))}
+            </span>
+        </div>
+    `);
+    div.querySelector('button').onclick = ({ target }) => {
+        const novaFuncao = getTextoPuro(target.parentElement.parentElement.querySelector('input').value);
+        if (!novaFuncao) {
+            alert('É necessário informar um indentificador');
+        } else if (novaFuncao != idParticipantes[funcao]) {
+            idParticipantes[funcao] = novaFuncao;
+            alert(`${funcao} mudou para: ${novaFuncao}`);
+            atualizarBotoesFocoPadrao();
+        }
+    };
+    div.querySelector('input').onkeyup = evento => {
+        clearTimeout(config.ultimaValidacaoFuncao);
+        config.ultimaValidacaoFuncao = setTimeout(() => {
+            if (evento.code == "Enter" || evento.key == "Enter") {
+                /* renomear com enter */
+                evento.target.parentElement.querySelector('button').click();
+            } else {
+                const labelValidacao = evento.target.parentElement.nextElementSibling;
+                labelValidacao.innerText = getNomeParticipante(selecionarParticipante(evento.target.value));
+            }
+        }, 400);
+    };
+    return div;
 }
 
 function getNomeRotina(id) {
@@ -586,17 +628,20 @@ function getBotoesParticipantes() {
         isReuniaoSemana && { nome: capital(idParticipantes.tesouros), icone: 'tesouros', classe: 'btn-primary', click: () => focar(idParticipantes.tesouros) },
         isReuniaoSemana && { nome: capital(idParticipantes.joias), icone: 'joias', classe: 'btn-primary', click: () => focar(idParticipantes.joias) },
         isReuniaoSemana && { nome: capital(idParticipantes.biblia), icone: 'biblia', classe: 'btn-primary', click: () => focar(idParticipantes.biblia) },
-        isReuniaoSemana && { nome: capital(idParticipantes.vida1), icone: 'vida1', classe: 'btn-primary', click: () => focar(idParticipantes.vida1) },
-        isReuniaoSemana && { nome: capital(idParticipantes.vida2), icone: 'vida2', classe: 'btn-primary', click: () => focar(idParticipantes.vida2) },
+        isReuniaoSemana && { nome: capital(idParticipantes['nossa-vida-1']), icone: 'vida1', classe: 'btn-primary', click: () => focar(idParticipantes['nossa-vida-1']) },
+        isReuniaoSemana && { nome: capital(idParticipantes['nossa-vida-2']), icone: 'vida2', classe: 'btn-primary', click: () => focar(idParticipantes['nossa-vida-2']) },
     ];
     return {
         focar: botoesFocar.filter(Boolean),
         chamar: botoesFocar.reduce((lista, btn) => {
-            if (btn) lista.push({
-                nome: btn.nome,
-                classe: btn.nome.toLowerCase() != idParticipantes.presidente ? 'btn-success' : 'btn-warning',
-                click: () => chamar(btn.nome.toLowerCase())
-            });
+            if (btn) {
+                const nome = getTextoPuro(btn.nome);
+                lista.push({
+                    nome: btn.nome,
+                    classe: nome != idParticipantes.presidente ? 'btn-success' : 'btn-warning',
+                    click: () => chamar(idParticipantes[nome])
+                });
+            }
             return lista;
         }, [])
     };
@@ -754,7 +799,7 @@ function atualizarAvisosDeRotinas() {
         const novoCache = btoa(avisosDeRotinas[rotina].join(''));
 
         /* atualizar lista somente se tiver novos dados */
-        if (config.cache[rotina] !== novoCache) {
+        if (config.cache[rotina] != novoCache) {
             const ulRotina = document.getElementById(btoa(rotina));
             removerFilhos(ulRotina);
 
@@ -786,7 +831,7 @@ function atualizarBotoesFocoPadrao() {
     botoesChamar.forEach((btnChamar, idx) => {
         const btnFocar = botoesFocar[idx] || {};
 
-        if (btnChamar.innerText && !selecionarParticipante(btnChamar.innerText)) {
+        if (btnChamar.innerText && !selecionarParticipante(idParticipantes[btnChamar.innerText.toLowerCase()])) {
             btnFocar.classList.add(classeIndicativa);
             btnChamar.classList.add(classeIndicativa);
         } else if (btnChamar.classList.contains(classeIndicativa)) {
@@ -838,7 +883,7 @@ function atualizarAssistencia() {
     const dadosAssistencia = contarAssistencia();
     const novoCache = btoa(JSON.stringify(dadosAssistencia));
     /* atualizar lista somente se com novas informacoes */
-    if (config.cache.atualizarAssistencia !== novoCache) {
+    if (config.cache.atualizarAssistencia != novoCache) {
         document.getElementById(idGerais.textoContados).innerText = `${dadosAssistencia.contados} identificado(s)`;
         document.getElementById(idGerais.textoNaoContados).innerText = `${dadosAssistencia.naoContados} não identificado(s)`;
         /* atualizar cache */
@@ -1010,7 +1055,7 @@ function desenharModalVerMais() {
     const btnFechar = criarElemento('<button class="btn btn-primary-outline fechar">Fechar</button>', {
         onclick: fecharModalCustomizado
     });
-    const opcaoSalaDeEspera = criarOpcaoGrande({
+    const opcaoSalaDeEspera = criarCamposOpcaoGrande({
         id: 'liberar-sala-espera',
         texto: 'Liberar sala de espera para todos',
         marcada: observados.salaAberta,
@@ -1019,7 +1064,7 @@ function desenharModalVerMais() {
             atualizarSalaDeEspera();
         }
     });
-    const opcaoSpotlight = criarOpcaoGrande({
+    const opcaoSpotlight = criarCamposOpcaoGrande({
         id: 'foco-automatico',
         texto: 'Ativar foco automático (remove automaticamente o spotlight)',
         marcada: observados.focoAutomatico,
@@ -1030,13 +1075,17 @@ function desenharModalVerMais() {
     });
 
     /* desenhar modal */
-    const cabecalhoModal = criarElemento('<div style="display: flex; justify-content: space-between; align-items: center;"/>');
-    cabecalhoModal.appendChild(opcaoSalaDeEspera);
-    cabecalhoModal.appendChild(btnFechar);
+    const opcoesTopo = criarElemento('<div style="display: flex; justify-content: space-between; align-items: center;"/>');
+    opcoesTopo.appendChild(opcaoSalaDeEspera);
+    opcoesTopo.appendChild(btnFechar);
 
-    const modal = criarElemento('<div class="corpo-modal-customizado h5" style="display: block;"/>');
-    modal.appendChild(cabecalhoModal);
+    const modal = criarElemento('<div class="corpo-modal-customizado" style="display: block;"/>');
+    modal.appendChild(opcoesTopo);
     modal.appendChild(opcaoSpotlight);
+
+    document.querySelectorAll('.frame-chamar button').forEach(btn => {
+        modal.appendChild(criarCamposRenomearFuncoes(btn.innerText));
+    });
 
     const modalDrop = criarModalCustomizado();
     modalDrop.appendChild(modal);
@@ -1481,8 +1530,8 @@ function focar(funcao) {
 
     /* ligar video do participante informado */
     ligarVideoParticipante(alvo, () => {
+        observados.focoAutomatico = false;
         const participante = selecionarParticipante(funcao);
-        /* quando o participante informado iniciar seu video */
         desligarVideos([participante]);
         desligarMicrofones([participante]);
         spotlightParticipante(participante);
@@ -1508,11 +1557,10 @@ function focarDirigente() {
 
     /* ligar video do dirigente */
     ligarVideoParticipante(dirigente, () => {
+        observados.focoAutomatico = false;
         const dirigente = selecionarParticipante(idParticipantes.dirigente);
-        /* quando o dirigente iniciar seu video */
         spotlightParticipante(dirigente);
         ligarMicrofoneParticipante(dirigente, true);
-        /* para evitar distracoes com autofoco, manter o presidente em foco ate que dirigente inicie seu video */
         desligarVideoParticipante(selecionarParticipante(idParticipantes.presidente));
     });
 }
@@ -1534,7 +1582,7 @@ function focarLeitor() {
 
     /* ligar video do leitor */
     ligarVideoParticipante(leitor, () => {
-        /* quando o leitor iniciar seu video */
+        observados.focoAutomatico = false;
         spotlightParticipante(leitor);
         ligarMicrofoneParticipante(leitor, true);
     });
@@ -1553,7 +1601,7 @@ function focarPresidente() {
 
     /* ligar video do presidente */
     ligarVideoParticipante(presidente, () => {
-        /* quando o presidente iniciar seu video */
+        observados.focoAutomatico = false;
         ligarMicrofoneParticipante(presidente, true);
         spotlightParticipante(presidente);
         desligarVideos([presidente]); /* exceto presidente */
@@ -1576,7 +1624,7 @@ function focarOrador() {
 
     /* ligar video do orador */
     ligarVideoParticipante(orador, () => {
-        /* quando o orador iniciar seu video */
+        observados.focoAutomatico = false;
         spotlightParticipante(orador);
         ligarMicrofoneParticipante(orador, true);
     });
@@ -1592,30 +1640,31 @@ function silenciarComentaristas() {
 }
 
 function silenciarParticipantesAoEntrar(silenciar) {
-    try {
-        const opcaoSilenciarAoEntrar = getOpcaoDropdownMais(textosOpcoes.silenciarAoEntrar);
-        const isAtivo = opcaoSilenciarAoEntrar.querySelector('.i-ok-margin');
+    const opcaoSilenciarAoEntrar = getOpcaoDropdownMais(textosOpcoes.silenciarAoEntrar);
 
-        /* clicar na opcao somente se nao estiver como deveria */
-        if ((silenciar && !isAtivo) || (!silenciar && isAtivo)) {
-            opcaoSilenciarAoEntrar.click();
+    if (!opcaoSilenciarAoEntrar) {
+        return;
+    }
 
-            /* desmarcar a opcao que permite os participantes ligarem o microfone */
-            setTimeout(() => {
-                const opcaoPermitirMicrofones = document.querySelector('.zm-modal-footer-default-checkbox');
-                if (opcaoPermitirMicrofones) {
+    const isAtivo = opcaoSilenciarAoEntrar.querySelector('.i-ok-margin');
 
-                    if (opcaoPermitirMicrofones.querySelector('.zm-checkbox-checked')) {
-                        opcaoPermitirMicrofones.querySelector('.zm-checkbox-message').click();
-                    }
+    /* clicar na opcao somente se nao estiver como deveria */
+    if ((silenciar && !isAtivo) || (!silenciar && isAtivo)) {
+        opcaoSilenciarAoEntrar.click();
 
-                    document.querySelector('.zm-modal-footer-default-actions .zm-btn__outline--blue').click();
+        /* desmarcar a opcao que permite os participantes ligarem o microfone */
+        setTimeout(() => {
+            const opcaoPermitirMicrofones = document.querySelector('.zm-modal-footer-default-checkbox');
+            if (opcaoPermitirMicrofones) {
+
+                if (opcaoPermitirMicrofones.querySelector('.zm-checkbox-checked')) {
+                    opcaoPermitirMicrofones.querySelector('.zm-checkbox-message').click();
                 }
-            }, 100);
 
-        }
-    } catch {
-        alert(`opção "${textosOpcoes.silenciarAoEntrar[1]}" não encontrada`);
+                document.querySelector('.zm-modal-footer-default-actions .zm-btn__outline--blue').click();
+            }
+        }, 100);
+
     }
 }
 
@@ -1754,16 +1803,17 @@ function contarAssistencia() {
 }
 
 function permitirParticipantesLigarMicrofones(permitir) {
-    try {
-        const opcaoPermitirMicrofones = getOpcaoDropdownMais(textosOpcoes.permitirMicrofones);
-        const isAtivo = opcaoPermitirMicrofones.querySelector('.i-ok-margin');
+    const opcaoPermitirMicrofones = getOpcaoDropdownMais(textosOpcoes.permitirMicrofones);
 
-        /* clicar na opcao somente se nao estiver como deveria */
-        if ((permitir && !isAtivo) || (!permitir && isAtivo)) {
-            opcaoPermitirMicrofones.click();
-        }
-    } catch {
-        alert(`opção "${textosOpcoes.permitirMicrofones[1]}" não encontrada`);
+    if (!opcaoPermitirMicrofones) {
+        return;
+    }
+
+    const isAtivo = opcaoPermitirMicrofones.querySelector('.i-ok-margin');
+
+    /* clicar na opcao somente se nao estiver como deveria */
+    if ((permitir && !isAtivo) || (!permitir && isAtivo)) {
+        opcaoPermitirMicrofones.click();
     }
 }
 
@@ -1837,7 +1887,6 @@ var idGerais = {
     modalCustomizado: 'modal-customizado',
     menuCustomizado: 'menu-de-contexto'
 };
-
 /* IDENTIFICADORES DE PARTICIPANTES */
 var idParticipantes = {
     dirigente: 'dirigente',
@@ -1847,10 +1896,9 @@ var idParticipantes = {
     tesouros: 'tesouros',
     joias: 'joias',
     biblia: 'biblia',
-    vida1: 'nossa-vida-1',
-    vida2: 'nossa-vida-2'
+    'nossa-vida-1': 'nossa-vida-1',
+    'nossa-vida-2': 'nossa-vida-2'
 };
-
 /* TEXTOS DAS OPCOES */
 var textosOpcoes = {
     pararVideo: ['stop video', 'parar vídeo'],
@@ -1863,7 +1911,6 @@ var textosOpcoes = {
     permitirMicrofones: ['allow participants to unmute themselves', 'permitir que os próprios participantes desativem o mudo'],
     silenciarAoEntrar: ['mute participants on entry', 'desativar som dos participantes ao entrar']
 };
-
 /* CONTROLE E CONFIGURACOES */
 var intervalosEmExecucao = intervalosEmExecucao || {};
 var observador = observador || null;
@@ -1883,11 +1930,16 @@ var config = config || {
     cache: {},
     palmasEmMilissegundos: 8000,
     ultimaMudanca: null,
-    limparMenuCustomizado: null
+    ultimaValidacaoFuncao: null,
+    eventoLimparMenu: null,
 };
 
 /* INICIO DO SCRIPT */
-criarCss();
-desenharModal();
-criarBotaoOpcoesCustomizadas();
-iniciarEventosPainelParticipantes();
+try {
+    criarCss();
+    desenharModal();
+    criarBotaoOpcoesCustomizadas();
+    iniciarEventosPainelParticipantes();
+} catch (erro) {
+    alert('Erro ao executar o script: ' + erro.message);
+}
