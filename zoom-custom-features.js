@@ -317,10 +317,20 @@ function criarCss() {
         }
         .opcoes-modal-customizado * { margin: 0 5px; }
         .opcoes-modal-customizado .fechar { grid-column-start: 5; }
-        .opcoes-modal-customizado .opcoes {
-            grid-column: span 3;
+        .opcao-grande {
+            display: flex;
+            align-items: center;
             user-select: none;
             margin: 10px;
+        }
+        .opcao-grande input {
+            margin: 0;
+            height: 20px;
+            width: 30px;
+        }
+        .opcao-grande label {
+            line-height: 20px;
+            margin: 0;
         }
         .campos-modal-customizado {
             display: grid;
@@ -523,6 +533,17 @@ function criarCamposModalFocoCustomizado() {
     return campos;
 }
 
+function criarOpcaoGrande({ id, texto, marcada, aoSelecionar }) {
+    const opcao = criarElemento(`
+        <div class="opcao-grande">
+            <input id="${id}" type="checkbox" ${marcada ? 'checked' : ''}/>
+            <label for="${id}">${texto}</label>
+        </div>
+    `);
+    opcao.querySelector(`#${id}`).onchange = aoSelecionar;
+    return opcao;
+}
+
 function getNomeRotina(id) {
     return {
         tentativasPersistentes: 'Rodando (marque para abortar)',
@@ -658,11 +679,61 @@ function clickDropdown(participante, textosBotao) {
     });
 }
 
+function atualizarTela() {
+    clearTimeout(config.ultimaMudanca);
+    config.ultimaMudanca = setTimeout(() => {
+        atualizarAvisosAntigos();
+        atualizarNomesForaDoPadrao();
+        atualizarSalaDeEspera();
+        atualizarVideosLigadosNaAssistencia();
+        atualizarMicrofonesLigadosNaAssistencia();
+        atualizarAvisosDeRotinas();
+        atualizarBotoesFocoPadrao();
+        atualizarMaosLevantadas();
+        atualizarAssistencia();
+    }, 100);
+}
+
+function atualizarAvisosAntigos() {
+    Object.keys(avisosDeRotinas).forEach(rotina => {
+        if (rotina != 'tentativasPersistentes' && avisosDeRotinas[rotina].length > 10) {
+            const avisosUnicos = Array.from(new Set(avisosDeRotinas[rotina]));
+            avisosDeRotinas[rotina] = avisosUnicos.slice(-10);
+        }
+    });
+}
+
+function atualizarNomesForaDoPadrao() {
+    abrirPainelParticipantes();
+    avisosDeRotinas.validarNomesForaDoPadrao = getParticipantes().reduce((lista, participante) => {
+        if (!isNomeValido(participante)) {
+            lista.push(getNomeParticipante(participante));
+        }
+        return lista;
+    }, []);
+}
+
+function atualizarSalaDeEspera() {
+    abrirPainelParticipantes();
+    document.querySelectorAll('.waiting-room-list-conatiner__ul li').forEach(participante => {
+        if (isNomeValido(participante) || observados.salaAberta) {
+            participante.dispatchEvent(criarEventoMouseOver());
+            const btnPermitir = participante.querySelector('.btn-primary');
+            if (btnPermitir) {
+                btnPermitir.click();
+            }
+        }
+    });
+}
+
 function atualizarVideosLigadosNaAssistencia() {
     abrirPainelParticipantes();
     avisosDeRotinas.validarVideosLigadosNaAssistencia = getParticipantes().reduce((lista, participante) => {
         if (isVideoLigado(participante)) {
             lista.push(getNomeParticipante(participante));
+            if (observados.focoAutomatico) {
+                desligarSpotlight();
+            }
         }
         return lista;
     }, []);
@@ -678,35 +749,33 @@ function atualizarMicrofonesLigadosNaAssistencia() {
     }, []);
 }
 
-function atualizarNomesForaDoPadrao() {
-    abrirPainelParticipantes();
-    const nomesInvalidos = [];
+function atualizarAvisosDeRotinas() {
+    Object.keys(avisosDeRotinas).forEach(rotina => {
+        const novoCache = btoa(avisosDeRotinas[rotina].join(''));
 
-    getParticipantes().forEach(participante => {
-        const nome = getNomeParticipante(participante);
-        /* busca por: parenteses, chaves ou colchetes (com ou sem espaco) seguido do numero de pessoas */
-        if (!isNomeValido(participante)) {
-            nomesInvalidos.push(nome);
+        /* atualizar lista somente se tiver novos dados */
+        if (config.cache[rotina] !== novoCache) {
+            const ulRotina = document.getElementById(btoa(rotina));
+            removerFilhos(ulRotina);
+
+            if (rotina == 'tentativasPersistentes') {
+                return atualizarTentativasPersistentes();
+            } else if (rotina == 'botoesFocoCustomizado') {
+                return atualizarBotoesFocoCustomizado();
+            } else if (rotina == 'validarNomesForaDoPadrao') {
+                return atualizarNomesInvalidos(ulRotina);
+            } else if (rotina == 'validarMicrofonesLigadosNaAssistencia') {
+                return atualizarMicrofonesLigados(ulRotina);
+            } else if (rotina == 'validarVideosLigadosNaAssistencia') {
+                return atualizarVideosLigados(ulRotina);
+            } else {
+                avisosDeRotinas[rotina].forEach(aviso => ulRotina.appendChild(criarElemento(`<li class="zebrado">${aviso}</li>`)));
+            }
+
+            /* atualizar cache */
+            config.cache[rotina] = novoCache;
         }
     });
-
-    avisosDeRotinas.validarNomesForaDoPadrao = nomesInvalidos;
-}
-
-function atualizarTela() {
-    clearTimeout(config.ultimaMudanca);
-    config.ultimaMudanca = setTimeout(() => {
-        limparAvisosAntigos();
-        atualizarNomesForaDoPadrao();
-        admitirEntradaNaSalaComNomeValido();
-        atualizarVideosLigadosNaAssistencia();
-        atualizarMicrofonesLigadosNaAssistencia();
-        atualizarAvisosDeRotinas();
-        atualizarBotoesFocoPadrao();
-        atualizarMaosLevantadas();
-        atualizarAssistencia();
-    }, 100);
-
 }
 
 function atualizarBotoesFocoPadrao() {
@@ -725,6 +794,56 @@ function atualizarBotoesFocoPadrao() {
             btnFocar.classList.remove(classeIndicativa);
         }
     });
+}
+
+function atualizarMaosLevantadas() {
+    const lista = document.querySelector('#maos-comentarios');
+    removerFilhos(lista);
+
+    const participante = selecionarParticipante(observados.comentarista);
+    if (isMicrofoneLigado(participante)) {
+        abaixarMaoParticipante(participante);
+        delete observados.comentarista;
+    }
+
+    /* busca todas maos levantadas e adiciona na lista */
+    getParticipantes().forEach(participante => {
+        if (!isMaoLevantada(participante)) return;
+
+        const nome = getNomeParticipante(participante);
+        const li = criarElemento('<li></li>');
+        const btn = criarElemento(`<button data-participante="${nome}" class="btn-xs btn-comentaristas"></button>`, {
+            onclick: ({ target }) => {
+                const nomeParticipante = target.dataset.participante;
+                const participante = selecionarParticipante(nomeParticipante);
+                observados.comentarista = nomeParticipante;
+
+                abaixarMaos([participante]);
+                ligarMicrofoneParticipante(participante);
+                desligarMicrofones([
+                    participante,
+                    ...getParticipantes().filter(participante => isVideoLigado(participante))
+                ]);
+            }
+        });
+
+        btn.appendChild(criarElemento(`<i data-participante="${nome}" class="material-icons-outlined">mic_none</i>`));
+        btn.appendChild(criarElemento(`<span data-participante="${nome}">${nome}</span>`));
+        li.appendChild(btn);
+        lista.appendChild(li);
+    });
+}
+
+function atualizarAssistencia() {
+    const dadosAssistencia = contarAssistencia();
+    const novoCache = btoa(JSON.stringify(dadosAssistencia));
+    /* atualizar lista somente se com novas informacoes */
+    if (config.cache.atualizarAssistencia !== novoCache) {
+        document.getElementById(idGerais.textoContados).innerText = `${dadosAssistencia.contados} identificado(s)`;
+        document.getElementById(idGerais.textoNaoContados).innerText = `${dadosAssistencia.naoContados} não identificado(s)`;
+        /* atualizar cache */
+        config.cache.atualizarAssistencia = novoCache;
+    }
 }
 
 function atualizarTentativasPersistentes() {
@@ -807,85 +926,6 @@ function atualizarVideosLigados(ul) {
     });
 }
 
-function atualizarAvisosDeRotinas() {
-    Object.keys(avisosDeRotinas).forEach(rotina => {
-        const novoCache = btoa(avisosDeRotinas[rotina].join(''));
-
-        /* atualizar lista somente se tiver novos dados */
-        if (config.cache[rotina] !== novoCache) {
-            const ulRotina = document.getElementById(btoa(rotina));
-            removerFilhos(ulRotina);
-
-            if (rotina == 'tentativasPersistentes') {
-                return atualizarTentativasPersistentes();
-            } else if (rotina == 'botoesFocoCustomizado') {
-                return atualizarBotoesFocoCustomizado();
-            } else if (rotina == 'validarNomesForaDoPadrao') {
-                return atualizarNomesInvalidos(ulRotina);
-            } else if (rotina == 'validarMicrofonesLigadosNaAssistencia') {
-                return atualizarMicrofonesLigados(ulRotina);
-            } else if (rotina == 'validarVideosLigadosNaAssistencia') {
-                return atualizarVideosLigados(ulRotina);
-            } else {
-                avisosDeRotinas[rotina].forEach(aviso => ulRotina.appendChild(criarElemento(`<li class="zebrado">${aviso}</li>`)));
-            }
-
-            /* atualizar cache */
-            config.cache[rotina] = novoCache;
-        }
-    });
-}
-
-function atualizarMaosLevantadas() {
-    const lista = document.querySelector('#maos-comentarios');
-    removerFilhos(lista);
-
-    const participante = selecionarParticipante(observados.comentarista);
-    if (isMicrofoneLigado(participante)) {
-        abaixarMaoParticipante(participante);
-        delete observados.comentarista;
-    }
-
-    /* busca todas maos levantadas e adiciona na lista */
-    getParticipantes().forEach(participante => {
-        if (!isMaoLevantada(participante)) return;
-
-        const nome = getNomeParticipante(participante);
-        const li = criarElemento('<li></li>');
-        const btn = criarElemento(`<button data-participante="${nome}" class="btn-xs btn-comentaristas"></button>`, {
-            onclick: ({ target }) => {
-                const nomeParticipante = target.dataset.participante;
-                const participante = selecionarParticipante(nomeParticipante);
-                observados.comentarista = nomeParticipante;
-
-                abaixarMaos([participante]);
-                ligarMicrofoneParticipante(participante);
-                desligarMicrofones([
-                    participante,
-                    ...getParticipantes().filter(participante => isVideoLigado(participante))
-                ]);
-            }
-        });
-
-        btn.appendChild(criarElemento(`<i data-participante="${nome}" class="material-icons-outlined">mic_none</i>`));
-        btn.appendChild(criarElemento(`<span data-participante="${nome}">${nome}</span>`));
-        li.appendChild(btn);
-        lista.appendChild(li);
-    });
-}
-
-function atualizarAssistencia() {
-    const dadosAssistencia = contarAssistencia();
-    const novoCache = btoa(JSON.stringify(dadosAssistencia));
-    /* atualizar lista somente se com novas informacoes */
-    if (config.cache.atualizarAssistencia !== novoCache) {
-        document.getElementById(idGerais.textoContados).innerText = `${dadosAssistencia.contados} identificado(s)`;
-        document.getElementById(idGerais.textoNaoContados).innerText = `${dadosAssistencia.naoContados} não identificado(s)`;
-        /* atualizar cache */
-        config.cache.atualizarAssistencia = novoCache;
-    }
-}
-
 function desenharModal() {
     const modal = document.getElementById(idGerais.modal);
     /* limpar componentes anteriores */
@@ -908,9 +948,7 @@ function desenharModal() {
 }
 
 function desenharModalFocoCustomizado() {
-    const modalDrop = criarModalCustomizado();
-
-    /* criar botoes principais */
+    /* componentes modal */
     const btnAdicionarNovoFoco = criarElemento('<button class="btn btn-success">Novo participante</button>', {
         onclick: () => document.querySelector('.corpo-modal-customizado').appendChild(criarCamposModalFocoCustomizado())
     });
@@ -962,37 +1000,45 @@ function desenharModalFocoCustomizado() {
     modal.appendChild(inputNomeFocoCustomizado);
     modal.appendChild(criarCamposModalFocoCustomizado());
 
+    const modalDrop = criarModalCustomizado();
     modalDrop.appendChild(modal);
     return modalDrop;
 }
 
 function desenharModalVerMais() {
-    const modalDrop = criarModalCustomizado();
-
+    /* componentes modal */
     const btnFechar = criarElemento('<button class="btn btn-primary-outline fechar">Fechar</button>', {
         onclick: fecharModalCustomizado
     });
-
-    const opcaoSalaDeEspera = criarElemento(`
-        <div class="opcoes">
-            <label for="liberar-sala-espera">Liberar sala de espera para todos</label>
-        </div>
-    `);
-
-    opcaoSalaDeEspera.appendChild(
-        criarElemento(`<input type="checkbox" id="liberar-sala-espera" ${observados.liberarSalaDeEspera ? 'checked' : ''}/>`, {
-            onchange: () => observados.liberarSalaDeEspera = !observados.liberarSalaDeEspera
-        })
-    );
+    const opcaoSalaDeEspera = criarOpcaoGrande({
+        id: 'liberar-sala-espera',
+        texto: 'Liberar sala de espera para todos',
+        marcada: observados.salaAberta,
+        aoSelecionar: () => {
+            observados.salaAberta = !observados.salaAberta;
+            atualizarSalaDeEspera();
+        }
+    });
+    const opcaoSpotlight = criarOpcaoGrande({
+        id: 'foco-automatico',
+        texto: 'Ativar foco automático (remove automaticamente o spotlight)',
+        marcada: observados.focoAutomatico,
+        aoSelecionar: () => {
+            observados.focoAutomatico = !observados.focoAutomatico
+            atualizarVideosLigadosNaAssistencia();
+        }
+    });
 
     /* desenhar modal */
-    const cabecalhoModal = criarElemento('<div class="opcoes-modal-customizado"/>');
+    const cabecalhoModal = criarElemento('<div style="display: flex; justify-content: space-between; align-items: center;"/>');
     cabecalhoModal.appendChild(opcaoSalaDeEspera);
     cabecalhoModal.appendChild(btnFechar);
 
-    const modal = criarElemento('<div class="corpo-modal-customizado"/>');
+    const modal = criarElemento('<div class="corpo-modal-customizado h5" style="display: block;"/>');
     modal.appendChild(cabecalhoModal);
+    modal.appendChild(opcaoSpotlight);
 
+    const modalDrop = criarModalCustomizado();
     modalDrop.appendChild(modal);
     return modalDrop;
 }
@@ -1374,6 +1420,7 @@ function ligarTudo() {
     desligarSpotlight();
     permitirParticipantesLigarMicrofones(true);
     silenciarParticipantesAoEntrar(false);
+    observados.salaAberta = true;
 }
 
 function desligarMicrofoneParticipante(participante) {
@@ -1626,28 +1673,6 @@ function removerFilhos(elemento) {
     elemento && elemento.querySelectorAll && elemento.querySelectorAll('*').forEach(child => child.remove());
 }
 
-function admitirEntradaNaSalaComNomeValido() {
-    abrirPainelParticipantes();
-    document.querySelectorAll('.waiting-room-list-conatiner__ul li').forEach(participante => {
-        if (isNomeValido(participante) || observados.liberarSalaDeEspera) {
-            participante.dispatchEvent(criarEventoMouseOver());
-            const btnPermitir = participante.querySelector('.btn-primary');
-            if (btnPermitir) {
-                btnPermitir.click();
-            }
-        }
-    });
-}
-
-function limparAvisosAntigos() {
-    Object.keys(avisosDeRotinas).forEach(rotina => {
-        if (rotina != 'tentativasPersistentes' && avisosDeRotinas[rotina].length > 10) {
-            const avisosUnicos = Array.from(new Set(avisosDeRotinas[rotina]));
-            avisosDeRotinas[rotina] = avisosUnicos.slice(-10);
-        }
-    });
-}
-
 function dispararRotina(nomeRotina, tempoEmMilissengudos, callback) {
     encerrarRotina(nomeRotina);
     intervalosEmExecucao[nomeRotina] = setInterval(() => callback(), tempoEmMilissengudos);
@@ -1842,22 +1867,23 @@ var textosOpcoes = {
 /* CONTROLE E CONFIGURACOES */
 var intervalosEmExecucao = intervalosEmExecucao || {};
 var observador = observador || null;
-var observados = {
+var observados = observados || {
     comentarista: null,
-    liberarSalaDeEspera: false
+    salaAberta: false,
+    focoAutomatico: false
 };
-var avisosDeRotinas = {
+var avisosDeRotinas = avisosDeRotinas || {
     tentativasPersistentes: [],
     validarNomesForaDoPadrao: [],
     validarVideosLigadosNaAssistencia: [],
     validarMicrofonesLigadosNaAssistencia: [],
-    botoesFocoCustomizado: avisosDeRotinas ? avisosDeRotinas.botoesFocoCustomizado : [],
+    botoesFocoCustomizado: [],
 };
-var config = {
+var config = config || {
     cache: {},
     palmasEmMilissegundos: 8000,
     ultimaMudanca: null,
-    limparMenuCustomizado: config && config.limparMenuCustomizado
+    limparMenuCustomizado: null
 };
 
 /* INICIO DO SCRIPT */
