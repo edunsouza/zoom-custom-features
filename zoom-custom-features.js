@@ -777,7 +777,7 @@ function atualizarVideosLigadosNaAssistencia() {
         if (isVideoLigado(participante)) {
             lista.push(getNomeParticipante(participante));
             if (observados.focoAutomatico) {
-                desligarSpotlight();
+                desligarSpotlights();
             }
         }
         return lista;
@@ -940,10 +940,10 @@ function atualizarNomesInvalidos(ul) {
         const elemento = criarElemento(`<li class="zebrado">${nome}</li>`);
         criarMenuCustomizado(elemento, [{
             texto: 'Renomear',
-            click: () => renomearParticipante(selecionarParticipante(nome))
+            click: () => renomearParticipante(selecionarParticipante(nome, true))
         }, {
             texto: 'Mover para sala de espera',
-            click: () => expulsarParticipante(selecionarParticipante(nome))
+            click: () => expulsarParticipante(selecionarParticipante(nome, true))
         }]);
         ul.appendChild(elemento);
     });
@@ -1466,7 +1466,7 @@ function ligarTudo() {
         ligarMicrofoneParticipante(participante);
     });
     /* deixar foco automático */
-    desligarSpotlight();
+    desligarSpotlights();
     permitirParticipantesLigarMicrofones(true);
     silenciarParticipantesAoEntrar(false);
     observados.salaAberta = true;
@@ -1504,9 +1504,9 @@ function desligarVideos(excecoes) {
     });
 }
 
-function desligarSpotlight() {
+function desligarSpotlights() {
     abrirPainelParticipantes();
-    getParticipantes().some(participante => {
+    getParticipantes().forEach(participante => {
         if (isSpotlightLigado(participante)) {
             clickDropdown(participante, textosOpcoes.cancelarSpotlight);
             return true;
@@ -1755,11 +1755,13 @@ function iniciarEventosPainelParticipantes() {
     btnAbrirPainel.click();
 }
 
-function selecionarParticipante(funcao) {
+function selecionarParticipante(funcao, absoluto) {
     if (!funcao) return;
     return getParticipantes().find(participante => {
         const nome = getTextoPuro(getNomeParticipante(participante));
-        return nome && nome.includes(getTextoPuro(funcao));
+        return nome && absoluto
+            ? getTextoPuro(nome) === getTextoPuro(funcao)
+            : nome.includes(getTextoPuro(funcao));
     });
 }
 
@@ -1773,7 +1775,11 @@ function expulsarParticipante(participante) {
 }
 
 function spotlightParticipante(participante) {
-    clickDropdown(participante, ['spotlight video', 'vídeo de destaque']);
+
+    /* DESATIVAR TODOS SPOTLIGHTS MANUALMENTE POIS O ZOOM MUDOU E PARECE SER INCAPAZ DE FAZER ISSO POR NÓS AUTOMATICAMENTE :) */
+    desligarSpotlights();
+    /* TODO: VER NOVOS TEXTOS EM PT-BR */
+    clickDropdown(participante, ['spotlight for everyone', 'replace spotlight', 'vídeo de destaque']);
 }
 
 function contarAssistencia() {
@@ -1902,7 +1908,8 @@ var idParticipantes = {
 /* TEXTOS DAS OPCOES */
 var textosOpcoes = {
     pararVideo: ['stop video', 'parar vídeo'],
-    cancelarSpotlight: ['cancel the spotlight video', 'cancelar vídeo de destaque'],
+    /* TODO: VER NOVOS TEXTOS EM PT-BR */
+    cancelarSpotlight: ['remove spotlight', 'cancelar vídeo de destaque'],
     ligarMicrofone: ['ask to unmute', 'pedir para ativar som', 'unmute', 'ativar som'],
     desligarMicrofone: ['mute', 'desativar som'],
     abaixarMaos: ['lower hand', 'abaixar mão'],
