@@ -1775,11 +1775,8 @@ function expulsarParticipante(participante) {
 }
 
 function spotlightParticipante(participante) {
-
-    /* DESATIVAR TODOS SPOTLIGHTS MANUALMENTE POIS O ZOOM MUDOU E PARECE SER INCAPAZ DE FAZER ISSO POR NÓS AUTOMATICAMENTE :) */
     desligarSpotlights();
-    /* TODO: VER NOVOS TEXTOS EM PT-BR */
-    clickDropdown(participante, ['spotlight for everyone', 'replace spotlight', 'vídeo de destaque']);
+    clickDropdown(participante, ['spotlight for everyone', 'replace spotlight', 'destacar para todas pessoas', 'substituir destaque']);
 }
 
 function contarAssistencia() {
