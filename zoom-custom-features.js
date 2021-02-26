@@ -465,7 +465,7 @@ function createCustomFocus(details, name) {
                 return `${getMemberName(getMember(role))} - [${list}]\n`;
             }).join('');
             const action = prompt(`${name.toUpperCase()}\n${fields}\n"F" = focar\n"C" = chamar\n[Qualquer outra ação] = abortar`);
-            const fullAttention = action.toUpperCase() === 'F';
+            const fullAttention = String(action).toUpperCase() === 'F';
 
             if (!action) {
                 return;
@@ -529,8 +529,7 @@ function createCustomFocusFields() {
             <label data-on="Solicitar Vídeo" data-off="Sem Vídeo" for="useVideo-${suffix}" style="color: #ff4242" grid-column-start: 3;">Sem Vídeo</label>
             <label data-on="Solicitar Microfone" data-off="Sem Microfone" for="useMike-${suffix}" style="color: #5cb85c">Solicitar Microfone</label>
             <label data-on="Com Spotlight" data-off="Sem Spotlight" for="useSpotlight-${suffix}" style="color: #ff4242">Sem Spotlight</label>
-        </div>
-    `, {
+        </div>`, {
         btn1: { onclick: validateCustomFocusTarget },
         check1: { onchange },
         check2: { onchange },
@@ -844,7 +843,6 @@ function refreshRaisedHands() {
                 }
             }
         }));
-
     });
 }
 
@@ -868,8 +866,7 @@ function refreshContinuousAttempts() {
             <li class="checkbox">
                 <label for="${getCleanText(attempt)}">${attempt}</label>
                 <input hydrate="input1" id="${getCleanText(attempt)}" type="checkbox" value="${attempt}"/>
-            </li>
-        `, {
+            </li>`, {
             input1: {
                 onclick({ target }) {
                     routineWarnings.continuousAttempts = routineWarnings.continuousAttempts.filter(id => id !== target.value);
@@ -889,7 +886,7 @@ function refreshCustomFocusButtons() {
         const isValid = validate();
         ul.appendChild(hydrate(`
             <li class="btn-custom-focus">
-                <button hydrate="btn1" ${isValid && 'disabled'} class="btn-sm">${isValid ? name : 'Não encontrado!'}</button>
+                <button hydrate="btn1" ${!isValid && 'disabled'} class="btn-sm">${isValid ? name : 'Não encontrado!'}</button>
                 <i hydrate="icon1" class="i-sm material-icons-outlined" style="font-size: 22px; cursor: pointer">cancel</i>
             </li>`, {
             btn1: { onclick: e => !e.target.attributes.disabled && click() },
@@ -966,19 +963,16 @@ function renderCustomFocusModal() {
                 <span class="input-group-addon">Informe o nome do botão:</span>
                 <input name="custom-focus-name" type="text" class="form-control" placeholder="Primeira Visita">
             </div>
-        </div>
-        `, {
+        </div>`, {
         add: { onclick: () => document.querySelector('.custom-modal-body').appendChild(createCustomFocusFields()) },
         cancel: { onclick: closeCustomModal },
         save: {
             onclick() {
                 const validFields = validateCustomFocusFields();
                 if (validFields) {
-                    routineWarnings.customFocus = [
-                        createCustomFocus(validFields.members, getCleanText(validFields.buttonName)),
-                        ...routineWarnings.customFocus.filter(({ id }) => id !== btn.id)
-                    ];
-                    refreshScreen();
+                    const btn = createCustomFocus(validFields.members, getCleanText(validFields.buttonName));
+                    routineWarnings.customFocus = [...routineWarnings.customFocus.filter(({ id }) => id !== btn.id), btn];
+                    refreshCustomFocusButtons();
                     closeCustomModal();
                 }
             }
@@ -1003,8 +997,7 @@ function renderSeeMoreModal() {
                 <input hydrate="input2" id="auto-spotlight" type="checkbox" ${observed.autoSpotlight && 'checked'}/>
                 <label for="auto-spotlight">Ativar foco automático (remove automaticamente o spotlight)</label>
             </div>
-        </div>
-        `, {
+        </div>`, {
         input1: { onchange() { observed.publicRoom = !observed.publicRoom; refreshWaitingRoom(); } },
         input2: { onchange() { observed.autoSpotlight = !observed.autoSpotlight; refreshVideosOn(); } },
         close: { onclick: closeCustomModal },
