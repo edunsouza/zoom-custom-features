@@ -713,7 +713,7 @@ function refreshScreen() {
 function refreshWarnings() {
     Object.keys(routineWarnings).forEach(routine => {
         if (routine !== 'continuousAttempts' && routineWarnings[routine].length > 10) {
-            routineWarnings[routine] = new Set(routineWarnings[routine]).toJSON().slice(-10);
+            routineWarnings[routine] = [...new Set(routineWarnings[routine])].slice(-10);
         }
     });
 }
@@ -828,20 +828,7 @@ function refreshRaisedHands() {
                     <span data-member="${name}">${name}</span>
                 </button>
             </li>`, {
-            btn1: {
-                onclick: () => {
-                    observed.commenting = name;
-                    const member = getMember(name);
-
-                    lowerAllHands([member]);
-                    startMike(member);
-                    stopAllMikes([member, ...getMembers().filter(m => isVideoOn(m))]);
-
-                    if (shouldStartVideo(member)) {
-                        startVideo(member, () => addSpotlight(member), true);
-                    }
-                }
-            }
+            btn1: { onclick: () => callCommenter(name) }
         }));
     });
 }
@@ -1452,6 +1439,8 @@ function focusOn(role) {
         startSpotlight(member);
         startMike(member, true);
     });
+
+    observed.currentFocus = () => focusOn(role);
 }
 
 function focusOnConductor() {
@@ -1473,6 +1462,8 @@ function focusOnConductor() {
         startMike(member, true);
         stopVideo(getMember(roles.president));
     });
+
+    observed.currentFocus = focusOnConductor;
 }
 
 function focusOnReader() {
@@ -1492,6 +1483,11 @@ function focusOnReader() {
         addSpotlight(member);
         startMike(member, true);
     });
+
+    observed.currentFocus = () => {
+        focusOnConductor();
+        focusOnReader();
+    };
 }
 
 function focusOnPresident() {
@@ -1510,6 +1506,8 @@ function focusOnPresident() {
         startSpotlight(member);
         stopAllVideos([member]);
     });
+
+    observed.currentFocus = focusOnPresident;
 }
 
 function focusOnSpeaker() {
@@ -1528,6 +1526,8 @@ function focusOnSpeaker() {
         startSpotlight(member);
         startMike(member, true);
     });
+
+    observed.currentFocus = focusOnSpeaker;
 }
 
 function callMember(role) {
@@ -1540,13 +1540,50 @@ function callMember(role) {
     startVideo(target, () => startMike(getMember(role), true));
 }
 
+function callCommenter(name) {
+    if (!name) {
+        return;
+    }
+
+    observed.commenting = name;
+    const member = getMember(name);
+
+    lowerAllHands([member]);
+    startMike(member);
+    stopAllMikes([
+        member,
+        ...getMembers().filter(m => isVideoOn(m) && !observed.commentersOnVideo.includes(getMemberName(m)))
+    ]);
+
+    if (shouldStartVideo(member)) {
+        startVideo(member, () => {
+            observed.commentersOnVideo.push(name);
+            const m = getMember(name);
+            addSpotlight(m);
+        }, true);
+    }
+}
+
 function muteCommenters() {
     cleanVideoScanner();
     getMembers().forEach(member => {
+        observed.commentersOnVideo.forEach(name => {
+            const member = getMember(name, true);
+            stopSpotlight(member);
+            stopVideo(member);
+            stopMike(member);
+        });
+
+        observed.commentersOnVideo = [];
+
         if (!isVideoOn(member)) {
             stopMike(member);
         }
     });
+
+    if (observed.currentFocus) {
+        observed.currentFocus();
+    }
 }
 
 function generateId(text) {
@@ -1586,7 +1623,7 @@ function removeChildren(element) {
 function schedule(id, duration, callback) {
     unschedule(id);
     runningIntervals[id] = setInterval(() => callback(), duration);
-    routineWarnings.continuousAttempts = new Set([...routineWarnings.continuousAttempts, id]).toJSON();
+    routineWarnings.continuousAttempts = [...new Set(routineWarnings.continuousAttempts.concat(id))];
     refreshScreen();
 }
 
@@ -1754,6 +1791,8 @@ var observer = observer || null;
 var observed = observed || {
     commenting: null,
     scanningVideo: null,
+    commentersOnVideo: [],
+    currentFocus: null,
     publicRoom: false,
     autoSpotlight: false
 };
