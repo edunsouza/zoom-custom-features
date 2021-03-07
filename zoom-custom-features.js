@@ -40,38 +40,6 @@ function hydrate(html, bindings) {
     return element;
 }
 
-function createIcon(type, id, style) {
-    if (!type) {
-        return;
-    }
-
-    const types = {
-        cameraOn: 'videocam',
-        cameraOff: 'videocam_off',
-        mikeOn: 'mic_none',
-        mikeOff: 'mic_off',
-        finishSpeech: 'voice_over_off',
-        speaker: 'record_voice_over',
-        president: 'person',
-        conductor: 'group',
-        reader: 'supervisor_account',
-        treasures: 'emoji_events',
-        gems: 'wb_iridescent',
-        bible: 'menu_book',
-        living1: 'looks_one',
-        living2: 'looks_two',
-        member: 'person_add',
-        attendance: 'airline_seat_recline_normal',
-        unknownAttendance: 'airline_seat_recline_extra',
-        hand: 'pan_tool',
-        applause: 'dry',
-        more: 'add_circle_outline',
-        close: 'cancel',
-    };
-
-    return createElement(`<i id="${id}" style="${style}" class="i-sm material-icons-outlined">${types[type]}</i>`);
-}
-
 function createCss() {
     const membersPaneWidth = parseInt(document.querySelector('#wc-container-right').style.width);
     const footerButtonsHeight = document.querySelector('#wc-footer').clientHeight;
@@ -411,7 +379,7 @@ function createCustomOptions() {
     }
 
     document.querySelector('#wc-footer .footer__inner').appendChild(
-        createElement('<button id="open-meeting-options" style="margin-right: 20px">Opções customizadas</button>', {
+        createElement('<button id="open-meeting-options" style="margin-right: 20px">JW.ORG</button>', {
             onclick: toggleModal
         })
     );
@@ -617,7 +585,7 @@ function getMemberDropdownButtons(member) {
 
 function getMoreDropdownOptions(optionLabels) {
     const options = document.querySelectorAll('#wc-container-right .participants-section-container__participants-footer ul li a');
-    return Array.from(options).find(a => optionLabels.includes(a.innerText.toLowerCase()));
+    return Array.from(options).find(a => optionLabels.includes(a.innerText));
 }
 
 /* ACCEPTED FORMAT: (number) members names */
@@ -637,7 +605,7 @@ function isMikeOn(member) {
         return false;
     }
     member.dispatchEvent(createMouseOverEvent());
-    return getMemberButtons(member).some(btn => uiLabels.stopMike.includes(btn.innerText.toLowerCase()));
+    return getMemberButtons(member).some(btn => uiLabels.stopMike.includes(btn.innerText));
 }
 
 function isVideoOn(member) {
@@ -645,7 +613,7 @@ function isVideoOn(member) {
         return false;
     }
     member.dispatchEvent(createMouseOverEvent());
-    return getMemberDropdownButtons(member).some(btn => uiLabels.stopVideo.includes(btn.innerText.toLowerCase()));
+    return getMemberDropdownButtons(member).some(btn => uiLabels.stopVideo.includes(btn.innerText));
 }
 
 function isSpotlightOn(member) {
@@ -653,11 +621,11 @@ function isSpotlightOn(member) {
         return false;
     }
     member.dispatchEvent(createMouseOverEvent());
-    return getMemberDropdownButtons(member).some(btn => uiLabels.stopSpotlight.includes(btn.innerText.toLowerCase()));
+    return getMemberDropdownButtons(member).some(btn => uiLabels.stopSpotlight.includes(btn.innerText));
 }
 
 function isHandRaised(member) {
-    return member && getMemberButtons(member).some(btn => uiLabels.lowerHands.includes(btn.innerText.toLowerCase()));
+    return member && getMemberButtons(member).some(btn => uiLabels.lowerHands.includes(btn.innerText));
 }
 
 function clickButton(member, btnLabels) {
@@ -666,7 +634,7 @@ function clickButton(member, btnLabels) {
     }
     member.dispatchEvent(createMouseOverEvent());
     getMemberButtons(member).some(btn => {
-        if (btn && btnLabels.includes(btn.innerText.toLowerCase())) {
+        if (btn && btnLabels.includes(btn.innerText)) {
             btn.click();
             return true;
         }
@@ -680,7 +648,7 @@ function clickDropdown(member, btnLabels) {
     }
     member.dispatchEvent(createMouseOverEvent());
     return getMemberDropdownButtons(member).some(btn => {
-        if (btn && btnLabels.includes(btn.innerText.toLowerCase())) {
+        if (btn && btnLabels.includes(btn.innerText)) {
             btn.click();
             return true;
         }
@@ -1327,9 +1295,10 @@ function startSpotlight(member) {
 
 function addSpotlight(member) {
     cleanVideoScanner();
-    if (!clickDropdown(member, uiLabels.addSpotlight)) {
-        clickDropdown(member, uiLabels.startSpotlight);
-    }
+    clickDropdown(member, [
+        ...uiLabels.addSpotlight,
+        ...uiLabels.startSpotlight
+    ]);
 }
 
 function stopMike(member) {
@@ -1350,7 +1319,7 @@ function lowerHand(member) {
         return;
     }
 
-    const btn = getMemberButtons(member).find(btn => uiLabels.lowerHands.includes(btn.innerText.toLowerCase()));
+    const btn = getMemberButtons(member).find(btn => uiLabels.lowerHands.includes(btn.innerText));
 
     if (btn) {
         btn.click();
@@ -1382,12 +1351,7 @@ function stopAllVideos(membersToKeep) {
 }
 
 function stopAllSpotlights() {
-    getMembers().forEach(member => {
-        if (isSpotlightOn(member)) {
-            stopSpotlight(member);
-            return true;
-        }
-    });
+    getMembers().forEach(member => stopSpotlight(member));
 }
 
 function lowerAllHands(membersToKeep) {
@@ -1395,7 +1359,7 @@ function lowerAllHands(membersToKeep) {
 
     getMembers().forEach(member => {
         if (!membersToKeep.includes(getMemberName(member))) {
-            const btnLowerHand = getMemberButtons(member).find(btn => uiLabels.lowerHands.includes(btn.innerText.toLowerCase()));
+            const btnLowerHand = getMemberButtons(member).find(btn => uiLabels.lowerHands.includes(btn.innerText));
 
             if (btnLowerHand) {
                 btnLowerHand.click();
@@ -1439,8 +1403,6 @@ function focusOn(role) {
         startSpotlight(member);
         startMike(member, true);
     });
-
-    observed.currentFocus = () => focusOn(role);
 }
 
 function focusOnConductor() {
@@ -1462,8 +1424,6 @@ function focusOnConductor() {
         startMike(member, true);
         stopVideo(getMember(roles.president));
     });
-
-    observed.currentFocus = focusOnConductor;
 }
 
 function focusOnReader() {
@@ -1483,11 +1443,6 @@ function focusOnReader() {
         addSpotlight(member);
         startMike(member, true);
     });
-
-    observed.currentFocus = () => {
-        focusOnConductor();
-        focusOnReader();
-    };
 }
 
 function focusOnPresident() {
@@ -1506,8 +1461,6 @@ function focusOnPresident() {
         startSpotlight(member);
         stopAllVideos([member]);
     });
-
-    observed.currentFocus = focusOnPresident;
 }
 
 function focusOnSpeaker() {
@@ -1526,8 +1479,6 @@ function focusOnSpeaker() {
         startSpotlight(member);
         startMike(member, true);
     });
-
-    observed.currentFocus = focusOnSpeaker;
 }
 
 function callMember(role) {
@@ -1566,24 +1517,26 @@ function callCommenter(name) {
 
 function muteCommenters() {
     cleanVideoScanner();
+
+    const keepSpotlight = [];
+
     getMembers().forEach(member => {
-        observed.commentersOnVideo.forEach(name => {
-            const member = getMember(name, true);
+        if (!isVideoOn(member)) {
+            return stopMike(member);
+        }
+
+        if (observed.commentersOnVideo.includes(getMemberName(member))) {
             stopSpotlight(member);
             stopVideo(member);
             stopMike(member);
-        });
-
-        observed.commentersOnVideo = [];
-
-        if (!isVideoOn(member)) {
-            stopMike(member);
+        } else {
+            keepSpotlight.push(member);
         }
     });
 
-    if (observed.currentFocus) {
-        observed.currentFocus();
-    }
+    startSpotlight(keepSpotlight.pop());
+    keepSpotlight.forEach(m => addSpotlight(m));
+    observed.commentersOnVideo = [];
 }
 
 function generateId(text) {
@@ -1772,18 +1725,18 @@ var roles = {
     living2: 'vida-2'
 };
 var uiLabels = {
-    startVideo: ['ask for start video', 'start video', 'pedir para iniciar vídeo', 'iniciar vídeo'],
-    stopVideo: ['stop video', 'parar vídeo'],
-    startMike: ['ask to unmute', 'pedir para ativar som', 'unmute', 'ativar som'],
-    stopMike: ['mute', 'desativar som'],
-    startSpotlight: ['spotlight for everyone', 'replace spotlight', 'destacar para todas pessoas', 'substituir destaque'],
-    addSpotlight: ['add spotlight', 'adicionar destaque'],
-    stopSpotlight: ['remove spotlight', 'cancelar vídeo de destaque'],
-    lowerHands: ['lower hand', 'abaixar mão'],
-    rename: ['rename', 'renomear'],
-    kickOut: ['put in waiting room', 'colocar na sala de espera'],
-    allowMikes: ['allow participants to unmute themselves', 'permitir que os próprios participantes desativem o mudo'],
-    muteOnEntry: ['mute participants on entry', 'desativar som dos participantes ao entrar']
+    startVideo: [langResource['apac.wc_video.ask_start_video'], langResource['apac.wc_video.start_video'], langResource['apac.wc_start_video']],
+    stopVideo: [langResource['apac.wc_video.stop_video'], langResource['apac.wc_stop_video']],
+    startMike: [langResource['apac.toolbar_ask_unmute'], langResource['apac.toolbar_unmute']],
+    stopMike: [langResource['apac.toolbar_mute']],
+    startSpotlight: [langResource['apac.wc_video.spotlight_for_everyone'], langResource['apac.wc_video.replace_spotlight']],
+    addSpotlight: [langResource['apac.wc_video.add_spotlight']],
+    stopSpotlight: [langResource['apac.wc_video.remove_spotlight']],
+    lowerHands: [langResource['apac.wc_lower_hand'], langResource['apac.wc_nonverbal.lower_hand']],
+    rename: [langResource['apac.dialog.rename']],
+    kickOut: [langResource['apac.wc_put_in_waiting']],
+    allowMikes: [langResource['apac.wc_allow_unmute']],
+    muteOnEntry: [langResource['apac.wc_mute_participants_on_entry']],
 };
 /* SETTINGS AND CONTROLS */
 var runningIntervals = runningIntervals || {};
@@ -1792,7 +1745,6 @@ var observed = observed || {
     commenting: null,
     scanningVideo: null,
     commentersOnVideo: [],
-    currentFocus: null,
     publicRoom: false,
     autoSpotlight: false
 };
@@ -1809,11 +1761,6 @@ var config = config || {
     lastChange: null,
     lastValidation: null
 };
-
-/* OVERRIDES */
-Array.prototype.toString = function toString() {
-    return this.join(' ');
-}
 
 /* INIT */
 try {
