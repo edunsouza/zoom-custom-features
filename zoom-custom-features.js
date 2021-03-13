@@ -1540,7 +1540,7 @@ function muteCommenters() {
 }
 
 function generateId(text) {
-    return btoa(text).replace(/=/g, '');
+    return btoa(encodeURI(text)).replace(/=/g, '');
 }
 
 function sendEmail() {
