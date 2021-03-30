@@ -1,3 +1,20 @@
+// TODO: Porto Seguro - Piauí
+
+// = pray:
+//     - spotlight "audio e video"
+//     - open prayer mike (request name/role typing)
+
+// = auto rename:
+//     - fetch names list from backend by password
+//     - apply autorename
+
+
+
+
+
+
+
+
 function createDomObserver() {
     if (observer) {
         observer.disconnect();
@@ -47,7 +64,18 @@ function createCss() {
     const style = document.getElementById('custom-style') || document.createElement('style');
     style.id = 'custom-style';
     style.innerHTML = `
-        .main-modal {
+        .transparent-modal { background-color: #ffffff11; }
+        .transparent-modal .buttons-frame *, .transparent-modal .options-frame *, .transparent-modal .routines-frame * { color: #ffffffbb; }
+        .transparent-modal .options-frame { background-color: #23272b; }
+        .transparent-modal .btn-warning .material-icons-outlined { color: #111111bb; }
+        .transparent-modal .config-item { background-color: #24282ccf; }
+        .transparent-modal .routines-frame { background-color: #21212147; }
+        .transparent-modal #custom-modal .input-group-addon, .transparent-modal #custom-modal input { color: #555555; }
+        .transparent-modal #custom-modal .btn-primary, .transparent-modal #custom-modal .btn-success { color: #ffffff; }
+        .transparent-modal #custom-modal .alert-danger * { color: #a94442; }
+
+        #open-meeting-options { margin-right: 20px; }
+        #meeting-options {
             display: grid;
             grid-template-rows: 1fr 1fr;
             overflow-y: hidden;
@@ -60,21 +88,35 @@ function createCss() {
             font-size: 12px;
             z-index: ${higherIndex + 2};
         }
-        .transparent-modal { background-color: #ffffff11; }
-        .transparent-modal .buttons-frame *, .transparent-modal .routines-frame * { color: #ffffffbb; }
-        .transparent-modal .btn-warning .material-icons-outlined { color: #111111bb; }
-        .transparent-modal .configuration, .transparent-modal .config-item { background-color: #24282ccf; }
-        .transparent-modal .routines-frame { background-color: #21212147; }
-        .transparent-modal #custom-modal .input-group-addon, .transparent-modal #custom-modal input { color: #555555;}
-        .transparent-modal #custom-modal .btn-primary, .transparent-modal #custom-modal .btn-success { color: #ffffff;}
-        .transparent-modal #custom-modal .alert-danger * { color: #a94442; }
-        #custom-modal {
+        #custom-modal,
+        #custom-popup {
             position: absolute;
             left: 0%;
             top: 0%;
             background-color: #0000008a;
             width: 100%;
             height: 100%;
+            z-index: ${higherIndex + 4};
+        }
+        .native-popup {
+            display: flex;
+            flex-direction: column;
+            position: absolute;
+            left: 35vw;
+            top: 10vh;
+            width: 30vw;
+            height: auto;
+            min-height: 200px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            z-index: ${higherIndex + 5};
+        }
+        .native-popup .actions {
+            display: flex;
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
         }
         .routines-frame {
             display: grid;
@@ -85,11 +127,16 @@ function createCss() {
         }
         .buttons-frame {
             display: grid;
-            grid-template-columns: 2fr 3fr 3fr;
-            grid-template-rows: 20px auto;
+            grid-template-columns: 4fr 4fr 5fr;
             gap: 5px;
             padding: 0;
             margin: 5px;
+        }
+        .options-frame {
+            height: 20px;
+            margin: 5px;
+            display: flex;
+            justify-content: space-evenly
         }
         .close-feature-frame {
             display: grid;
@@ -104,13 +151,10 @@ function createCss() {
             grid-template-columns: 1fr 1fr;
             gap: 5px;
         }
-        .exit-frame {
-            display: grid;
-            grid-template-columns: 2fr 3fr 3fr;
-            grid-column: span 3;
-            gap: 5px;
-        }
+        .feature-frame .btn-group { display: flex; }
+        .feature-frame .btn-group > button { flex: 1; }
         .hidden { display: none; }
+        .invisible { visibility: none; }
         .btn-close {
             opacity: 0.7;
             cursor: pointer;
@@ -119,12 +163,10 @@ function createCss() {
         }
         .btn-feature {
             display: flex;
-            flex-direction: row-reverse;
             justify-content: space-evenly;
             align-items: center;
             font-size: 14px;
             opacity: 0.8;
-            min-height: 40px;
             font-weight: 500;
         }
         .custom-focus-name {
@@ -192,31 +234,16 @@ function createCss() {
             color: #525253;
             background-color: #000000;
             text-decoration: line-through;
-            font-style: italic;
-            text-decoration-style: double;
         }
         .alert-danger::-webkit-input-placeholder, .alert-danger::placeholder { color: #a94442; }
-        .configuration {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            user-select: none;
-            border-radius: 4px;
-            border: 1px solid #afb4b7;
-            box-shadow: 3px 7px 5px 0px #00000026;
-            padding: 6px 12px;
-            font-size: 14px;
-            text-align: center;
-            white-space: nowrap;
-        }
         .buttons-title {
+            margin-bottom: 5px;
             text-align: center;
             font-size: 16px;
             color: #ffffff;
             background-color: #23272b;
         }
         .config-item {
-            grid-column: span 2;
             font-size: 12px;
             display: flex;
             align-items: center;
@@ -227,8 +254,8 @@ function createCss() {
             margin: 0;
             padding: 0;
             user-select: none;
-            cursor: pointer;
         }
+        .config-item *:not(span, i) { cursor: pointer; }
         .config-item input {
             margin: 0;
             margin-right: 10px;
@@ -312,6 +339,31 @@ function createCss() {
         }
         .custom-modal-options * { margin: 0 5px; }
         .custom-modal-options .btn-close-modal { grid-column-start: 5; }
+        .custom-modal-body > .btn-close-modal {
+            position: absolute;
+            right: 30px;
+        }
+        .rename-role { display: flex; }
+        .rename-role .input-group {
+            width: 450px;
+            margin: 5px 0 0 0;
+        }
+        .rename-role .input-group-addon {
+            min-width: 120px;
+            font-weight: 600;
+        }
+        .rename-role .text-primary {
+            align-self: center;
+            margin-left: 10px;
+        }
+        .rename-role .saved i { margin: 0 10px; }
+        .rename-role .saved {
+            display: flex;
+            align-items: center;
+            font-weight: 700;
+            font-size: 12px;
+            color: #1665c0;
+        }
         .large-checkbox {
             display: flex;
             align-items: center;
@@ -379,19 +431,10 @@ function createCustomOptions() {
     }
 
     document.querySelector('#wc-footer .footer__inner').appendChild(
-        createElement('<button id="open-meeting-options" style="margin-right: 20px">JW.ORG</button>', {
+        createElement('<button id="open-meeting-options">JW.ORG</button>', {
             onclick: toggleModal
         })
     );
-}
-
-function createCustomModal() {
-    const modalBackdrop = document.getElementById(generalIDs.customModal) || createElement(`<div id="${generalIDs.customModal}"></div>`);
-    modalBackdrop.style.display = 'none';
-    modalBackdrop.onclick = ({ target }) => target !== modalBackdrop || closeCustomModal();
-
-    removeChildren(modalBackdrop);
-    return modalBackdrop;
 }
 
 function createCustomMenu(element, options) {
@@ -427,12 +470,12 @@ function createCustomFocus(details, name) {
         id: generateId(name),
         name,
         validate: () => openMembersPanel() || details.every(p => getMember(p.role)),
-        click: () => {
+        click: async () => {
             const fields = details.map(({ role, useMike, useVideo, useSpotlight }) => {
                 const list = [useMike && 'mic', useVideo && 'vídeo', useSpotlight && 'spot'].filter(Boolean);
                 return `${getMemberName(getMember(role))} - [${list}]\n`;
             }).join('');
-            const action = prompt(`${name.toUpperCase()}\n${fields}\n"F" = focar\n"C" = chamar\n[Qualquer outra ação] = abortar`);
+            const action = await _prompt(`${name.toUpperCase()}\n${fields}\n"F" = focar\n"C" = chamar\n[Qualquer outra ação] = abortar`);
             const fullAttention = String(action).toUpperCase() === 'F';
 
             if (!action) {
@@ -459,7 +502,6 @@ function createCustomFocus(details, name) {
 
             if (fullAttention) {
                 stopAllMikes(mikeExceptions);
-                stopAllVideos(videoExceptions);
             }
         }
     };
@@ -483,15 +525,15 @@ function createCustomFocusFields() {
                 </span>
             </div>
             <label>
-                <input hydrate="check1" type="checkbox" style="display: none;" name="useVideo" id="useVideo-${suffix}">
+                <input hydrate="check1" type="checkbox" class="hidden" name="useVideo" id="useVideo-${suffix}">
                 <i class="i-sm material-icons-outlined" data-on="videocam" data-off="videocam_off">videocam_off</i>
             </label>
             <label>
-                <input hydrate="check2" type="checkbox" style="display: none;" name="useMike" id="useMike-${suffix}" checked>
+                <input hydrate="check2" type="checkbox" class="hidden" name="useMike" id="useMike-${suffix}" checked>
                 <i class="i-sm material-icons-outlined" data-on="mic_none" data-off="mic_off">mic_none</i>
             </label>
             <label>
-                <input hydrate="check3" type="checkbox" style="display: none;" name="useSpotlight" id="useSpotlight-${suffix}">
+                <input hydrate="check3" type="checkbox" class="hidden" name="useSpotlight" id="useSpotlight-${suffix}">
                 <i class="i-sm material-icons-outlined" data-on="gps_fixed" data-off="gps_not_fixed">gps_not_fixed</i>
             </label>
             <label data-on="Solicitar Vídeo" data-off="Sem Vídeo" for="useVideo-${suffix}" style="color: #ff4242" grid-column-start: 3;">Sem Vídeo</label>
@@ -508,36 +550,43 @@ function createCustomFocusFields() {
 function createRenameRoleField(role, label) {
     const name = getCleanText(role);
     return hydrate(`
-        <div style="display: flex;">
-            <div class="input-group" style="flex: 3; margin: 5px 0 0 0;">
-                <span class="input-group-addon" style="min-width: 120px; font-weight: 600;">${label}:</span>
-                <input hydrate="input1" id="rename-${roles[name]}" value="${roles[name]}" type="text" class="form-control">
+        <div class="rename-role">
+            <div class="input-group">
+                <span class="input-group-addon">${label}:</span>
+                <input hydrate="input1" value="${roles[name]}" type="text" class="form-control">
                 <span class="input-group-btn">
                     <button hydrate="btn1" class="btn btn-primary">Salvar</button>
                 </span>
             </div>
-            <span style="flex: 2; align-self: center; margin-left: 10px;" class="text-primary">${getMemberName(getMember(roles[name]))}</span>
+            <span class="text-primary">${getMemberName(getMember(roles[name]))}</span>
+            <span class="saved invisible">
+                <i class="i-sm material-icons-outlined">done_outline</i> Salvo!
+            </span>
         </div>`, {
         input1: {
             onkeyup: ({ target, key, code }) => {
                 clearTimeout(config.lastValidation);
                 config.lastValidation = setTimeout(() => {
+                    const row = target.closest('.rename-role');
+
                     if ([code, key].includes('Enter')) {
-                        target.parentElement.querySelector('button').click();
+                        row.querySelector('button').click();
                     } else {
-                        target.parentElement.nextElementSibling.innerText = getMemberName(getMember(target.value));
+                        row.querySelector('.saved').classList.add('invisible');
+                        row.querySelector('.text-primary').innerText = getMemberName(getMember(target.value));
                     }
                 }, 400);
             }
         },
         btn1: {
             onclick: ({ target }) => {
-                const newRole = getCleanText(target.parentElement.parentElement.querySelector('input').value);
+                const row = target.closest('.rename-role');
+                const newRole = getCleanText(row.querySelector('input').value);
                 if (!newRole) {
-                    alert('É necessário informar um indentificador');
+                    _alert('É necessário informar um indentificador');
                 } else if (newRole !== roles[name]) {
+                    row.querySelector('.saved').classList.remove('invisible');
                     roles[name] = newRole;
-                    alert(`${roles[name]} mudou para: ${newRole}`);
                     refreshDefaultButtons();
                 }
             }
@@ -792,7 +841,6 @@ function refreshRaisedHands() {
             <li>
                 <button hydrate="btn1" data-member="${name}" class="btn-xs btn-commenters">
                     <i data-member="${name}" class="material-icons-outlined">mic_none</i>
-                    ${shouldStartVideo(member) && `<i data-member="${name}" class="material-icons-outlined">duo</i>`}
                     <span data-member="${name}">${name}</span>
                 </button>
             </li>`, {
@@ -895,17 +943,26 @@ function renderModal() {
         modal.remove();
     }
 
-    const optionsModal = createElement(`<div style="display: none" class="main-modal" id="${generalIDs.modal}"></div>`);
+    const optionsModal = createElement(`<div class="hidden" id="${generalIDs.modal}" />`);
     optionsModal.appendChild(renderButtonsFrame());
+    optionsModal.appendChild(renderOptionsFrame());
     optionsModal.appendChild(renderServicesFrame());
-    optionsModal.appendChild(renderCustomFocusModal());
+
+    const customPopup = createElement(`<div id="${generalIDs.customPopup}" class="hidden" />`);
+    const customModal = createElement(`<div id="${generalIDs.customModal}" class="hidden" />`, {
+        onclick: ({ target }) => target !== customModal || closeCustomModal()
+    });
+
+    optionsModal.appendChild(customPopup);
+    optionsModal.appendChild(customModal);
+
     document.body.appendChild(optionsModal);
 }
 
 function renderCustomFocusModal() {
     const body = hydrate(`
         <div class="custom-modal-body">
-            <div class="alert alert-danger" id="error-alert-modal" style="display: none; font-size: 18px; margin: auto 0;">
+            <div class="alert alert-danger" id="error-alert-modal" style="display: none; font-size: 14px; margin: auto 0;">
                 <span class="glyphicon glyphicon-exclamation-sign"></span>
                 <span name="error-placeholder"></span>
             </div>
@@ -935,40 +992,33 @@ function renderCustomFocusModal() {
     });
 
     body.appendChild(createCustomFocusFields());
-    return createCustomModal().appendChild(body).parentElement;
+    return body;
 }
 
 function renderSeeMoreModal() {
     const modal = hydrate(`
-        <div class="custom-modal-body" style="display: block">
-            <div style="display: flex; justify-content: space-between; align-items: center">
-                <div class="large-checkbox h5">
-                    <input hydrate="input1" id="open-waiting-room" type="checkbox" ${observed.publicRoom && 'checked'}/>
-                    <label for="open-waiting-room">Liberar sala de espera para todos</label>
-                </div>
-                <button hydrate="close" class="btn btn-primary-outline btn-close-modal">Fechar</button>
-            </div>
-            <div class="large-checkbox h5">
-                <input hydrate="input2" id="auto-spotlight" type="checkbox" ${observed.autoSpotlight && 'checked'}/>
-                <label for="auto-spotlight">Ativar foco automático (remove automaticamente o spotlight)</label>
-            </div>
+        <div class="custom-modal-body" style="display: block; position: relative">
+            <button hydrate="close" class="btn btn-primary-outline btn-close-modal">Fechar</button>
+            <h4>Digite a nova palavra chave e pressione <strong>Salvar</strong></h4>
         </div>`, {
-        input1: { onchange() { observed.publicRoom = !observed.publicRoom; refreshWaitingRoom(); } },
-        input2: { onchange() { observed.autoSpotlight = !observed.autoSpotlight; refreshVideosOn(); } },
         close: { onclick: closeCustomModal },
     });
 
-    document.querySelectorAll('.call-member-frame button:not(.hidden)').forEach(btn => modal.appendChild(createRenameRoleField(btn.dataset.role, btn.innerText)));
-    return createCustomModal().appendChild(modal);
+    modal.appendChild(createRenameRoleField('av', 'Áudio/Vídeo'));
+
+    document.querySelectorAll('.call-member-frame button:not(.hidden)').forEach(btn => {
+        modal.appendChild(createRenameRoleField(btn.dataset.role, btn.innerText));
+    });
+
+    return modal;
 }
 
 function renderButtonsFrame() {
-    const { counted, notCounted } = countAttendance();
-    const confirmAction = callback => ({ target }) => {
+    const confirmAction = callback => async ({ target }) => {
         const { dataset: { q, a } } = target.closest('button');
-        const answer = prompt(q);
+        const answer = await _prompt(q);
         if (typeof answer === 'string') {
-            return answer.toLowerCase() === a.toLowerCase() ? callback() : alert('Texto incorreto! Ação não executada.');
+            return answer.toLowerCase() === a.toLowerCase() ? callback() : _alert('Texto incorreto! Ação não executada.');
         }
     };
 
@@ -976,60 +1026,68 @@ function renderButtonsFrame() {
     const isWeekend = [0, 6].includes(new Date().getDay());
     const buttonsFrame = hydrate(`
         <div class="buttons-frame">
-            <div class="exit-frame">
-                <span class="buttons-title">Chamar</span>
-                <span class="buttons-title">Focar</span>
-                <span class="buttons-title close-feature-frame">
-                    <span style="grid-column-start: 2">Ações</span>
-                    <i hydrate="icon1" id="btn-close-modal" class="i-sm material-icons-outlined btn-close">cancel</i>
-                </span>
-            </div>
-            <div class="call-member-frame">
-                <button hydrate="call1" data-role="conductor" class="btn btn-success btn-feature">Dirigente</button>
-                <button hydrate="call2" data-role="reader" class="btn btn-success btn-feature">Leitor</button>
-                <button hydrate="call3" data-role="president" class="btn btn-warning btn-feature">Presidente</button>
-                ${isWeekend ? `
+            <div>
+                <div class="buttons-title">Vídeo e Microfone</div>
+                <div class="call-member-frame">
+                    <button hydrate="call1" data-role="conductor" class="btn btn-success btn-feature">Dirigente</button>
+                    <button hydrate="call2" data-role="reader" class="btn btn-success btn-feature">Leitor</button>
+                    <button hydrate="call3" data-role="president" class="btn btn-warning btn-feature">Presidente</button>
+                    ${isWeekend ? `
                     <button hydrate="call4" data-role="speaker" class="btn btn-success btn-feature">Orador</button>
-                ` : `
+                    ` : `
                     <button hydrate="call5" data-role="treasures" class="btn btn-success btn-feature">Tesouros</button>
                     <button hydrate="call6" data-role="gems" class="btn btn-success btn-feature">Jóias</button>
                     <button hydrate="call7" data-role="bible" class="btn btn-success btn-feature">Bíblia</button>
                     <button hydrate="call8" data-role="living1" class="btn btn-success btn-feature">Vida-1</button>
                     <button hydrate="call9" data-role="living2" class="btn btn-success btn-feature">Vida-2</button>
-                `}
-            </div>
-            <div class="focus-on-frame">
-                <button hydrate="focus1" data-role="conductor" class="btn btn-primary btn-feature"> Dirigente <i class="i-sm material-icons-outlined">group</i> </button>
-                <button hydrate="focus2" data-role="reader" class="btn btn-primary btn-feature"> Leitor <i class="i-sm material-icons-outlined">supervisor_account</i> </button>
-                <button hydrate="focus3" data-role="president" class="btn btn-warning btn-feature"> Presidente <i class="i-sm material-icons-outlined">person</i> </button>
-                ${isWeekend ? `
-                    <button hydrate="focus4" data-role="speaker" class="btn btn-primary btn-feature"> Orador <i class="i-sm material-icons-outlined">record_voice_over</i> </button>
-                ` : `
-                    <button hydrate="focus5" data-role="treasures" class="btn btn-primary btn-feature"> Tesouros <i class="i-sm material-icons-outlined">emoji_events</i> </button>
-                    <button hydrate="focus6" data-role="gems" class="btn btn-primary btn-feature"> Jóias <i class="i-sm material-icons-outlined">wb_iridescent</i> </button>
-                    <button hydrate="focus7" data-role="bible" class="btn btn-primary btn-feature"> Bíblia <i class="i-sm material-icons-outlined">menu_book</i> </button>
-                    <button hydrate="focus8" data-role="living1" class="btn btn-primary btn-feature"> Vida-1 <i class="i-sm material-icons-outlined">looks_one</i> </button>
-                    <button hydrate="focus9" data-role="living2" class="btn btn-primary btn-feature"> Vida-2 <i class="i-sm material-icons-outlined">looks_two</i> </button>
-                `}
-            </div>
-            <div class="feature-frame">
-                <button hydrate="btn1" class="btn btn-danger btn-feature" data-q="Digite: 'TUDO' para confirmar" data-a="TUDO"> Ligar tudo <div> <i class="i-sm material-icons-outlined">videocam</i> <i class="i-sm material-icons-outlined">mic_off</i> </div> </button>
-                <button hydrate="btn2" class="btn btn-danger btn-feature" data-q="Digite: 'FIM' para confirmar" data-a="FIM"> Finalizar discurso <i class="i-sm material-icons-outlined">voice_over_off</i> </button>
-                <button hydrate="btn3" class="btn btn-success btn-feature"> Criar foco <i class="i-sm material-icons-outlined">person_add</i> </button>
-                <button hydrate="btn4" class="btn btn-success btn-feature"> Mais opções <i class="i-sm material-icons-outlined">add_circle_outline</i> </button>
-                <button hydrate="btn5" class="btn btn-danger btn-feature" data-q="Digite: 'NADA' para confirmar" data-a="NADA"> Desligar tudo <div> <i class="i-sm material-icons-outlined">videocam_off</i> <i class="i-sm material-icons-outlined">mic_off</i> </div> </button>
-                <button hydrate="btn6" class="btn btn-danger btn-applause btn-feature" data-q="Digite: 'OVAR' para confirmar" data-a="OVAR"> Palmas (${config.applauseDuration / 1000}s) <i class="i-sm material-icons-outlined">dry</i> </button>
-                <div hydrate="div1" class="configuration" style="cursor: pointer">
-                    <i style="color: #5cb85c" class="i-sm material-icons-outlined">airline_seat_recline_normal</i>
-                    <span id="${generalIDs.counted}">${counted} identificado(s)</span>
+                    `}
                 </div>
-                <div class="configuration">
-                    <i style="color: #ff4242" class="i-sm material-icons-outlined">airline_seat_recline_extra</i>
-                    <span id="${generalIDs.notCounted}">${notCounted} não identificado(s)</span>
+            </div>
+            <div>
+                <div class="buttons-title">Spotlight, Vídeo e Microfone</div>
+                <div class="focus-on-frame">
+                    <button hydrate="focus1" data-role="conductor" class="btn btn-primary btn-feature">Dirigente</button>
+                    <button hydrate="focus2" data-role="reader" class="btn btn-primary btn-feature">Leitor</button>
+                    <button hydrate="focus3" data-role="president" class="btn btn-warning btn-feature">Presidente</button>
+                    ${isWeekend ? `
+                    <button hydrate="focus4" data-role="speaker" class="btn btn-primary btn-feature">Orador</button>
+                    ` : `
+                    <button hydrate="focus5" data-role="treasures" class="btn btn-primary btn-feature">Tesouros</button>
+                    <button hydrate="focus6" data-role="gems" class="btn btn-primary btn-feature">Jóias</button>
+                    <button hydrate="focus7" data-role="bible" class="btn btn-primary btn-feature">Bíblia</button>
+                    <button hydrate="focus8" data-role="living1" class="btn btn-primary btn-feature">Vida-1</button>
+                    <button hydrate="focus9" data-role="living2" class="btn btn-primary btn-feature">Vida-2</button>
+                    `}
                 </div>
-                <div class="config-item">
-                    <input hydrate="check1" id="transparent-mode" type="checkbox"/>
-                    <label for="transparent-mode">Modo transparente (exibe vídeo em destaque)</label>
+            </div>
+            <div>
+                <span class="buttons-title close-feature-frame">
+                    <span style="grid-column-start: 2">Ações</span>
+                    <i hydrate="icon1" class="i-sm material-icons-outlined btn-close">cancel</i>
+                </span>
+                <div class="feature-frame">
+                    <div class="btn-group">
+                        <button hydrate="micOn" class="btn btn-danger btn-feature" data-q="Digite: 'TUDO' para LIGAR MICROFONES" data-a="TUDO">
+                            <i class="i-sm material-icons-outlined">mic_none</i>
+                        </button>
+                        <button hydrate="micOff" class="btn btn-danger btn-feature" data-q="Digite: 'NADA' para DESLIGAR MICROFONES" data-a="NADA">
+                            <i class="i-sm material-icons-outlined">mic_off</i>
+                        </button>
+                    </div>
+                    <div class="btn-group">
+                        <button hydrate="endSpeech" class="btn btn-danger btn-feature" data-q="Digite: 'FIM' para ENCERRAR DISCURSO" data-a="FIM">
+                            <i class="i-sm material-icons-outlined">voice_over_off</i>
+                        </button>
+                        <button hydrate="claps" class="btn btn-danger btn-applause btn-feature" data-q="Digite: 'CLAP' para SOLICITAR PALMAS" data-a="CLAP">
+                            <i class="i-sm material-icons-outlined">pan_tool</i> ${config.applauseDuration / 1000}s
+                        </button>
+                    </div>
+                    <button hydrate="newFocus" class="btn btn-success btn-feature">Criar foco</button>
+                    <button hydrate="renameFocus" class="btn btn-success btn-feature">Renomear foco</button>
+                    <button hydrate="renameAll" class="btn btn-success btn-feature">Corrigir nomes</button>
+                    <button hydrate="mikePlusAv" class="btn btn-primary btn-feature">Oração</button>
+                    <button hydrate="spotlightAv" class="btn btn-primary btn-feature">Imagens</button>
+                    <button hydrate="focusAv" class="btn btn-primary btn-feature">Cântico/Vídeos</button>
                 </div>
             </div>
         </div>`, {
@@ -1052,25 +1110,64 @@ function renderButtonsFrame() {
         call7: { onclick() { callMember(roles.bible) } },
         call8: { onclick() { callMember(roles.living1) } },
         call9: { onclick() { callMember(roles.living2) } },
-        btn1: { onclick: confirmAction(texasMode) },
-        btn2: { onclick: confirmAction(finishSpeech) },
-        btn3: { onclick: openCustomFocusModal },
-        btn4: { onclick: openSeeMoreModal },
-        btn5: { onclick: confirmAction(northKoreaMode) },
-        btn6: { onclick: confirmAction(requestApplause) },
-        check1: { onchange: () => document.getElementById(generalIDs.modal).classList.toggle('transparent-modal') },
-        div1: {
-            onclick() {
-                const { counted } = countAttendance();
-                const answer = prompt(`Enviar email com assistência de ${counted}?\n(Digite "ENVIAR" para confirmar)`);
-                if (typeof answer === 'string') {
-                    return answer.toLowerCase() === 'enviar' ? sendEmail() : alert('Texto incorreto. Email NÃO enviado!');
-                }
-            }
-        }
+        micOn: { onclick: confirmAction(texasMode) },
+        micOff: { onclick: confirmAction(northKoreaMode) },
+        endSpeech: { onclick: confirmAction(finishSpeech) },
+        claps: { onclick: confirmAction(requestApplause) },
+        newFocus: { onclick: openCustomFocusModal },
+        renameFocus: { onclick: openSeeMoreModal },
+        renameAll: { onclick: () => _alert('Sorry, brother! Not implemented yet') },
+        mikePlusAv: { onclick: () => _alert('Sorry, brother! Not implemented yet') },
+        spotlightAv: { onclick: spotlightAudioVideo },
+        focusAv: { onclick: focusOnAudioVideo },
     });
 
     return buttonsFrame;
+}
+
+function renderOptionsFrame() {
+    const { counted, notCounted } = countAttendance();
+    return hydrate(`
+        <div class="options-frame">
+            <div class="config-item">
+                <input hydrate="check1" id="transparent-mode" type="checkbox"/>
+                <label for="transparent-mode">Modo transparente</label>
+            </div>
+            <div class="config-item">
+                <input hydrate="check2" id="open-waiting-room" type="checkbox" ${observed.publicRoom && 'checked'}/>
+                <label for="open-waiting-room">Liberar sala de espera</label>
+            </div>
+            <div class="config-item">
+                <input hydrate="check3" id="auto-spotlight" type="checkbox" ${observed.autoSpotlight && 'checked'}/>
+                <label for="auto-spotlight">Spotlight automático</label>
+            </div>
+            <div class="config-item">
+                <i style="color: #5cb85c" class="i-sm material-icons-outlined">airline_seat_recline_normal</i>
+                <span id="${generalIDs.counted}">Contados: ${counted}</span>
+                <span style="margin: 0px 5px">|</span>
+                <i style="color: #ff4242" class="i-sm material-icons-outlined">airline_seat_recline_normal</i>
+                <span id="${generalIDs.notCounted}">Não contados: ${notCounted}</span>
+            </div>
+        </div>`, {
+        check1: {
+            onchange() {
+                observed.transparentMode = !observed.transparentMode;
+                document.getElementById(generalIDs.modal).classList.toggle('transparent-modal');
+            }
+        },
+        check2: {
+            onchange() {
+                observed.publicRoom = !observed.publicRoom;
+                refreshWaitingRoom();
+            }
+        },
+        check3: {
+            onchange() {
+                observed.autoSpotlight = !observed.autoSpotlight;
+                refreshVideosOn();
+            }
+        },
+    });
 }
 
 function renderServicesFrame() {
@@ -1078,20 +1175,20 @@ function renderServicesFrame() {
     return hydrate(`
         <div class="routines-frame">
             <div class="routine-div">
-                <p>Rodando (marque para abortar)</p>
-                <ul id="${generateId('continuousAttempts')}"></ul>
-            </div>
-            <div class="routine-div">
                 <p>Nomes inválidos</p>
                 <ul id="${generateId('invalidNames')}"></ul>
             </div>
             <div class="routine-div">
-                <p>Vídeos ligados</p>
-                <ul id="${generateId('videosOn')}"></ul>
-            </div>
-            <div class="routine-div">
                 <p>Microfones ligados</p>
                 <ul id="${generateId('mikesOn')}"></ul>
+            </div>
+            <div class="routine-div">
+                <p>Rodando (marque para abortar)</p>
+                <ul id="${generateId('continuousAttempts')}"></ul>
+            </div>
+            <div class="routine-div">
+                <p>Vídeos ligados</p>
+                <ul id="${generateId('videosOn')}"></ul>
             </div>
             <div class="routine-div custom-grid">
                 <p>Foco customizado</p>
@@ -1100,10 +1197,9 @@ function renderServicesFrame() {
             <div class="routine-div comments-grid">
                 <p>Comentários</p>
                 <div id="quick-actions">
-                    <button hydrate="btn1" class="btn btn-xs btn-primary">Silenciar todos*</button>
+                    <button hydrate="btn1" class="btn btn-xs btn-primary">Silenciar comentários</button>
                     <button hydrate="btn2" class="btn btn-xs btn-success">Abaixar mãos</button>
                 </div>
-                <div class="quick-note">*Exceto com vídeos ligados</div>
                 <ul id="raised-hands"></ul>
             </div>
         </div>`, {
@@ -1112,18 +1208,90 @@ function renderServicesFrame() {
     });
 }
 
+function renderPopup({ type, title, text, onConfirm = Function, onHide = Function }) {
+    refreshScreen();
+    return hydrate(`
+        <div class="native-popup">
+            <h4>${title || 'Zoom Script - jw.org'}</h4>
+            <p>${text}</p>
+            ${type === 'prompt' && `<input hydrate="input" type="text" class="form-control"/>`}
+            <div class="actions">
+                ${type !== 'alert' && `<button hydrate="cancel" type="text" class="btn btn-primary-outline">Cancelar</button>`}
+                <button hydrate="confirm" type="text" class="btn btn-primary">OK</button>
+            </div>
+        </div>`, {
+        input: {
+            onkeyup: ({ target, key, code }) => {
+                if ([code, key].includes('Enter')) {
+                    target.closest('.native-popup').querySelector('.btn-primary').click();
+                }
+            }
+        },
+        cancel: { onclick() { closeCustomPopup(); onHide(); } },
+        confirm: {
+            onclick({ target }) {
+                const input = target.closest('.native-popup').querySelector('input');
+                closeCustomPopup();
+                onConfirm(input && input.value);
+            }
+        }
+    });
+}
+
+function _alert(title, text) {
+    return new Promise(resolve => {
+        const customPopup = document.getElementById(generalIDs.customPopup);
+        removeChildren(customPopup);
+        customPopup.appendChild(renderPopup({
+            type: 'alert',
+            title,
+            text,
+            onConfirm: resolve,
+        }));
+        openCustomPopup();
+    });
+}
+
+function _prompt(title, text) {
+    return new Promise(resolve => {
+        const customPopup = document.getElementById(generalIDs.customPopup);
+        removeChildren(customPopup);
+        customPopup.appendChild(renderPopup({
+            type: 'prompt',
+            title,
+            text,
+            onConfirm: value => resolve(value),
+            onHide: () => resolve(null)
+        }));
+        openCustomPopup();
+
+        const input = document.querySelector('.native-popup input');
+        if (input) {
+            input.focus();
+        }
+    });
+}
+
 function openCustomFocusModal() {
-    renderCustomFocusModal();
+    const customModal = document.getElementById(generalIDs.customModal);
+    removeChildren(customModal);
+    customModal.appendChild(renderCustomFocusModal());
     openCustomModal();
 }
 
 function openSeeMoreModal() {
-    renderSeeMoreModal();
+    const customModal = document.getElementById(generalIDs.customModal);
+    removeChildren(customModal);
+    customModal.appendChild(renderSeeMoreModal());
     openCustomModal();
 }
 
 function openCustomModal() {
-    document.getElementById(generalIDs.customModal).style.display = 'block';
+    document.getElementById(generalIDs.customModal).classList.remove('hidden');
+}
+
+function openCustomPopup() {
+    document.getElementById(generalIDs.customPopup).classList.remove('hidden');
 }
 
 function openMembersPanel() {
@@ -1134,13 +1302,19 @@ function openMembersPanel() {
 }
 
 function closeModal() {
-    document.getElementById(generalIDs.modal).style.display = 'none';
+    document.getElementById(generalIDs.modal).classList.add('hidden');
 }
 
 function closeCustomModal() {
     const modal = document.getElementById(generalIDs.customModal);
     removeChildren(modal);
-    modal.style.display = 'none';
+    modal.classList.add('hidden');
+}
+
+function closeCustomPopup() {
+    const popup = document.getElementById(generalIDs.customPopup);
+    removeChildren(popup);
+    popup.classList.add('hidden');
 }
 
 function validateCustomFocusTarget({ target }) {
@@ -1149,10 +1323,10 @@ function validateCustomFocusTarget({ target }) {
 
     if (foundMember) {
         classList.remove('alert-danger');
-        alert(`Participante encontrado: ${getMemberName(foundMember)}`);
+        _alert(`Participante encontrado: ${getMemberName(foundMember)}`);
     } else {
         classList.add('alert-danger');
-        alert(value
+        _alert(value
             ? `Nenhum participante encontrado pelo termo ${value.toUpperCase()}`
             : `Informe algum texto para encontrar o participante`
         );
@@ -1200,10 +1374,6 @@ function validateCustomFocusFields() {
         members,
         buttonName: focusNameInput.value
     };
-}
-
-function shouldStartVideo(member) {
-    return getMemberName(member).match(/\bok\b/gi);
 }
 
 function startMike(member, keepTrying) {
@@ -1313,6 +1483,10 @@ function stopSpotlight(member) {
     clickDropdown(member, uiLabels.stopSpotlight);
 }
 
+function stopAutoSpotlight() {
+    observed.autoSpotlight = false;
+}
+
 function lowerHand(member) {
 
     if (!member) {
@@ -1336,16 +1510,6 @@ function stopAllMikes(membersToKeep) {
     getMembers().forEach(member => {
         if (!membersToKeep.includes(getMemberName(member))) {
             stopMike(member);
-        }
-    });
-}
-
-function stopAllVideos(membersToKeep) {
-    membersToKeep = Array.isArray(membersToKeep) ? membersToKeep.map(p => getMemberName(p)) : [];
-
-    getMembers().forEach(member => {
-        if (!membersToKeep.includes(getMemberName(member))) {
-            stopVideo(member);
         }
     });
 }
@@ -1382,7 +1546,6 @@ function texasMode() {
 }
 
 function northKoreaMode() {
-    stopAllVideos();
     stopAllMikes();
     enableAllowMikes(false);
     enableMuteOnEntry(true);
@@ -1392,13 +1555,13 @@ function focusOn(role) {
     const target = getMember(role);
 
     if (!role || !target) {
-        return alert(`Participante: "${role}" não encontrado`);
+        return _alert(`Participante: "${role}" não encontrado`);
     }
 
+    stopAutoSpotlight();
+
     startVideo(target, () => {
-        observed.autoSpotlight = false;
         const member = getMember(role);
-        stopAllVideos([member]);
         stopAllMikes([member]);
         startSpotlight(member);
         startMike(member, true);
@@ -1407,22 +1570,21 @@ function focusOn(role) {
 
 function focusOnConductor() {
     const conductor = getMember(roles.conductor);
-    const president = getMember(roles.president);
     const reader = getMember(roles.reader);
 
     if (!conductor) {
-        return alert(`Dirigente não informado.\nCom permissão de anfitrião (host) identifique-o renomeando.\nExemplo: Anthony Morris - ${roles.conductor}`);
+        return _alert('Dirigente não informado', `<h5>
+            Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/><strong>Exemplo: Anthony Morris - ${roles.conductor}</strong>
+        </h5>`);
     }
 
-    stopAllVideos([conductor, reader, president]);
+    stopAutoSpotlight();
     stopAllMikes([conductor, reader]);
 
     startVideo(conductor, () => {
-        observed.autoSpotlight = false;
         const member = getMember(roles.conductor);
         startSpotlight(member);
         startMike(member, true);
-        stopVideo(getMember(roles.president));
     });
 }
 
@@ -1431,14 +1593,15 @@ function focusOnReader() {
     const conductor = getMember(roles.conductor);
 
     if (!reader) {
-        return alert(`Leitor não informado.\nCom permissão de anfitrião (host) identifique-o renomeando.\nExemplo: David Splane - ${roles.reader}`);
+        return _alert('Leitor não informado', `<h5>
+            Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/><strong>Exemplo: David Splane - ${roles.reader}</strong>
+        </h5>`);
     }
 
-    stopAllVideos([conductor, reader]);
+    stopAutoSpotlight();
     stopAllMikes([conductor, reader]);
 
     startVideo(reader, () => {
-        observed.autoSpotlight = false;
         const member = getMember(roles.reader);
         addSpotlight(member);
         startMike(member, true);
@@ -1449,17 +1612,18 @@ function focusOnPresident() {
     const president = getMember(roles.president);
 
     if (!president) {
-        return alert(`Presidente não informado.\nCom permissão de anfitrião (host) identifique-o renomeando.\nExemplo: Geoffrey Jackson - ${roles.president}`);
+        return _alert('Presidente não informado', `<h5>
+            Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/><strong>Exemplo: Geoffrey Jackson - ${roles.president}</strong>
+        </h5>`);
     }
 
+    stopAutoSpotlight();
     stopAllMikes([president]);
 
     startVideo(president, () => {
-        observed.autoSpotlight = false;
         const member = getMember(roles.president);
         startMike(member, true);
         startSpotlight(member);
-        stopAllVideos([member]);
     });
 }
 
@@ -1467,17 +1631,52 @@ function focusOnSpeaker() {
     const speaker = getMember(roles.speaker);
 
     if (!speaker) {
-        return alert(`Orador não informado.\nCom permissão de anfitrião (host) identifique-o renomeando.\nExemplo: Gerrit Losch - ${roles.speaker}`);
+        return _alert('Orador não informado', `<h5>
+            Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/><strong>Exemplo: Gerrit Losch - ${roles.speaker}</strong>
+        </h5>`);
     }
 
-    stopAllVideos([speaker]);
+    stopAutoSpotlight();
     stopAllMikes([speaker]);
 
     startVideo(speaker, () => {
-        observed.autoSpotlight = false;
         const member = getMember(roles.speaker);
         startSpotlight(member);
         startMike(member, true);
+    });
+}
+
+function focusOnAudioVideo() {
+    const av = getMember(roles.av);
+
+    if (!av) {
+        return _alert('"Áudio e Vídeo" não informado', `<h5>
+            Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/><strong>Exemplo: Stephen Lett - ${roles.av}</strong>
+        </h5>`);
+    }
+
+    stopAutoSpotlight();
+    stopAllMikes([av]);
+
+    startVideo(av, () => {
+        const member = getMember(roles.av);
+        startMike(member, true);
+        startSpotlight(member);
+    });
+}
+
+function spotlightAudioVideo() {
+    const member = getMember(roles.av);
+
+    if (!member) {
+        return _alert('"Áudio e Vídeo" não informado', `<h5>
+            Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/><strong>Exemplo: Stephen Lett - ${roles.av}</strong>
+        </h5>`);
+    }
+
+    stopAllSpotlights();
+    startVideo(member, () => {
+        startSpotlight(member);
     });
 }
 
@@ -1485,7 +1684,7 @@ function callMember(role) {
     const target = getMember(role);
 
     if (!role || !target) {
-        return alert(`Participante: "${role}" não encontrado`);
+        return _alert(`Participante: "${role}" não encontrado`);
     }
 
     startVideo(target, () => startMike(getMember(role), true));
@@ -1496,68 +1695,44 @@ function callCommenter(name) {
         return;
     }
 
-    observed.commenting = name;
-    const member = getMember(name);
+    muteCommenters();
 
+    const member = getMember(name);
     lowerAllHands([member]);
     startMike(member);
-    stopAllMikes([
-        member,
-        ...getMembers().filter(m => isVideoOn(m) && !observed.commentersOnVideo.includes(getMemberName(m)))
-    ]);
 
-    if (shouldStartVideo(member)) {
-        startVideo(member, () => {
-            observed.commentersOnVideo.push(name);
-            const m = getMember(name);
-            addSpotlight(m);
-        }, true);
-    }
+    observed.commenting = name;
+    observed.commentersCalled = [...observed.commentersCalled, name];
 }
 
 function muteCommenters() {
-    cleanVideoScanner();
-
-    const keepSpotlight = [];
-
-    getMembers().forEach(member => {
-        if (!isVideoOn(member)) {
-            return stopMike(member);
-        }
-
-        if (observed.commentersOnVideo.includes(getMemberName(member))) {
-            stopSpotlight(member);
-            stopVideo(member);
-            stopMike(member);
-        } else {
-            keepSpotlight.push(member);
-        }
+    observed.commentersCalled.forEach(name => {
+        const member = getMember(name);
+        stopMike(member);
     });
 
-    startSpotlight(keepSpotlight.pop());
-    keepSpotlight.forEach(m => addSpotlight(m));
-    observed.commentersOnVideo = [];
+    observed.commentersCalled = [];
 }
 
 function generateId(text) {
     return btoa(encodeURI(text)).replace(/=/g, '');
 }
 
-function sendEmail() {
-    fetch('https://zoom.vercel.app/api/send-email', {
-        method: 'POST',
+// TODO - CALL / CREATE ENDPOINT
+function getAutoRenameSettings(id) {
+    fetch('https://zoom.vercel.app/api/renaming-options', {
+        method: 'GET',
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-            assistencia: countAttendance().counted,
-            congregacao: 'Nordeste'
-        })
+        params: {
+            id
+        }
     }).then(async data => {
         const resp = await data.json();
-        alert(resp.success ? resp.message : 'Não foi possível enviar e-mail');
-    }).catch(err => alert(err));
+        _alert(resp.success ? resp.message : 'Não foi possível obter nomes a renomear');
+    }).catch(err => _alert(err));
 }
 
 function importIcons() {
@@ -1568,8 +1743,8 @@ function importIcons() {
 }
 
 function removeChildren(element) {
-    if (element && element.querySelectorAll) {
-        element.querySelectorAll('*').forEach(child => child.remove());
+    if (element) {
+        element.innerHTML = '';
     }
 }
 
@@ -1588,8 +1763,8 @@ function unschedule(id) {
 
 function toggleModal() {
     const modal = document.getElementById(generalIDs.modal);
-    if (modal.style.display === 'none') {
-        modal.removeAttribute('style');
+    if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
     } else {
         closeModal();
     }
@@ -1673,13 +1848,19 @@ function enableAllowMikes(enable) {
 }
 
 function requestApplause() {
-    startAllMikes();
+    const setBtnApplauseDisabled = disable => document.querySelector('.btn-applause').classList[
+        disable ? 'add' : 'remove'
+    ]('disabled');
 
-    document.querySelector('.btn-applause').classList.add('disabled');
+    const mikesAlreadyOn = getMembers().filter(m => isMikeOn(m));
+
+    spotlightAudioVideo();
+    startAllMikes();
+    setBtnApplauseDisabled(true);
 
     setTimeout(() => {
-        stopAllMikes();
-        document.querySelector('.btn-applause').classList.remove('disabled');
+        stopAllMikes(mikesAlreadyOn);
+        setBtnApplauseDisabled(false);
         refreshScreen();
     }, config.applauseDuration);
 }
@@ -1687,7 +1868,6 @@ function requestApplause() {
 function finishSpeech() {
     const presidente = getMember(roles.president);
 
-    stopAllVideos();
     startAllMikes();
 
     document.querySelectorAll('.btn-feature').forEach(btn => btn.classList.add('disabled'));
@@ -1711,9 +1891,11 @@ var generalIDs = {
     notCounted: 'not-counted-members',
     modal: 'meeting-options',
     customModal: 'custom-modal',
+    customPopup: 'custom-popup',
     customMenu: 'context-menu'
 };
 var roles = {
+    av: 'audio e video',
     conductor: 'dirigente',
     president: 'presidente',
     reader: 'leitor',
@@ -1743,8 +1925,9 @@ var runningIntervals = runningIntervals || {};
 var observer = observer || null;
 var observed = observed || {
     commenting: null,
+    commentersCalled: [],
     scanningVideo: null,
-    commentersOnVideo: [],
+    transparentMode: false,
     publicRoom: false,
     autoSpotlight: false
 };
@@ -1757,7 +1940,7 @@ var routineWarnings = routineWarnings || {
 };
 var config = config || {
     cache: {},
-    applauseDuration: 8000,
+    applauseDuration: 4000,
     lastChange: null,
     lastValidation: null
 };
@@ -1772,5 +1955,8 @@ try {
     toggleModal();
     console.clear();
 } catch (erro) {
-    alert('Erro ao executar o script: ' + erro.message);
+    _alert(`
+        Erro ao executar o script!
+        Possível solução: diminuir o tamanho do painel de execução de script (console do navegador)
+    `);
 }
