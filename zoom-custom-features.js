@@ -135,7 +135,7 @@ function createCss() {
         }
         .routines-frame {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
+            grid-template-columns: 1fr 2fr 1fr;
             gap: 5px;
             margin: 0px 5px;
             padding-bottom: 10px;
@@ -306,7 +306,7 @@ function createCss() {
         }
         .comments-grid {
             grid-row: 1 / span 2;
-            grid-column: 4;
+            grid-column: 2;
         }
         .custom-grid {
             grid-row: 1 / span 2;
@@ -1154,7 +1154,7 @@ function renderOptionsFrame() {
     const { counted, notCounted } = countAttendance();
     return hydrate(`
         <div class="options-frame">
-            <div class="config-item">
+            <div class="config-item hidden">
                 <input hydrate="check1" id="transparent-mode" type="checkbox"/>
                 <label for="transparent-mode">Modo transparente</label>
             </div>
@@ -1166,7 +1166,7 @@ function renderOptionsFrame() {
                 <input hydrate="check3" id="auto-spotlight" type="checkbox" ${observed.autoSpotlight && 'checked'}/>
                 <label for="auto-spotlight">Spotlight automático</label>
             </div>
-            <div class="config-item">
+            <div class="config-item hidden">
                 <i style="color: #5cb85c" class="i-sm material-icons-outlined">airline_seat_recline_normal</i>
                 <span id="${generalIDs.counted}">Contados: ${counted}</span>
                 <span style="margin: 0px 5px">|</span>
@@ -1199,7 +1199,7 @@ function renderServicesFrame() {
     refreshScreen();
     return hydrate(`
         <div class="routines-frame">
-            <div class="routine-div">
+            <div class="routine-div hidden">
                 <p>Nomes inválidos</p>
                 <ul id="${generateId('invalidNames')}"></ul>
             </div>
@@ -1207,11 +1207,11 @@ function renderServicesFrame() {
                 <p>Microfones ligados</p>
                 <ul id="${generateId('mikesOn')}"></ul>
             </div>
-            <div class="routine-div">
+            <div class="routine-div hidden">
                 <p>Rodando (marque para abortar)</p>
                 <ul id="${generateId('continuousAttempts')}"></ul>
             </div>
-            <div class="routine-div">
+            <div class="routine-div hidden">
                 <p>Vídeos ligados</p>
                 <ul id="${generateId('videosOn')}"></ul>
             </div>
