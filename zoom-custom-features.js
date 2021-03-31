@@ -2014,7 +2014,7 @@ var routineWarnings = routineWarnings || {
 var config = config || {
     cache: {},
     applauseDuration: 4000,
-    transitionDuration: 3000,
+    transitionDuration: 0,
     lastChange: null,
     lastValidation: null
 };
