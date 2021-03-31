@@ -1616,7 +1616,7 @@ function focusOnConductor() {
 
     transit(conductor);
 
-    stopAllMikes([conductor, reader]);
+    stopAllMikes([conductor]);
     stopAutoSpotlight();
 
     // for Porto Seguro it should not transition on switching focus between Conductor and Reader
@@ -1649,7 +1649,7 @@ function focusOnReader() {
 
     transit(reader);
 
-    stopAllMikes([conductor, reader]);
+    stopAllMikes([reader]);
     stopAutoSpotlight();
 
 
