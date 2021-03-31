@@ -8,8 +8,10 @@
             "dest": "/zoom-custom-features.js"
         }
     ],
-    "redirects": {
-        "source": "/porto-seguro",
-        "destination": "https://raw.githubusercontent.com/edunsouza/zoom-custom-features/porto-seguro/zoom-custom-features.js"
-    }
+    "redirects": [
+        {
+            "source": "/porto-seguro",
+            "destination": "https://raw.githubusercontent.com/edunsouza/zoom-custom-features/porto-seguro/zoom-custom-features.js"
+        }
+    ]
 }
