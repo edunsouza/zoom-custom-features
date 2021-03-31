@@ -1,13 +1,15 @@
-// TODO: Porto Seguro - Piauí
+/*
+TO DO: Porto Seguro - Piauí
 
-// = pray:
-//     - spotlight "audio e video"
-//     - open prayer mike (request name/role typing)
+PRAY:
+    • Spotlight "audio e video"
+    • Open prayer mic (request name/role typing)
 
-// = auto rename:
-//     - fetch names list from backend by password
-//     - apply autorename
-
+AUTO RENAME:
+    • fetch names list from backend by password (nome congregação)
+    • apply autorename
+    • ? option to stop auto rename ?
+*/
 
 
 
@@ -101,10 +103,11 @@ function createCss() {
         .native-popup {
             display: flex;
             flex-direction: column;
-            position: absolute;
-            left: 35vw;
-            top: 10vh;
-            width: 30vw;
+            justify-content: space-between;
+            position: relative;
+            left: 25%;
+            top: 0;
+            width: 50%;
             height: auto;
             min-height: 200px;
             padding: 20px;
@@ -112,11 +115,23 @@ function createCss() {
             border-radius: 10px;
             z-index: ${higherIndex + 5};
         }
+        .native-popup input { margin-top: 15px; }
+        .native-popup .actions button { margin-left: 10px; }
         .native-popup .actions {
             display: flex;
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
+            justify-content: flex-end;
+            margin-top: 15px;
+        }
+        .native-popup h1 {
+            font-size: 16px;
+            margin-top: 0;
+            font-weight: 700;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        .native-popup *:not(.actions) {
+            display: flex;
+            flex-direction: column;
         }
         .routines-frame {
             display: grid;
@@ -471,12 +486,25 @@ function createCustomFocus(details, name) {
         name,
         validate: () => openMembersPanel() || details.every(p => getMember(p.role)),
         click: async () => {
-            const fields = details.map(({ role, useMike, useVideo, useSpotlight }) => {
-                const list = [useMike && 'mic', useVideo && 'vídeo', useSpotlight && 'spot'].filter(Boolean);
-                return `${getMemberName(getMember(role))} - [${list}]\n`;
-            }).join('');
-            const action = await _prompt(`${name.toUpperCase()}\n${fields}\n"F" = focar\n"C" = chamar\n[Qualquer outra ação] = abortar`);
-            const fullAttention = String(action).toUpperCase() === 'F';
+            const fields = details.map(detail => {
+                const memberName = getMemberName(getMember(detail.role));
+                const actions = [
+                    detail.useMike && 'mic',
+                    detail.useVideo && 'vídeo',
+                    detail.useSpotlight && 'spot'
+                ];
+                return `<span class="h4">${memberName} - [${actions.filter(Boolean)}]</span>`;
+            }).join('\n');
+
+            const body = `
+                ${fields}
+                <div style="font-weight: 700; margin-top: 10px">
+                    <span style="color: #ff4242">digite "F" para FOCAR</span>
+                    <span style="color: #5cb85c">digite "C" para CHAMAR</span>
+                    <span>Use [outro texto] ou [Cancelar] ou [Confirmar] para cancelar esta ação</span>
+                </div>
+            `;
+            const action = await _prompt(body, name);
 
             if (!action) {
                 return;
@@ -484,6 +512,7 @@ function createCustomFocus(details, name) {
 
             const videoExceptions = [];
             const mikeExceptions = [];
+            const fullAttention = String(action).toUpperCase() === 'F';
 
             details.forEach(({ role, useVideo, useMike, useSpotlight }) => {
                 const member = getMember(role);
@@ -702,11 +731,6 @@ function clickDropdown(member, btnLabels) {
             return true;
         }
     });
-}
-
-function cleanVideoScanner() {
-    unschedule(observed.scanningVideo);
-    delete observed.scanningVideo;
 }
 
 function refreshScreen() {
@@ -944,17 +968,18 @@ function renderModal() {
     }
 
     const optionsModal = createElement(`<div class="hidden" id="${generalIDs.modal}" />`);
+
     optionsModal.appendChild(renderButtonsFrame());
     optionsModal.appendChild(renderOptionsFrame());
     optionsModal.appendChild(renderServicesFrame());
 
+    const customModal = createElement(`<div id="${generalIDs.customModal}" class="hidden" />`);
     const customPopup = createElement(`<div id="${generalIDs.customPopup}" class="hidden" />`);
-    const customModal = createElement(`<div id="${generalIDs.customModal}" class="hidden" />`, {
-        onclick: ({ target }) => target !== customModal || closeCustomModal()
-    });
 
-    optionsModal.appendChild(customPopup);
+    customModal.onclick = ({ target }) => target !== customModal || closeCustomModal();
+
     optionsModal.appendChild(customModal);
+    optionsModal.appendChild(customPopup);
 
     document.body.appendChild(optionsModal);
 }
@@ -1016,7 +1041,7 @@ function renderSeeMoreModal() {
 function renderButtonsFrame() {
     const confirmAction = callback => async ({ target }) => {
         const { dataset: { q, a } } = target.closest('button');
-        const answer = await _prompt(q);
+        const answer = await _prompt(`<span class="h4">${q}</span>`);
         if (typeof answer === 'string') {
             return answer.toLowerCase() === a.toLowerCase() ? callback() : _alert('Texto incorreto! Ação não executada.');
         }
@@ -1084,8 +1109,8 @@ function renderButtonsFrame() {
                     </div>
                     <button hydrate="newFocus" class="btn btn-success btn-feature">Criar foco</button>
                     <button hydrate="renameFocus" class="btn btn-success btn-feature">Renomear foco</button>
-                    <button hydrate="renameAll" class="btn btn-success btn-feature">Corrigir nomes</button>
-                    <button hydrate="mikePlusAv" class="btn btn-primary btn-feature">Oração</button>
+                    <button hydrate="renameAll" class="btn btn-feature invalid-focus">Corrigir nomes</button>
+                    <button hydrate="mikePlusAv" class="btn btn-feature invalid-focus">Oração</button>
                     <button hydrate="spotlightAv" class="btn btn-primary btn-feature">Imagens</button>
                     <button hydrate="focusAv" class="btn btn-primary btn-feature">Cântico/Vídeos</button>
                 </div>
@@ -1116,8 +1141,8 @@ function renderButtonsFrame() {
         claps: { onclick: confirmAction(requestApplause) },
         newFocus: { onclick: openCustomFocusModal },
         renameFocus: { onclick: openSeeMoreModal },
-        renameAll: { onclick: () => _alert('Sorry, brother! Not implemented yet') },
-        mikePlusAv: { onclick: () => _alert('Sorry, brother! Not implemented yet') },
+        renameAll: { onclick: () => _alert('<p class="h4">Sorry, brother! Not implemented yet</p>') },
+        mikePlusAv: { onclick: () => _alert('<p class="h4">Sorry, brother! Not implemented yet</p>') },
         spotlightAv: { onclick: spotlightAudioVideo },
         focusAv: { onclick: focusOnAudioVideo },
     });
@@ -1210,14 +1235,17 @@ function renderServicesFrame() {
 
 function renderPopup({ type, title, text, onConfirm = Function, onHide = Function }) {
     refreshScreen();
+    const hideIfAlert = type === 'alert' && 'hidden';
     return hydrate(`
         <div class="native-popup">
-            <h4>${title || 'Zoom Script - jw.org'}</h4>
-            <p>${text}</p>
-            ${type === 'prompt' && `<input hydrate="input" type="text" class="form-control"/>`}
+            <h1>${title || 'JW - ZOOM SCRIPT'}</h1>
+
+            <div>${text}</div>
+            <input hydrate="input" type="text" class="${hideIfAlert} form-control"/>
+
             <div class="actions">
-                ${type !== 'alert' && `<button hydrate="cancel" type="text" class="btn btn-primary-outline">Cancelar</button>`}
-                <button hydrate="confirm" type="text" class="btn btn-primary">OK</button>
+                <button hydrate="cancel" type="text" class="${hideIfAlert} btn btn-primary-outline">Cancelar</button>
+                <button hydrate="confirm" type="text" class="btn btn-primary">Confirmar</button>
             </div>
         </div>`, {
         input: {
@@ -1238,7 +1266,7 @@ function renderPopup({ type, title, text, onConfirm = Function, onHide = Functio
     });
 }
 
-function _alert(title, text) {
+function _alert(text, title) {
     return new Promise(resolve => {
         const customPopup = document.getElementById(generalIDs.customPopup);
         removeChildren(customPopup);
@@ -1252,7 +1280,7 @@ function _alert(title, text) {
     });
 }
 
-function _prompt(title, text) {
+function _prompt(text, title) {
     return new Promise(resolve => {
         const customPopup = document.getElementById(generalIDs.customPopup);
         removeChildren(customPopup);
@@ -1323,13 +1351,13 @@ function validateCustomFocusTarget({ target }) {
 
     if (foundMember) {
         classList.remove('alert-danger');
-        _alert(`Participante encontrado: ${getMemberName(foundMember)}`);
+        _alert(`<span class="h4">Participante encontrado: <strong>${getMemberName(foundMember)}</strong></span>`, 'Encontrado');
     } else {
         classList.add('alert-danger');
-        _alert(value
-            ? `Nenhum participante encontrado pelo termo ${value.toUpperCase()}`
-            : `Informe algum texto para encontrar o participante`
-        );
+        const body = value
+            ? `Termo procurado: <strong>${value.toUpperCase()}</strong>`
+            : `Informe alguma parte do nome do participante`
+        _alert(`<span class="h4">${body}</span>`, 'Nenhum participante encontrado');
     }
 }
 
@@ -1381,8 +1409,6 @@ function startMike(member, keepTrying) {
         return;
     }
 
-    cleanVideoScanner();
-
     const routineName = `ligar_som_${getMemberName(member)}`;
     const routineDelay = 2000;
 
@@ -1412,12 +1438,10 @@ function startMike(member, keepTrying) {
     }
 }
 
-function startVideo(member, callback, singleShot) {
+function startVideo(member, callback) {
     if (!member) {
         return;
     }
-
-    cleanVideoScanner();
 
     if (isVideoOn(member)) {
         return callback && callback();
@@ -1438,10 +1462,6 @@ function startVideo(member, callback, singleShot) {
                 unschedule(scheduleId);
                 refreshScreen();
                 callback();
-            } else if (singleShot) {
-                observed.scanningVideo = scheduleId;
-                routineWarnings.continuousAttempts = routineWarnings.continuousAttempts.filter(attempt => attempt !== scheduleId);
-                refreshScreen();
             } else {
                 if (!routineWarnings.continuousAttempts.includes(scheduleId)) {
                     routineWarnings.continuousAttempts.push(scheduleId);
@@ -1458,17 +1478,8 @@ function startVideo(member, callback, singleShot) {
 }
 
 function startSpotlight(member) {
-    cleanVideoScanner();
-    stopAllSpotlights();
+    stopAllSpotlights([member]);
     clickDropdown(member, uiLabels.startSpotlight);
-}
-
-function addSpotlight(member) {
-    cleanVideoScanner();
-    clickDropdown(member, [
-        ...uiLabels.addSpotlight,
-        ...uiLabels.startSpotlight
-    ]);
 }
 
 function stopMike(member) {
@@ -1507,6 +1518,10 @@ function startAllMikes() {
 function stopAllMikes(membersToKeep) {
     membersToKeep = Array.isArray(membersToKeep) ? membersToKeep.map(p => getMemberName(p)) : [];
 
+    // for Porto Seguro it should keep Audio & Video always on
+    const audioVideo = getMember(roles.av);
+    membersToKeep.push(getMemberName(audioVideo));
+
     getMembers().forEach(member => {
         if (!membersToKeep.includes(getMemberName(member))) {
             stopMike(member);
@@ -1514,8 +1529,14 @@ function stopAllMikes(membersToKeep) {
     });
 }
 
-function stopAllSpotlights() {
-    getMembers().forEach(member => stopSpotlight(member));
+function stopAllSpotlights(membersToKeep) {
+    membersToKeep = Array.isArray(membersToKeep) ? membersToKeep.map(p => getMemberName(p)) : [];
+
+    getMembers().forEach(member => {
+        if (!membersToKeep.includes(getMemberName(member))) {
+            stopSpotlight(member);
+        }
+    });
 }
 
 function lowerAllHands(membersToKeep) {
@@ -1551,6 +1572,14 @@ function northKoreaMode() {
     enableMuteOnEntry(true);
 }
 
+function transit(member) {
+    observed.transitioning = getMemberName(member);
+}
+
+function canTransit(member) {
+    return !observed.transitioning || observed.transitioning === getMemberName(member)
+}
+
 function focusOn(role) {
     const target = getMember(role);
 
@@ -1558,13 +1587,19 @@ function focusOn(role) {
         return _alert(`Participante: "${role}" não encontrado`);
     }
 
+    transit(target);
+
     stopAutoSpotlight();
+
+    if (!isSpotlightOn(target)) {
+        spotlightAudioVideo();
+    }
 
     startVideo(target, () => {
         const member = getMember(role);
         stopAllMikes([member]);
-        startSpotlight(member);
         startMike(member, true);
+        setTimeout(() => canTransit(member) && startSpotlight(member), config.transitionDuration);
     });
 }
 
@@ -1573,19 +1608,32 @@ function focusOnConductor() {
     const reader = getMember(roles.reader);
 
     if (!conductor) {
-        return _alert('Dirigente não informado', `<h5>
-            Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/><strong>Exemplo: Anthony Morris - ${roles.conductor}</strong>
-        </h5>`);
+        return _alert(`
+            <h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>Anthony Morris - ${roles.conductor}</strong></h5>`,
+            'Dirigente não informado'
+        );
     }
 
-    stopAutoSpotlight();
-    stopAllMikes([conductor, reader]);
+    transit(conductor);
 
-    startVideo(conductor, () => {
-        const member = getMember(roles.conductor);
-        startSpotlight(member);
-        startMike(member, true);
-    });
+    stopAllMikes([conductor, reader]);
+    stopAutoSpotlight();
+
+    // for Porto Seguro it should not transition on switching focus between Conductor and Reader
+    if (isSpotlightOn(reader)) {
+        startVideo(conductor, () => {
+            const member = getMember(roles.conductor);
+            startMike(member, true);
+            startSpotlight(member);
+        });
+    } else if (!isSpotlightOn(conductor)) {
+        spotlightAudioVideo();
+        startVideo(conductor, () => {
+            const member = getMember(roles.conductor);
+            startMike(member, true);
+            setTimeout(() => canTransit(member) && startSpotlight(member), config.transitionDuration);
+        });
+    }
 }
 
 function focusOnReader() {
@@ -1593,37 +1641,58 @@ function focusOnReader() {
     const conductor = getMember(roles.conductor);
 
     if (!reader) {
-        return _alert('Leitor não informado', `<h5>
-            Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/><strong>Exemplo: David Splane - ${roles.reader}</strong>
-        </h5>`);
+        return _alert(
+            `<h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>David Splane - ${roles.reader}</strong></h5>`,
+            'Leitor não informado'
+        );
     }
 
-    stopAutoSpotlight();
-    stopAllMikes([conductor, reader]);
+    transit(reader);
 
-    startVideo(reader, () => {
-        const member = getMember(roles.reader);
-        addSpotlight(member);
-        startMike(member, true);
-    });
+    stopAllMikes([conductor, reader]);
+    stopAutoSpotlight();
+
+
+    // for Porto Seguro it should not transition on switching focus between Reader and Conductor
+    if (isSpotlightOn(conductor)) {
+        startVideo(reader, () => {
+            const member = getMember(roles.reader);
+            startMike(member, true);
+            startSpotlight(member);
+        });
+    } else if (!isSpotlightOn(reader)) {
+        spotlightAudioVideo();
+        startVideo(reader, () => {
+            const member = getMember(roles.reader);
+            startMike(member, true);
+            setTimeout(() => canTransit(member) && startSpotlight(member), config.transitionDuration);
+        });
+    }
 }
 
 function focusOnPresident() {
     const president = getMember(roles.president);
 
     if (!president) {
-        return _alert('Presidente não informado', `<h5>
-            Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/><strong>Exemplo: Geoffrey Jackson - ${roles.president}</strong>
-        </h5>`);
+        return _alert(
+            `<h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>Geoffrey Jackson - ${roles.president}</strong></h5>`,
+            'Presidente não informado'
+        );
     }
 
-    stopAutoSpotlight();
+    transit(president);
+
     stopAllMikes([president]);
+    stopAutoSpotlight();
+
+    if (!isSpotlightOn(president)) {
+        spotlightAudioVideo();
+    }
 
     startVideo(president, () => {
         const member = getMember(roles.president);
         startMike(member, true);
-        startSpotlight(member);
+        setTimeout(() => canTransit(member) && startSpotlight(member), config.transitionDuration);
     });
 }
 
@@ -1631,18 +1700,25 @@ function focusOnSpeaker() {
     const speaker = getMember(roles.speaker);
 
     if (!speaker) {
-        return _alert('Orador não informado', `<h5>
-            Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/><strong>Exemplo: Gerrit Losch - ${roles.speaker}</strong>
-        </h5>`);
+        return _alert(
+            `<h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>Gerrit Losch - ${roles.speaker}</strong></h5>`,
+            'Orador não informado'
+        );
     }
 
-    stopAutoSpotlight();
+    transit(speaker);
+
     stopAllMikes([speaker]);
+    stopAutoSpotlight();
+
+    if (!isSpotlightOn(speaker)) {
+        spotlightAudioVideo();
+    }
 
     startVideo(speaker, () => {
         const member = getMember(roles.speaker);
-        startSpotlight(member);
         startMike(member, true);
+        setTimeout(() => canTransit(member) && startSpotlight(member), config.transitionDuration);
     });
 }
 
@@ -1650,14 +1726,14 @@ function focusOnAudioVideo() {
     const av = getMember(roles.av);
 
     if (!av) {
-        return _alert('"Áudio e Vídeo" não informado', `<h5>
-            Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/><strong>Exemplo: Stephen Lett - ${roles.av}</strong>
-        </h5>`);
+        return _alert(
+            `<h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>Stephen Lett - ${roles.av}</strong></h5>`,
+            '"Áudio e Vídeo" não informado'
+        );
     }
 
     stopAutoSpotlight();
     stopAllMikes([av]);
-
     startVideo(av, () => {
         const member = getMember(roles.av);
         startMike(member, true);
@@ -1669,15 +1745,13 @@ function spotlightAudioVideo() {
     const member = getMember(roles.av);
 
     if (!member) {
-        return _alert('"Áudio e Vídeo" não informado', `<h5>
-            Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/><strong>Exemplo: Stephen Lett - ${roles.av}</strong>
-        </h5>`);
+        return _alert(
+            `<h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>Stephen Lett - ${roles.av}</strong></h5>`,
+            '"Áudio e Vídeo" não informado'
+        );
     }
 
-    stopAllSpotlights();
-    startVideo(member, () => {
-        startSpotlight(member);
-    });
+    startVideo(member, () => startSpotlight(member));
 }
 
 function callMember(role) {
@@ -1719,7 +1793,7 @@ function generateId(text) {
 }
 
 // TODO - CALL / CREATE ENDPOINT
-function getAutoRenameSettings(id) {
+function fetchAutoRenameSettings(id) {
     fetch('https://zoom.vercel.app/api/renaming-options', {
         method: 'GET',
         headers: {
@@ -1912,7 +1986,6 @@ var uiLabels = {
     startMike: [langResource['apac.toolbar_ask_unmute'], langResource['apac.toolbar_unmute']],
     stopMike: [langResource['apac.toolbar_mute']],
     startSpotlight: [langResource['apac.wc_video.spotlight_for_everyone'], langResource['apac.wc_video.replace_spotlight']],
-    addSpotlight: [langResource['apac.wc_video.add_spotlight']],
     stopSpotlight: [langResource['apac.wc_video.remove_spotlight']],
     lowerHands: [langResource['apac.wc_lower_hand'], langResource['apac.wc_nonverbal.lower_hand']],
     rename: [langResource['apac.dialog.rename']],
@@ -1926,7 +1999,7 @@ var observer = observer || null;
 var observed = observed || {
     commenting: null,
     commentersCalled: [],
-    scanningVideo: null,
+    transitioning: null,
     transparentMode: false,
     publicRoom: false,
     autoSpotlight: false
@@ -1941,6 +2014,7 @@ var routineWarnings = routineWarnings || {
 var config = config || {
     cache: {},
     applauseDuration: 4000,
+    transitionDuration: 3000,
     lastChange: null,
     lastValidation: null
 };
