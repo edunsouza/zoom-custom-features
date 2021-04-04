@@ -743,9 +743,7 @@ function refreshScreen() {
         refreshMikesOn();
         refreshDefaultButtons();
         refreshRaisedHands();
-        refreshAttendanceCount();
         refreshWaitingRoom();
-
         refreshWarnings();
         refreshRoutines();
     }, 100);
@@ -871,17 +869,6 @@ function refreshRaisedHands() {
             btn1: { onclick: () => callCommenter(name) }
         }));
     });
-}
-
-function refreshAttendanceCount() {
-    const attendance = countAttendance();
-    const newCache = generateId(JSON.stringify(attendance));
-
-    if (config.cache.updateAttendance !== newCache) {
-        config.cache.updateAttendance = newCache;
-        document.getElementById(generalIDs.counted).innerText = `${attendance.counted} identificado(s)`;
-        document.getElementById(generalIDs.notCounted).innerText = `${attendance.notCounted} não identificado(s)`;
-    }
 }
 
 function refreshContinuousAttempts() {
@@ -1151,47 +1138,19 @@ function renderButtonsFrame() {
 }
 
 function renderOptionsFrame() {
-    const { counted, notCounted } = countAttendance();
     return hydrate(`
         <div class="options-frame">
-            <div class="config-item hidden">
-                <input hydrate="check1" id="transparent-mode" type="checkbox"/>
-                <label for="transparent-mode">Modo transparente</label>
-            </div>
             <div class="config-item">
-                <input hydrate="check2" id="open-waiting-room" type="checkbox" ${observed.publicRoom && 'checked'}/>
+                <input hydrate="check" id="open-waiting-room" type="checkbox" ${observed.publicRoom && 'checked'}/>
                 <label for="open-waiting-room">Liberar sala de espera</label>
             </div>
-            <div class="config-item">
-                <input hydrate="check3" id="auto-spotlight" type="checkbox" ${observed.autoSpotlight && 'checked'}/>
-                <label for="auto-spotlight">Spotlight automático</label>
-            </div>
-            <div class="config-item hidden">
-                <i style="color: #5cb85c" class="i-sm material-icons-outlined">airline_seat_recline_normal</i>
-                <span id="${generalIDs.counted}">Contados: ${counted}</span>
-                <span style="margin: 0px 5px">|</span>
-                <i style="color: #ff4242" class="i-sm material-icons-outlined">airline_seat_recline_normal</i>
-                <span id="${generalIDs.notCounted}">Não contados: ${notCounted}</span>
-            </div>
         </div>`, {
-        check1: {
-            onchange() {
-                observed.transparentMode = !observed.transparentMode;
-                document.getElementById(generalIDs.modal).classList.toggle('transparent-modal');
-            }
-        },
-        check2: {
+        check: {
             onchange() {
                 observed.publicRoom = !observed.publicRoom;
                 refreshWaitingRoom();
             }
-        },
-        check3: {
-            onchange() {
-                observed.autoSpotlight = !observed.autoSpotlight;
-                refreshVideosOn();
-            }
-        },
+        }
     });
 }
 
@@ -1572,14 +1531,6 @@ function northKoreaMode() {
     enableMuteOnEntry(true);
 }
 
-function transit(member) {
-    observed.transitioning = getMemberName(member);
-}
-
-function canTransit(member) {
-    return !observed.transitioning || observed.transitioning === getMemberName(member)
-}
-
 function focusOn(role) {
     const target = getMember(role);
 
@@ -1587,25 +1538,17 @@ function focusOn(role) {
         return _alert(`Participante: "${role}" não encontrado`);
     }
 
-    transit(target);
-
     stopAutoSpotlight();
-
-    if (!isSpotlightOn(target)) {
-        spotlightAudioVideo();
-    }
-
     startVideo(target, () => {
         const member = getMember(role);
         stopAllMikes([member]);
         startMike(member, true);
-        setTimeout(() => canTransit(member) && startSpotlight(member), config.transitionDuration);
+        startSpotlight(member);
     });
 }
 
 function focusOnConductor() {
     const conductor = getMember(roles.conductor);
-    const reader = getMember(roles.reader);
 
     if (!conductor) {
         return _alert(`
@@ -1614,31 +1557,17 @@ function focusOnConductor() {
         );
     }
 
-    transit(conductor);
-
-    stopAllMikes([conductor]);
     stopAutoSpotlight();
-
-    // for Porto Seguro it should not transition on switching focus between Conductor and Reader
-    if (isSpotlightOn(reader)) {
-        startVideo(conductor, () => {
-            const member = getMember(roles.conductor);
-            startMike(member, true);
-            startSpotlight(member);
-        });
-    } else if (!isSpotlightOn(conductor)) {
-        spotlightAudioVideo();
-        startVideo(conductor, () => {
-            const member = getMember(roles.conductor);
-            startMike(member, true);
-            setTimeout(() => canTransit(member) && startSpotlight(member), config.transitionDuration);
-        });
-    }
+    stopAllMikes([conductor]);
+    startVideo(conductor, () => {
+        const member = getMember(roles.conductor);
+        startMike(member, true);
+        startSpotlight(member);
+    });
 }
 
 function focusOnReader() {
     const reader = getMember(roles.reader);
-    const conductor = getMember(roles.conductor);
 
     if (!reader) {
         return _alert(
@@ -1647,27 +1576,13 @@ function focusOnReader() {
         );
     }
 
-    transit(reader);
-
-    stopAllMikes([reader]);
     stopAutoSpotlight();
-
-
-    // for Porto Seguro it should not transition on switching focus between Reader and Conductor
-    if (isSpotlightOn(conductor)) {
-        startVideo(reader, () => {
-            const member = getMember(roles.reader);
-            startMike(member, true);
-            startSpotlight(member);
-        });
-    } else if (!isSpotlightOn(reader)) {
-        spotlightAudioVideo();
-        startVideo(reader, () => {
-            const member = getMember(roles.reader);
-            startMike(member, true);
-            setTimeout(() => canTransit(member) && startSpotlight(member), config.transitionDuration);
-        });
-    }
+    stopAllMikes([reader]);
+    startVideo(reader, () => {
+        const member = getMember(roles.reader);
+        startMike(member, true);
+        startSpotlight(member);
+    });
 }
 
 function focusOnPresident() {
@@ -1680,19 +1595,12 @@ function focusOnPresident() {
         );
     }
 
-    transit(president);
-
-    stopAllMikes([president]);
     stopAutoSpotlight();
-
-    if (!isSpotlightOn(president)) {
-        spotlightAudioVideo();
-    }
-
+    stopAllMikes([president]);
     startVideo(president, () => {
         const member = getMember(roles.president);
         startMike(member, true);
-        setTimeout(() => canTransit(member) && startSpotlight(member), config.transitionDuration);
+        startSpotlight(member);
     });
 }
 
@@ -1706,19 +1614,12 @@ function focusOnSpeaker() {
         );
     }
 
-    transit(speaker);
-
-    stopAllMikes([speaker]);
     stopAutoSpotlight();
-
-    if (!isSpotlightOn(speaker)) {
-        spotlightAudioVideo();
-    }
-
+    stopAllMikes([speaker]);
     startVideo(speaker, () => {
         const member = getMember(roles.speaker);
         startMike(member, true);
-        setTimeout(() => canTransit(member) && startSpotlight(member), config.transitionDuration);
+        startSpotlight(member);
     });
 }
 
@@ -1771,20 +1672,18 @@ function callCommenter(name) {
 
     muteCommenters();
 
+    observed.autoSpotlight = true;
+    observed.commenting = name;
+    observed.commentersCalled = [...observed.commentersCalled, name];
+
     const member = getMember(name);
     lowerAllHands([member]);
     startMike(member);
-
-    observed.commenting = name;
-    observed.commentersCalled = [...observed.commentersCalled, name];
 }
 
 function muteCommenters() {
-    observed.commentersCalled.forEach(name => {
-        const member = getMember(name);
-        stopMike(member);
-    });
-
+    stopAutoSpotlight();
+    observed.commentersCalled.forEach(name => stopMike(getMember(name)));
     observed.commentersCalled = [];
 }
 
@@ -1942,13 +1841,11 @@ function requestApplause() {
 function finishSpeech() {
     const presidente = getMember(roles.president);
 
+    focusOnAudioVideo();
     startAllMikes();
-
-    document.querySelectorAll('.btn-feature').forEach(btn => btn.classList.add('disabled'));
 
     setTimeout(() => {
         stopAllMikes([presidente]);
-        document.querySelectorAll('.btn-feature').forEach(btn => btn.classList.remove('disabled'));
         refreshScreen();
     }, config.applauseDuration);
 
@@ -1999,7 +1896,6 @@ var observer = observer || null;
 var observed = observed || {
     commenting: null,
     commentersCalled: [],
-    transitioning: null,
     transparentMode: false,
     publicRoom: false,
     autoSpotlight: false
@@ -2014,7 +1910,6 @@ var routineWarnings = routineWarnings || {
 var config = config || {
     cache: {},
     applauseDuration: 4000,
-    transitionDuration: 3000,
     lastChange: null,
     lastValidation: null
 };
