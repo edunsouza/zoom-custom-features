@@ -1086,14 +1086,9 @@ function renderButtonsFrame() {
                             <i class="i-sm material-icons-outlined">mic_off</i>
                         </button>
                     </div>
-                    <div class="btn-group">
-                        <button hydrate="endSpeech" class="btn btn-danger btn-feature" data-q="Digite: 'FIM' para ENCERRAR DISCURSO" data-a="FIM">
-                            <i class="i-sm material-icons-outlined">voice_over_off</i>
-                        </button>
-                        <button hydrate="claps" class="btn btn-danger btn-applause btn-feature" data-q="Digite: 'CLAP' para SOLICITAR PALMAS" data-a="CLAP">
-                            <i class="i-sm material-icons-outlined">pan_tool</i> ${config.applauseDuration / 1000}s
-                        </button>
-                    </div>
+                    <button hydrate="endSpeech" class="btn btn-danger btn-feature" data-q="Digite: 'FIM' para ENCERRAR DISCURSO" data-a="FIM">
+                        Encerrar discurso <i class="i-sm material-icons-outlined">voice_over_off</i>
+                    </button>
                     <button hydrate="newFocus" class="btn btn-success btn-feature">Criar foco</button>
                     <button hydrate="renameFocus" class="btn btn-success btn-feature">Renomear foco</button>
                     <button hydrate="renameAll" class="btn btn-feature invalid-focus">Corrigir nomes</button>
@@ -1125,7 +1120,6 @@ function renderButtonsFrame() {
         micOn: { onclick: confirmAction(texasMode) },
         micOff: { onclick: confirmAction(northKoreaMode) },
         endSpeech: { onclick: confirmAction(finishSpeech) },
-        claps: { onclick: confirmAction(requestApplause) },
         newFocus: { onclick: openCustomFocusModal },
         renameFocus: { onclick: openSeeMoreModal },
         renameAll: { onclick: () => _alert('<p class="h4">Sorry, brother! Not implemented yet</p>') },
