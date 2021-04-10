@@ -1840,13 +1840,10 @@ function finishSpeech() {
 
     setTimeout(() => {
         stopAllMikes([presidente]);
+        startMike(presidente, true);
+        startSpotlight(presidente);
         refreshScreen();
     }, config.applauseDuration);
-
-    setTimeout(() => startVideo(presidente, () => {
-        startSpotlight(presidente);
-        startMike(presidente, true);
-    }), config.applauseDuration / 2);
 
     refreshScreen();
 }
