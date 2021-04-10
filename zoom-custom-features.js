@@ -1835,7 +1835,7 @@ function requestApplause() {
 function finishSpeech() {
     const presidente = getMember(roles.president);
 
-    focusOnAudioVideo();
+    spotlightAudioVideo();
     startAllMikes();
 
     setTimeout(() => {
