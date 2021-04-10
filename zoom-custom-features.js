@@ -1,12 +1,11 @@
 /*
-TO DO: Porto Seguro - Piauí
-
+- TO DO -
 PRAY:
     • Spotlight "audio e video"
     • Open prayer mic (request name/role typing)
 
 AUTO RENAME:
-    • fetch names list from backend by password (nome congregação)
+    • fetch names list from backend by password (nombre de la congregación)
     • apply autorename
     • ? option to stop auto rename ?
 */
@@ -499,9 +498,9 @@ function createCustomFocus(details, name) {
             const body = `
                 ${fields}
                 <div style="font-weight: 700; margin-top: 10px">
-                    <span style="color: #ff4242">digite "F" para FOCAR</span>
-                    <span style="color: #5cb85c">digite "C" para CHAMAR</span>
-                    <span>Use [outro texto] ou [Cancelar] ou [Confirmar] para cancelar esta ação</span>
+                    <span style="color: #ff4242">escribe "F" para ENFOCAR</span>
+                    <span style="color: #5cb85c">Escribe "C" para LLAMAR</span>
+                    <span>Utilice [otro texto] o [Cancelar] o [Confirmar] para cancelar esta acción</span>
                 </div>
             `;
             const action = await _prompt(body, name);
@@ -548,7 +547,7 @@ function createCustomFocusFields() {
     return hydrate(`
         <div class="custom-modal-fields">
             <div class="input-group custom-focus-name">
-                <input type="text" class="form-control" name="role" placeholder="Participante ou Função" />
+                <input type="text" class="form-control" name="role" placeholder="Participante o Función" />
                 <span class="input-group-btn">
                     <button hydrate="btn1" name="check-text" class="btn btn-primary">Validar texto</button>
                 </span>
@@ -565,9 +564,9 @@ function createCustomFocusFields() {
                 <input hydrate="check3" type="checkbox" class="hidden" name="useSpotlight" id="useSpotlight-${suffix}">
                 <i class="i-sm material-icons-outlined" data-on="gps_fixed" data-off="gps_not_fixed">gps_not_fixed</i>
             </label>
-            <label data-on="Solicitar Vídeo" data-off="Sem Vídeo" for="useVideo-${suffix}" style="color: #ff4242" grid-column-start: 3;">Sem Vídeo</label>
-            <label data-on="Solicitar Microfone" data-off="Sem Microfone" for="useMike-${suffix}" style="color: #5cb85c">Solicitar Microfone</label>
-            <label data-on="Com Spotlight" data-off="Sem Spotlight" for="useSpotlight-${suffix}" style="color: #ff4242">Sem Spotlight</label>
+            <label data-on="Solicitar Vídeo" data-off="Sin Vídeo" for="useVideo-${suffix}" style="color: #ff4242" grid-column-start: 3;">Sin Vídeo</label>
+            <label data-on="Solicitar Micrófono" data-off="Sin Micrófono" for="useMike-${suffix}" style="color: #5cb85c">Solicitar Micrófono</label>
+            <label data-on="Con Spotlight" data-off="Sin Spotlight" for="useSpotlight-${suffix}" style="color: #ff4242">Sin Spotlight</label>
         </div>`, {
         btn1: { onclick: validateCustomFocusTarget },
         check1: { onchange },
@@ -584,12 +583,12 @@ function createRenameRoleField(role, label) {
                 <span class="input-group-addon">${label}:</span>
                 <input hydrate="input1" value="${roles[name]}" type="text" class="form-control">
                 <span class="input-group-btn">
-                    <button hydrate="btn1" class="btn btn-primary">Salvar</button>
+                    <button hydrate="btn1" class="btn btn-primary">Guardar</button>
                 </span>
             </div>
             <span class="text-primary">${getMemberName(getMember(roles[name]))}</span>
             <span class="saved invisible">
-                <i class="i-sm material-icons-outlined">done_outline</i> Salvo!
+                <i class="i-sm material-icons-outlined">done_outline</i> Guardado!
             </span>
         </div>`, {
         input1: {
@@ -612,7 +611,7 @@ function createRenameRoleField(role, label) {
                 const row = target.closest('.rename-role');
                 const newRole = getCleanText(row.querySelector('input').value);
                 if (!newRole) {
-                    _alert('É necessário informar um indentificador');
+                    _alert('Es necesario indicar un identificador');
                 } else if (newRole !== roles[name]) {
                     row.querySelector('.saved').classList.remove('invisible');
                     roles[name] = newRole;
@@ -880,7 +879,7 @@ function refreshAttendanceCount() {
     if (config.cache.updateAttendance !== newCache) {
         config.cache.updateAttendance = newCache;
         document.getElementById(generalIDs.counted).innerText = `${attendance.counted} identificado(s)`;
-        document.getElementById(generalIDs.notCounted).innerText = `${attendance.notCounted} não identificado(s)`;
+        document.getElementById(generalIDs.notCounted).innerText = `${attendance.notCounted} no identificado(s)`;
     }
 }
 
@@ -913,7 +912,7 @@ function refreshCustomFocusButtons() {
         const isValid = validate();
         ul.appendChild(hydrate(`
             <li class="btn-custom-focus">
-                <button hydrate="btn1" ${!isValid && 'disabled'} class="btn-sm">${isValid ? name : 'Não encontrado!'}</button>
+                <button hydrate="btn1" ${!isValid && 'disabled'} class="btn-sm">${isValid ? name : 'No encontrado!'}</button>
                 <i hydrate="icon1" class="i-sm material-icons-outlined" style="font-size: 22px; cursor: pointer">cancel</i>
             </li>`, {
             btn1: { onclick: e => !e.target.attributes.disabled && click() },
@@ -954,7 +953,7 @@ function updateMikesOn(ul) {
 
 function updateVideosOn(ul) {
     updateContextMenu(ul, 'videosOn', [{
-        text: 'Desligar vídeo',
+        text: 'Apagar vídeo',
         onclick: name => stopVideo(getMember(name))
     }]);
 }
@@ -992,13 +991,13 @@ function renderCustomFocusModal() {
                 <span name="error-placeholder"></span>
             </div>
             <div class="custom-modal-options">
-                <button hydrate="add" class="btn btn-success">Novo participante</button>
-                <button hydrate="save" class="btn btn-primary">Salvar</button>
-                <button hydrate="cancel" class="btn btn-primary-outline btn-close-modal">Cancelar</button>
+                <button hydrate="add" class="btn btn-success">Nuevo participante</button>
+                <button hydrate="save" class="btn btn-primary">Guardar</button>
+                <button hydrate="cancel" class="btn btn-primary-outline btn-close-modal">Anular</button>
             </div>
             <div class="input-group" style="margin: auto 5px;">
-                <span class="input-group-addon">Informe o nome do botão:</span>
-                <input name="custom-focus-name" type="text" class="form-control" placeholder="Primeira Visita">
+                <span class="input-group-addon">Introduzca el nombre del botón:</span>
+                <input name="custom-focus-name" type="text" class="form-control" placeholder="Primera Visita">
             </div>
         </div>`, {
         add: { onclick: () => document.querySelector('.custom-modal-body').appendChild(createCustomFocusFields()) },
@@ -1023,8 +1022,8 @@ function renderCustomFocusModal() {
 function renderSeeMoreModal() {
     const modal = hydrate(`
         <div class="custom-modal-body" style="display: block; position: relative">
-            <button hydrate="close" class="btn btn-primary-outline btn-close-modal">Fechar</button>
-            <h4>Digite a nova palavra chave e pressione <strong>Salvar</strong></h4>
+            <button hydrate="close" class="btn btn-primary-outline btn-close-modal">Cerrar</button>
+            <h4>Escriba la nueva palabra clave y pulse <strong>Guardar</strong></h4>
         </div>`, {
         close: { onclick: closeCustomModal },
     });
@@ -1043,7 +1042,7 @@ function renderButtonsFrame() {
         const { dataset: { q, a } } = target.closest('button');
         const answer = await _prompt(`<span class="h4">${q}</span>`);
         if (typeof answer === 'string') {
-            return answer.toLowerCase() === a.toLowerCase() ? callback() : _alert('Texto incorreto! Ação não executada.');
+            return answer.toLowerCase() === a.toLowerCase() ? callback() : _alert('¡Texto incorrecto! Acción no ejecutada.');
         }
     };
 
@@ -1052,16 +1051,16 @@ function renderButtonsFrame() {
     const buttonsFrame = hydrate(`
         <div class="buttons-frame">
             <div>
-                <div class="buttons-title">Vídeo e Microfone</div>
+                <div class="buttons-title">Vídeo y Micrófono</div>
                 <div class="call-member-frame">
-                    <button hydrate="call1" data-role="conductor" class="btn btn-success btn-feature">Dirigente</button>
-                    <button hydrate="call2" data-role="reader" class="btn btn-success btn-feature">Leitor</button>
+                    <button hydrate="call1" data-role="conductor" class="btn btn-success btn-feature">Conductor</button>
+                    <button hydrate="call2" data-role="reader" class="btn btn-success btn-feature">Lector</button>
                     <button hydrate="call3" data-role="president" class="btn btn-warning btn-feature">Presidente</button>
                     ${isWeekend ? `
                     <button hydrate="call4" data-role="speaker" class="btn btn-success btn-feature">Orador</button>
                     ` : `
-                    <button hydrate="call5" data-role="treasures" class="btn btn-success btn-feature">Tesouros</button>
-                    <button hydrate="call6" data-role="gems" class="btn btn-success btn-feature">Jóias</button>
+                    <button hydrate="call5" data-role="treasures" class="btn btn-success btn-feature">Tesoros</button>
+                    <button hydrate="call6" data-role="gems" class="btn btn-success btn-feature">Perlas</button>
                     <button hydrate="call7" data-role="bible" class="btn btn-success btn-feature">Bíblia</button>
                     <button hydrate="call8" data-role="living1" class="btn btn-success btn-feature">Vida-1</button>
                     <button hydrate="call9" data-role="living2" class="btn btn-success btn-feature">Vida-2</button>
@@ -1069,16 +1068,16 @@ function renderButtonsFrame() {
                 </div>
             </div>
             <div>
-                <div class="buttons-title">Spotlight, Vídeo e Microfone</div>
+                <div class="buttons-title">Spotlight, Vídeo y Micrófono</div>
                 <div class="focus-on-frame">
-                    <button hydrate="focus1" data-role="conductor" class="btn btn-primary btn-feature">Dirigente</button>
-                    <button hydrate="focus2" data-role="reader" class="btn btn-primary btn-feature">Leitor</button>
+                    <button hydrate="focus1" data-role="conductor" class="btn btn-primary btn-feature">Conductor</button>
+                    <button hydrate="focus2" data-role="reader" class="btn btn-primary btn-feature">Lector</button>
                     <button hydrate="focus3" data-role="president" class="btn btn-warning btn-feature">Presidente</button>
                     ${isWeekend ? `
                     <button hydrate="focus4" data-role="speaker" class="btn btn-primary btn-feature">Orador</button>
                     ` : `
-                    <button hydrate="focus5" data-role="treasures" class="btn btn-primary btn-feature">Tesouros</button>
-                    <button hydrate="focus6" data-role="gems" class="btn btn-primary btn-feature">Jóias</button>
+                    <button hydrate="focus5" data-role="treasures" class="btn btn-primary btn-feature">Tesoros</button>
+                    <button hydrate="focus6" data-role="gems" class="btn btn-primary btn-feature">Perlas</button>
                     <button hydrate="focus7" data-role="bible" class="btn btn-primary btn-feature">Bíblia</button>
                     <button hydrate="focus8" data-role="living1" class="btn btn-primary btn-feature">Vida-1</button>
                     <button hydrate="focus9" data-role="living2" class="btn btn-primary btn-feature">Vida-2</button>
@@ -1087,32 +1086,32 @@ function renderButtonsFrame() {
             </div>
             <div>
                 <span class="buttons-title close-feature-frame">
-                    <span style="grid-column-start: 2">Ações</span>
+                    <span style="grid-column-start: 2">Acciones</span>
                     <i hydrate="icon1" class="i-sm material-icons-outlined btn-close">cancel</i>
                 </span>
                 <div class="feature-frame">
                     <div class="btn-group">
-                        <button hydrate="micOn" class="btn btn-danger btn-feature" data-q="Digite: 'TUDO' para LIGAR MICROFONES" data-a="TUDO">
+                        <button hydrate="micOn" class="btn btn-danger btn-feature" data-q="Escriba: 'TODO' para ENCEDER MICRÓFONOS" data-a="TODO">
                             <i class="i-sm material-icons-outlined">mic_none</i>
                         </button>
-                        <button hydrate="micOff" class="btn btn-danger btn-feature" data-q="Digite: 'NADA' para DESLIGAR MICROFONES" data-a="NADA">
+                        <button hydrate="micOff" class="btn btn-danger btn-feature" data-q="Escribe: 'NADA' para APAGAR MICRÓFONOS" data-a="NADA">
                             <i class="i-sm material-icons-outlined">mic_off</i>
                         </button>
                     </div>
                     <div class="btn-group">
-                        <button hydrate="endSpeech" class="btn btn-danger btn-feature" data-q="Digite: 'FIM' para ENCERRAR DISCURSO" data-a="FIM">
+                        <button hydrate="endSpeech" class="btn btn-danger btn-feature" data-q="Escribe: 'FIN' para TERMINAR DISCURSO" data-a="FIN">
                             <i class="i-sm material-icons-outlined">voice_over_off</i>
                         </button>
-                        <button hydrate="claps" class="btn btn-danger btn-applause btn-feature" data-q="Digite: 'CLAP' para SOLICITAR PALMAS" data-a="CLAP">
+                        <button hydrate="claps" class="btn btn-danger btn-applause btn-feature" data-q="Escribe: 'CLAP' para SOLICITAR PALMAS" data-a="CLAP">
                             <i class="i-sm material-icons-outlined">pan_tool</i> ${config.applauseDuration / 1000}s
                         </button>
                     </div>
-                    <button hydrate="newFocus" class="btn btn-success btn-feature">Criar foco</button>
-                    <button hydrate="renameFocus" class="btn btn-success btn-feature">Renomear foco</button>
-                    <button hydrate="renameAll" class="btn btn-feature invalid-focus">Corrigir nomes</button>
-                    <button hydrate="mikePlusAv" class="btn btn-feature invalid-focus">Oração</button>
-                    <button hydrate="spotlightAv" class="btn btn-primary btn-feature">Imagens</button>
-                    <button hydrate="focusAv" class="btn btn-primary btn-feature">Cântico/Vídeos</button>
+                    <button hydrate="newFocus" class="btn btn-success btn-feature">Crear foco</button>
+                    <button hydrate="renameFocus" class="btn btn-success btn-feature">Cambiar foco</button>
+                    <button hydrate="renameAll" class="btn btn-feature invalid-focus">Corregir nombres</button>
+                    <button hydrate="mikePlusAv" class="btn btn-feature invalid-focus">Oración</button>
+                    <button hydrate="spotlightAv" class="btn btn-primary btn-feature">Imágenes</button>
+                    <button hydrate="focusAv" class="btn btn-primary btn-feature">Canción/Video</button>
                 </div>
             </div>
         </div>`, {
@@ -1171,7 +1170,7 @@ function renderOptionsFrame() {
                 <span id="${generalIDs.counted}">Contados: ${counted}</span>
                 <span style="margin: 0px 5px">|</span>
                 <i style="color: #ff4242" class="i-sm material-icons-outlined">airline_seat_recline_normal</i>
-                <span id="${generalIDs.notCounted}">Não contados: ${notCounted}</span>
+                <span id="${generalIDs.notCounted}">No contados: ${notCounted}</span>
             </div>
         </div>`, {
         check1: {
@@ -1200,30 +1199,30 @@ function renderServicesFrame() {
     return hydrate(`
         <div class="routines-frame">
             <div class="routine-div">
-                <p>Nomes inválidos</p>
+                <p>Nombres no válidos</p>
                 <ul id="${generateId('invalidNames')}"></ul>
             </div>
             <div class="routine-div">
-                <p>Microfones ligados</p>
+                <p>Mícrofonos encendidos</p>
                 <ul id="${generateId('mikesOn')}"></ul>
             </div>
             <div class="routine-div">
-                <p>Rodando (marque para abortar)</p>
+                <p>Ejecutando (marque para interrumpir)</p>
                 <ul id="${generateId('continuousAttempts')}"></ul>
             </div>
             <div class="routine-div">
-                <p>Vídeos ligados</p>
+                <p>Videos encendidos</p>
                 <ul id="${generateId('videosOn')}"></ul>
             </div>
             <div class="routine-div custom-grid">
-                <p>Foco customizado</p>
+                <p>Foco personalizado</p>
                 <ul id="${generateId('customFocus')}"></ul>
             </div>
             <div class="routine-div comments-grid">
-                <p>Comentários</p>
+                <p>Comentarios</p>
                 <div id="quick-actions">
-                    <button hydrate="btn1" class="btn btn-xs btn-primary">Silenciar comentários</button>
-                    <button hydrate="btn2" class="btn btn-xs btn-success">Abaixar mãos</button>
+                    <button hydrate="btn1" class="btn btn-xs btn-primary">Silenciar comentarios</button>
+                    <button hydrate="btn2" class="btn btn-xs btn-success">Bajar las manos</button>
                 </div>
                 <ul id="raised-hands"></ul>
             </div>
@@ -1244,7 +1243,7 @@ function renderPopup({ type, title, text, onConfirm = Function, onHide = Functio
             <input hydrate="input" type="text" class="${hideIfAlert} form-control"/>
 
             <div class="actions">
-                <button hydrate="cancel" type="text" class="${hideIfAlert} btn btn-primary-outline">Cancelar</button>
+                <button hydrate="cancel" type="text" class="${hideIfAlert} btn btn-primary-outline">Anular</button>
                 <button hydrate="confirm" type="text" class="btn btn-primary">Confirmar</button>
             </div>
         </div>`, {
@@ -1355,9 +1354,9 @@ function validateCustomFocusTarget({ target }) {
     } else {
         classList.add('alert-danger');
         const body = value
-            ? `Termo procurado: <strong>${value.toUpperCase()}</strong>`
-            : `Informe alguma parte do nome do participante`
-        _alert(`<span class="h4">${body}</span>`, 'Nenhum participante encontrado');
+            ? `Término buscado: <strong>${value.toUpperCase()}</strong>`
+            : `Introduzca alguna parte del nombre del participante`
+        _alert(`<span class="h4">${body}</span>`, 'No se han encontrado participantes');
     }
 }
 
@@ -1370,7 +1369,7 @@ function validateCustomFocusFields() {
 
     if (!focusNameInput.value) {
         focusNameInput.classList.add(errorStyle);
-        errorSpan.innerText = 'Informe nome para o novo botão. Preencha o(s) campo(s) em vermelho';
+        errorSpan.innerText = 'Introduzca nombre para el nuevo botón. Rellene el(los) campo(s) en rojo';
         errorSpan.parentElement.style.display = 'block';
         return;
     }
@@ -1393,7 +1392,7 @@ function validateCustomFocusFields() {
     });
 
     if (hasError) {
-        errorSpan.innerText = 'Preencha o(s) campo(s) em vermelho e selecione "validar texto"';
+        errorSpan.innerText = 'Rellene el(los) campo(s) en rojo y seleccione "validar texto"';
         errorSpan.parentElement.style.display = 'block';
         return;
     }
@@ -1584,7 +1583,7 @@ function focusOn(role) {
     const target = getMember(role);
 
     if (!role || !target) {
-        return _alert(`Participante: "${role}" não encontrado`);
+        return _alert(`Participante: "${role}" no encontrado`);
     }
 
     transit(target);
@@ -1609,8 +1608,8 @@ function focusOnConductor() {
 
     if (!conductor) {
         return _alert(`
-            <h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>Anthony Morris - ${roles.conductor}</strong></h5>`,
-            'Dirigente não informado'
+            <h5>Con permiso de host identifíquese renombrando.<br/><br/>Ejemplo: <strong>Anthony Morris - ${roles.conductor}</strong></h5>`,
+            'Conductor no informado'
         );
     }
 
@@ -1642,8 +1641,8 @@ function focusOnReader() {
 
     if (!reader) {
         return _alert(
-            `<h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>David Splane - ${roles.reader}</strong></h5>`,
-            'Leitor não informado'
+            `<h5>Con permiso de host identifíquese renombrando.<br/><br/>Ejemplo: <strong>David Splane - ${roles.reader}</strong></h5>`,
+            'Lector no informado'
         );
     }
 
@@ -1675,8 +1674,8 @@ function focusOnPresident() {
 
     if (!president) {
         return _alert(
-            `<h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>Geoffrey Jackson - ${roles.president}</strong></h5>`,
-            'Presidente não informado'
+            `<h5>Con permiso de host identifíquese renombrando.<br/><br/>Ejemplo: <strong>Geoffrey Jackson - ${roles.president}</strong></h5>`,
+            'Presidente no informado'
         );
     }
 
@@ -1701,8 +1700,8 @@ function focusOnSpeaker() {
 
     if (!speaker) {
         return _alert(
-            `<h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>Gerrit Losch - ${roles.speaker}</strong></h5>`,
-            'Orador não informado'
+            `<h5>Con permiso de host identifíquese renombrando.<br/><br/>Ejemplo: <strong>Gerrit Losch - ${roles.speaker}</strong></h5>`,
+            'Orador no informado'
         );
     }
 
@@ -1727,8 +1726,8 @@ function focusOnAudioVideo() {
 
     if (!av) {
         return _alert(
-            `<h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>Stephen Lett - ${roles.av}</strong></h5>`,
-            '"Áudio e Vídeo" não informado'
+            `<h5>Con permiso de host identifíquese renombrando.<br/><br/>Ejemplo: <strong>Stephen Lett - ${roles.av}</strong></h5>`,
+            '"Áudio e Vídeo" no informado'
         );
     }
 
@@ -1746,8 +1745,8 @@ function spotlightAudioVideo() {
 
     if (!member) {
         return _alert(
-            `<h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>Stephen Lett - ${roles.av}</strong></h5>`,
-            '"Áudio e Vídeo" não informado'
+            `<h5>Con permiso de host identifíquese renombrando.<br/><br/>Ejemplo: <strong>Stephen Lett - ${roles.av}</strong></h5>`,
+            '"Áudio e Vídeo" no informado'
         );
     }
 
@@ -1758,7 +1757,7 @@ function callMember(role) {
     const target = getMember(role);
 
     if (!role || !target) {
-        return _alert(`Participante: "${role}" não encontrado`);
+        return _alert(`Participante: "${role}" no encontrado`);
     }
 
     startVideo(target, () => startMike(getMember(role), true));
@@ -1805,7 +1804,7 @@ function fetchAutoRenameSettings(id) {
         }
     }).then(async data => {
         const resp = await data.json();
-        _alert(resp.success ? resp.message : 'Não foi possível obter nomes a renomear');
+        _alert(resp.success ? resp.message : 'No se pueden obtener nombres para cambiar el nombre');
     }).catch(err => _alert(err));
 }
 
@@ -1970,12 +1969,12 @@ var generalIDs = {
 };
 var roles = {
     av: 'audio e video',
-    conductor: 'dirigente',
+    conductor: 'conductor',
     president: 'presidente',
-    reader: 'leitor',
+    reader: 'lector',
     speaker: 'orador',
-    treasures: 'tesouros',
-    gems: 'joias',
+    treasures: 'tesoros',
+    gems: 'perlas',
     bible: 'biblia',
     living1: 'vida-1',
     living2: 'vida-2'
@@ -2030,7 +2029,7 @@ try {
     console.clear();
 } catch (erro) {
     _alert(`
-        Erro ao executar o script!
-        Possível solução: diminuir o tamanho do painel de execução de script (console do navegador)
+        ¡Error al ejecutar el script!
+        Posible solución: reducir el tamaño del panel de ejecución de script (consola del navegador)
     `);
 }
