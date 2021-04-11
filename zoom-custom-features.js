@@ -1099,20 +1099,13 @@ function renderButtonsFrame() {
                             <i class="i-sm material-icons-outlined">mic_off</i>
                         </button>
                     </div>
-                    <div class="btn-group">
-                        <button hydrate="endSpeech" class="btn btn-danger btn-feature" data-q="Digite: 'FIM' para ENCERRAR DISCURSO" data-a="FIM">
-                            <i class="i-sm material-icons-outlined">voice_over_off</i>
-                        </button>
-                        <button hydrate="claps" class="btn btn-danger btn-applause btn-feature" data-q="Digite: 'CLAP' para SOLICITAR PALMAS" data-a="CLAP">
-                            <i class="i-sm material-icons-outlined">pan_tool</i> ${config.applauseDuration / 1000}s
-                        </button>
-                    </div>
+                    <button hydrate="endSpeech" class="btn btn-danger btn-feature" data-q="Digite: 'FIM' para ENCERRAR DISCURSO" data-a="FIM">
+                        <i class="i-sm material-icons-outlined">voice_over_off</i>
+                    </button>
                     <button hydrate="newFocus" class="btn btn-success btn-feature">Criar foco</button>
                     <button hydrate="renameFocus" class="btn btn-success btn-feature">Renomear foco</button>
                     <button hydrate="renameAll" class="btn btn-feature invalid-focus">Corrigir nomes</button>
                     <button hydrate="mikePlusAv" class="btn btn-feature invalid-focus">Oração</button>
-                    <button hydrate="spotlightAv" class="btn btn-primary btn-feature">Imagens</button>
-                    <button hydrate="focusAv" class="btn btn-primary btn-feature">Cântico/Vídeos</button>
                 </div>
             </div>
         </div>`, {
@@ -1154,7 +1147,7 @@ function renderOptionsFrame() {
     const { counted, notCounted } = countAttendance();
     return hydrate(`
         <div class="options-frame">
-            <div class="config-item">
+            <div class="config-item hidden">
                 <input hydrate="check1" id="transparent-mode" type="checkbox"/>
                 <label for="transparent-mode">Modo transparente</label>
             </div>
@@ -1166,7 +1159,7 @@ function renderOptionsFrame() {
                 <input hydrate="check3" id="auto-spotlight" type="checkbox" ${observed.autoSpotlight && 'checked'}/>
                 <label for="auto-spotlight">Spotlight automático</label>
             </div>
-            <div class="config-item">
+            <div class="config-item hidden">
                 <i style="color: #5cb85c" class="i-sm material-icons-outlined">airline_seat_recline_normal</i>
                 <span id="${generalIDs.counted}">Contados: ${counted}</span>
                 <span style="margin: 0px 5px">|</span>
