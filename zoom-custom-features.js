@@ -1551,8 +1551,8 @@ function sendEmail() {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            assistencia: countAttendance().counted,
-            congregacao: 'Nordeste'
+            attendance: countAttendance().counted,
+            id: 'Nordeste'
         })
     }).then(async data => {
         const resp = await data.json();
