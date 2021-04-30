@@ -2,14 +2,17 @@ const { google } = require('googleapis');
 const { allowCors } = require('../helpers');
 
 let sheetsAPI = null;
-const keyFile = 'secret/index.json';
-const scopes = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
+const private_key = process.env.GOOGLE_API_KEY;
+const client_email = process.env.GOOGLE_API_EMAIL;
 
 async function getSheet(spreadsheetId, range) {
 	if (sheetsAPI === null) {
 		sheetsAPI = google.sheets({
 			version: 'v4',
-			auth: new google.auth.GoogleAuth({ keyFile, scopes })
+			auth: new google.auth.GoogleAuth({
+				credentials: { private_key, client_email },
+				scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
+			})
 		});
 	}
 
