@@ -1,4 +1,9 @@
 {
+	"functions": {
+        "api/rename-list.js": {
+            "includeFiles": "secret/**"
+        }
+    },
     "routes": [
         {
             "src": "/",
@@ -6,6 +11,13 @@
                 "Access-Control-Allow-Origin": "*"
             },
             "dest": "/zoom-custom-features.js"
+        },
+        {
+            "src": "/icons",
+            "headers": {
+                "Access-Control-Allow-Origin": "*"
+            },
+            "dest": "/public/custom-icons.css"
         },
         {
             "src": "/porto-seguro",
