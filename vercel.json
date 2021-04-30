@@ -1,44 +1,51 @@
 {
-	"functions": {
-        "api/rename-list.js": {
-            "includeFiles": "secret/**"
-        }
-    },
-    "routes": [
-        {
-            "src": "/",
-            "headers": {
-                "Access-Control-Allow-Origin": "*"
-            },
-            "dest": "/zoom-custom-features.js"
-        },
-        {
-            "src": "/icons",
-            "headers": {
-                "Access-Control-Allow-Origin": "*"
-            },
-            "dest": "/public/custom-icons.css"
-        },
-        {
-            "src": "/porto-seguro",
-            "headers": {
-                "Access-Control-Allow-Origin": "*"
-            },
-            "dest": "https://raw.githubusercontent.com/edunsouza/zoom-custom-features/porto-seguro/zoom-custom-features.js"
-        },
-        {
-            "src": "/piaui",
-            "headers": {
-                "Access-Control-Allow-Origin": "*"
-            },
-            "dest": "https://raw.githubusercontent.com/edunsouza/zoom-custom-features/piaui/zoom-custom-features.js"
-        },
-        {
-            "src": "/es",
-            "headers": {
-                "Access-Control-Allow-Origin": "*"
-            },
-            "dest": "https://raw.githubusercontent.com/edunsouza/zoom-custom-features/es/zoom-custom-features.js"
-        }
-    ]
+	"cleanUrls": true,
+	"trailingSlash": false,
+	"headers": [
+		{
+			"source": "/(.*)",
+			"headers": [
+				{
+					"key": "Access-Control-Allow-Origin",
+					"value": "*"
+				}
+			]
+		}
+	],
+	"builds": [
+		{
+			"src": "public/*",
+			"use": "@vercel/static"
+		},
+		{
+			"src": "zoom-custom-features.js",
+			"use": "@vercel/static"
+		},
+		{
+			"src": "api/*.js",
+			"use": "@vercel/node"
+		}
+	],
+	"rewrites": [
+		{
+			"source": "/",
+			"destination": "/zoom-custom-features.js"
+		},
+		{
+			"source": "/api/:match*",
+			"destination": "/api/:match*.js"
+		},
+		{
+			"source": "/porto-seguro",
+			"destination": "https://raw.githubusercontent.com/edunsouza/zoom-custom-features/porto-seguro/zoom-custom-features.js"
+		},
+		{
+			"source": "/piaui",
+			"destination": "https://raw.githubusercontent.com/edunsouza/zoom-custom-features/piaui/zoom-custom-features.js"
+		},
+		{
+			"source": "/es",
+			"destination": "https://raw.githubusercontent.com/edunsouza/zoom-custom-features/es/zoom-custom-features.js"
+		}
+	]
 }
