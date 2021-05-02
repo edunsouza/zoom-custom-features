@@ -1,13 +1,8 @@
 /*
-AUTO RENAME:
+	TODO: AUTO RENAME
 	• fetch names list from backend by password
 	• apply autorename
 */
-
-
-
-
-
 
 
 function createDomObserver() {
@@ -999,13 +994,13 @@ function renderCustomFocusModal() {
                 <span name="error-placeholder"></span>
             </div>
             <div class="custom-modal-options">
-                <button hydrate="add" class="btn btn-success">Novo participante</button>
-                <button hydrate="save" class="btn btn-primary">Salvar</button>
-                <button hydrate="cancel" class="btn btn-primary-outline btn-close-modal">Cancelar</button>
+                <button hydrate="add" class="btn btn-success">${wording.newParticipant}</button>
+                <button hydrate="save" class="btn btn-primary">${wording.save}</button>
+                <button hydrate="cancel" class="btn btn-primary-outline btn-close-modal">${wording.cancel}</button>
             </div>
             <div class="input-group" style="margin: auto 5px;">
-                <span class="input-group-addon">Informe o nome do botão:</span>
-                <input name="custom-focus-name" type="text" class="form-control" placeholder="Primeira visita/conversa, estudo bíblico, discurso ou oração">
+                <span class="input-group-addon">${wording.informButtonName}:</span>
+                <input name="custom-focus-name" type="text" class="form-control" placeholder="${wording.customFocusPlaceholder}">
             </div>
         </div>`, {
 		add: { onclick: () => document.querySelector('.custom-modal-body').appendChild(createCustomFocusFields()) },
@@ -1907,6 +1902,23 @@ var uiLabels = {
 	allowMikes: [langResource['apac.wc_allow_unmute']],
 	muteOnEntry: [langResource['apac.wc_mute_participants_on_entry']],
 };
+var wording = {
+	pt: {
+		newParticipant: 'Novo participante',
+		save: 'Salvar',
+		cancel: 'Cancelar',
+		informButtonName: 'Informe o nome do botão',
+		customFocusPlaceholder: 'Primeira visita/conversa, estudo bíblico, discurso ou oração',
+	},
+	es: {
+		newParticipant: 'Nuevo participante',
+		save: 'Guardar',
+		cancel: 'Cancelar',
+		informButtonName: 'Informe o nome do botão',
+		customFocusPlaceholder: 'Primeira visita/conversa, estudo bíblico, discurso ou oração',
+	}
+}[MeetingConfig.lang === 'es' ? 'es' : 'pt'];
+
 /* SETTINGS AND CONTROLS */
 var runningIntervals = runningIntervals || {};
 var observer = observer || null;
