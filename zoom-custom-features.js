@@ -1,8 +1,4 @@
 /*
-PRAY:
-	• spotlight "audio e video"
-	• open prayer mic
-
 AUTO RENAME:
 	• fetch names list from backend by password
 	• apply autorename
@@ -163,6 +159,14 @@ function createCss() {
             grid-template-columns: 1fr 1fr;
             gap: 5px;
         }
+		.call-member-frame {
+			height: 200px;
+			width: 260px;
+		}
+		.focus-on-frame {
+			height: 200px;
+			width: 350px;
+		}
         .feature-frame .btn-group { display: flex; }
         .feature-frame .btn-group > button { flex: 1; }
         .hidden { display: none; }
@@ -175,10 +179,12 @@ function createCss() {
         }
         .btn-feature {
             display: flex;
+			flex-direction: row-reverse;
             justify-content: space-evenly;
             align-items: center;
             font-size: 14px;
             opacity: 0.8;
+			min-height: 40px;
             font-weight: 500;
         }
         .custom-focus-name {
@@ -277,6 +283,7 @@ function createCss() {
             background-color: #23272b;
             text-align: center;
             color: white;
+			border: 1px solid transparent;
         }
         .routine-div ul {
             list-style-type: none;
@@ -317,12 +324,20 @@ function createCss() {
             grid-template-columns: 1fr 1fr;
             min-height: 25px;
         }
-        #quick-actions button { border-radius: 0px; }
+        #quick-actions button {
+            display: flex;
+            align-items: center;
+            border-radius: 0px;
+            justify-content: space-evenly;
+        }
+		#quick-actions button:first-child { border-radius: 0 0 0 5px; }
+		#quick-actions button:last-child { border-radius: 0 0 5px 0; }
         #quick-actions span {
             font-size: 10px;
             overflow: hidden;
             text-overflow: ellipsis;
         }
+		#raised-hands { padding-left: 10px; }
         .quick-note {
             display: flex;
             align-items: center;
@@ -551,7 +566,7 @@ function createCustomFocusFields() {
                 </span>
             </div>
             <label>
-                <input hydrate="check1" type="checkbox" class="hidden" name="useVideo" id="useVideo-${suffix}">
+                <input hydrate="check1" type="checkbox" class="hidden" name="useVideo" id="useVideo-${suffix}" checked>
                 <i class="i-sm material-icons-outlined" data-on="videocam" data-off="videocam_off">videocam_off</i>
             </label>
             <label>
@@ -562,7 +577,7 @@ function createCustomFocusFields() {
                 <input hydrate="check3" type="checkbox" class="hidden" name="useSpotlight" id="useSpotlight-${suffix}">
                 <i class="i-sm material-icons-outlined" data-on="gps_fixed" data-off="gps_not_fixed">gps_not_fixed</i>
             </label>
-            <label data-on="Solicitar Vídeo" data-off="Sem Vídeo" for="useVideo-${suffix}" style="color: #ff4242" grid-column-start: 3;">Sem Vídeo</label>
+            <label data-on="Solicitar Vídeo" data-off="Sem Vídeo" for="useVideo-${suffix}" style="color: #5cb85c" grid-column-start: 3;">Solicitar Vídeo</label>
             <label data-on="Solicitar Microfone" data-off="Sem Microfone" for="useMike-${suffix}" style="color: #5cb85c">Solicitar Microfone</label>
             <label data-on="Com Spotlight" data-off="Sem Spotlight" for="useSpotlight-${suffix}" style="color: #ff4242">Sem Spotlight</label>
         </div>`, {
@@ -859,7 +874,7 @@ function refreshRaisedHands() {
 		list.appendChild(hydrate(`
             <li>
                 <button hydrate="btn1" data-member="${name}" class="btn-xs btn-commenters">
-                    <i data-member="${name}" class="material-icons-outlined">mic_none</i>
+                    <i data-member="${name}" class="material-icons-outlined">back_hand</i>
                     <span data-member="${name}">${name}</span>
                 </button>
             </li>`, {
@@ -982,7 +997,7 @@ function renderCustomFocusModal() {
             </div>
             <div class="input-group" style="margin: auto 5px;">
                 <span class="input-group-addon">Informe o nome do botão:</span>
-                <input name="custom-focus-name" type="text" class="form-control" placeholder="Primeira Visita">
+                <input name="custom-focus-name" type="text" class="form-control" placeholder="Primeira visita/conversa, estudo bíblico, discurso ou oração">
             </div>
         </div>`, {
 		add: { onclick: () => document.querySelector('.custom-modal-body').appendChild(createCustomFocusFields()) },
@@ -1008,7 +1023,7 @@ function renderSeeMoreModal() {
 	const modal = hydrate(`
         <div class="custom-modal-body" style="display: block; position: relative">
             <button hydrate="close" class="btn btn-primary-outline btn-close-modal">Fechar</button>
-            <h4>Digite a nova palavra chave e pressione <strong>Salvar</strong></h4>
+            <h4>Digite o nome do participante e pressione <strong>Salvar</strong></h4>
         </div>`, {
 		close: { onclick: closeCustomModal },
 	});
@@ -1036,7 +1051,7 @@ function renderButtonsFrame() {
 	const buttonsFrame = hydrate(`
         <div class="buttons-frame">
             <div>
-                <div class="buttons-title">Vídeo e Microfone</div>
+                <div class="buttons-title">Chamar</div>
                 <div class="call-member-frame">
                     <button hydrate="call1" data-role="conductor" class="btn btn-success btn-feature">Dirigente</button>
                     <button hydrate="call2" data-role="reader" class="btn btn-success btn-feature">Leitor</button>
@@ -1053,19 +1068,19 @@ function renderButtonsFrame() {
                 </div>
             </div>
             <div>
-                <div class="buttons-title">Spotlight, Vídeo e Microfone</div>
+                <div class="buttons-title">Focar</div>
                 <div class="focus-on-frame">
-                    <button hydrate="focus1" data-role="conductor" class="btn btn-primary btn-feature">Dirigente</button>
-                    <button hydrate="focus2" data-role="reader" class="btn btn-primary btn-feature">Leitor</button>
-                    <button hydrate="focus3" data-role="president" class="btn btn-warning btn-feature">Presidente</button>
+                    <button hydrate="focus1" data-role="conductor" class="btn btn-primary btn-feature">Dirigente <i class="i-sm material-icons-outlined">group</i> </button>
+                    <button hydrate="focus2" data-role="reader" class="btn btn-primary btn-feature">Leitor <i class="i-sm material-icons-outlined">supervisor_account</i> </button>
+                    <button hydrate="focus3" data-role="president" class="btn btn-warning btn-feature">Presidente <i class="i-sm material-icons-outlined">person</i> </button>
                     ${isWeekend ? `
-                    <button hydrate="focus4" data-role="speaker" class="btn btn-primary btn-feature">Orador</button>
+                    <button hydrate="focus4" data-role="speaker" class="btn btn-primary btn-feature">Orador <i class="i-sm material-icons-outlined">record_voice_over</i> </button>
                     ` : `
-                    <button hydrate="focus5" data-role="treasures" class="btn btn-primary btn-feature">Tesouros</button>
-                    <button hydrate="focus6" data-role="gems" class="btn btn-primary btn-feature">Jóias</button>
-                    <button hydrate="focus7" data-role="bible" class="btn btn-primary btn-feature">Bíblia</button>
-                    <button hydrate="focus8" data-role="living1" class="btn btn-primary btn-feature">Vida-1</button>
-                    <button hydrate="focus9" data-role="living2" class="btn btn-primary btn-feature">Vida-2</button>
+                    <button hydrate="focus5" data-role="treasures" class="btn btn-primary btn-feature">Tesouros <i class="i-sm material-icons-outlined">emoji_events</i> </button>
+                    <button hydrate="focus6" data-role="gems" class="btn btn-primary btn-feature">Jóias <i class="i-sm material-icons-outlined">wb_iridescent</i> </button>
+                    <button hydrate="focus7" data-role="bible" class="btn btn-primary btn-feature">Bíblia <i class="i-sm material-icons-outlined">menu_book</i> </button>
+                    <button hydrate="focus8" data-role="living1" class="btn btn-primary btn-feature">Vida-1 <i class="i-sm material-icons-outlined">looks_one</i> </button>
+                    <button hydrate="focus9" data-role="living2" class="btn btn-primary btn-feature">Vida-2 <i class="i-sm material-icons-outlined">looks_two</i> </button>
                     `}
                 </div>
             </div>
@@ -1076,22 +1091,19 @@ function renderButtonsFrame() {
                 </span>
                 <div class="feature-frame">
                     <div class="btn-group">
-                        <button hydrate="micOn" class="btn btn-danger btn-feature" data-q="Digite: 'TUDO' para LIGAR MICROFONES" data-a="TUDO">
+                        <button hydrate="micOn" class="btn btn-danger btn-feature" data-q="Digite: 'ON' para LIGAR MICROFONES" data-a="ON">
                             <i class="i-sm material-icons-outlined">mic_none</i>
                         </button>
-                        <button hydrate="micOff" class="btn btn-danger btn-feature" data-q="Digite: 'NADA' para DESLIGAR MICROFONES" data-a="NADA">
+                        <button hydrate="micOff" class="btn btn-danger btn-feature" data-q="Digite: 'OFF' para DESLIGAR MICROFONES" data-a="OFF">
                             <i class="i-sm material-icons-outlined">mic_off</i>
                         </button>
                     </div>
-                    <button hydrate="endSpeech" class="btn btn-danger btn-feature" data-q="Digite: 'FIM' para ENCERRAR DISCURSO" data-a="FIM">
-                        Encerrar discurso <i class="i-sm material-icons-outlined">voice_over_off</i>
-                    </button>
-                    <button hydrate="newFocus" class="btn btn-success btn-feature">Criar foco</button>
-                    <button hydrate="renameFocus" class="btn btn-success btn-feature">Renomear foco</button>
-                    <button hydrate="renameAll" class="btn btn-feature invalid-focus">Corrigir nomes</button>
-                    <button hydrate="mikePlusAv" class="btn btn-feature invalid-focus">Oração</button>
-                    <button hydrate="spotlightAv" class="btn btn-primary btn-feature">Imagens</button>
-                    <button hydrate="focusAv" class="btn btn-primary btn-feature">Cântico/Vídeos</button>
+                    <button hydrate="endSpeech" class="btn btn-danger btn-feature" data-q="Digite: 'FIM' para LIBERAR AS PALMAS" data-a="FIM">Palmas <i class="i-sm material-icons-outlined">dry</i> </button>
+                    <button hydrate="newFocus" class="btn btn-success btn-feature">Criar foco <i class="i-sm material-icons-outlined">person_add</i> </button>
+                    <button hydrate="renameFocus" class="btn btn-success btn-feature">Renomear foco <i class="i-sm material-icons-outlined">account_box</i> </button>
+                    <button hydrate="renameAll" style="grid-column: span 2" class="btn btn-feature invalid-focus">Auto-Renomear <i class="i-sm material-icons-outlined">drive_file_rename_outline</i> </button>
+                    <button hydrate="spotlightAv" class="btn btn-primary btn-feature">Imagens <i class="i-sm material-icons-outlined">image</i> </button>
+                    <button hydrate="focusAv" class="btn btn-primary btn-feature">Vídeos <i class="i-sm material-icons-outlined">play_circle</i> </button>
                 </div>
             </div>
         </div>`, {
@@ -1130,10 +1142,10 @@ function renderButtonsFrame() {
 
 function renderOptionsFrame() {
 	return hydrate(`
-        <div class="options-frame">
-            <div class="config-item">
+        <div class="options-frame" style="margin-bottom: -30;">
+            <div class="config-item" style="margin-left: 650px; margin-bottom: 0px; margin-top: -65;">
                 <input hydrate="check" id="open-waiting-room" type="checkbox" ${observed.publicRoom && 'checked'}/>
-                <label for="open-waiting-room">Liberar sala de espera</label>
+                <label for="open-waiting-room">Admitir participantes automaticamente</label>
             </div>
         </div>`, {
 		check: {
@@ -1172,8 +1184,8 @@ function renderServicesFrame() {
             <div class="routine-div comments-grid">
                 <p>Comentários</p>
                 <div id="quick-actions">
-                    <button hydrate="btn1" class="btn btn-xs btn-primary">Silenciar comentários</button>
-                    <button hydrate="btn2" class="btn btn-xs btn-success">Abaixar mãos</button>
+                    <button hydrate="btn1" class="btn btn-xs btn-primary"><i class="i-sm material-icons-outlined">mic_off</i> Silenciar comentários</button>
+                    <button hydrate="btn2" class="btn btn-xs btn-success"><i class="i-sm material-icons-outlined">do_not_touch</i> Abaixar mãos</button>
                 </div>
                 <ul id="raised-hands"></ul>
             </div>
