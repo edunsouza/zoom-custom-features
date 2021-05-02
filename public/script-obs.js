@@ -253,6 +253,14 @@ function createCss() {
             background-color: #000000;
             text-decoration: line-through;
         }
+		.double-span {
+			display: flex;
+			grid-column: span 2;
+			justify-content: center;
+		}
+		.double-span i {
+			margin-right: 10px;
+		}
         .alert-danger::-webkit-input-placeholder, .alert-danger::placeholder { color: #a94442; }
         .buttons-title {
             margin-bottom: 5px;
@@ -1101,7 +1109,7 @@ function renderButtonsFrame() {
                     <button hydrate="endSpeech" class="btn btn-danger btn-feature" data-q="Digite: 'FIM' para LIBERAR AS PALMAS" data-a="FIM">Palmas <i class="i-sm material-icons-outlined">dry</i> </button>
                     <button hydrate="newFocus" class="btn btn-success btn-feature">Criar foco <i class="i-sm material-icons-outlined">person_add</i> </button>
                     <button hydrate="renameFocus" class="btn btn-success btn-feature">Renomear foco <i class="i-sm material-icons-outlined">account_box</i> </button>
-                    <button hydrate="renameAll" style="grid-column: span 2" class="btn btn-feature invalid-focus">Auto-Renomear <i class="i-sm material-icons-outlined">drive_file_rename_outline</i> </button>
+                    <button hydrate="renameAll" class="btn btn-feature invalid-focus double-span">Auto-Renomear <i class="i-sm material-icons-outlined">drive_file_rename_outline</i> </button>
                     <button hydrate="spotlightAv" class="btn btn-primary btn-feature">Imagens <i class="i-sm material-icons-outlined">image</i> </button>
                     <button hydrate="focusAv" class="btn btn-primary btn-feature">Vídeos <i class="i-sm material-icons-outlined">play_circle</i> </button>
                 </div>
