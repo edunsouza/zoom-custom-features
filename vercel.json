@@ -29,22 +29,22 @@
 	"rewrites": [
 		{
 			"source": "/",
-			"destination": "/zoom-custom-features.js"
+			"destination": "/public/script-default.js"
 		},
 		{
 			"source": "/api/:match*",
 			"destination": "/api/:match*.js"
 		},
 		{
-			"source": "/porto-seguro",
-			"destination": "https://raw.githubusercontent.com/edunsouza/zoom-custom-features/porto-seguro/zoom-custom-features.js"
+			"source": "/obs",
+			"destination": "/public/script-obs.js"
 		},
 		{
-			"source": "/piaui",
-			"destination": "https://raw.githubusercontent.com/edunsouza/zoom-custom-features/piaui/zoom-custom-features.js"
+			"source": "/full",
+			"destination": "/public/script-full.js"
 		},
 		{
-			"source": "/es",
+			"source": "/obs/es",
 			"destination": "https://raw.githubusercontent.com/edunsouza/zoom-custom-features/es/zoom-custom-features.js"
 		}
 	]
