@@ -1,14 +1,8 @@
 /*
-TO DO: Porto Seguro - Piauí
-
-PRAY:
-	• Spotlight "audio e video"
-	• Open prayer mic (request name/role typing)
 
 AUTO RENAME:
-	• fetch names list from backend by password (nome congregação)
+	• fetch names list from backend by id
 	• apply autorename
-	• ? option to stop auto rename ?
 */
 
 
@@ -1029,8 +1023,6 @@ function renderSeeMoreModal() {
 		close: { onclick: closeCustomModal },
 	});
 
-	modal.appendChild(createRenameRoleField('av', 'Áudio/Vídeo'));
-
 	document.querySelectorAll('.call-member-frame button:not(.hidden)').forEach(btn => {
 		modal.appendChild(createRenameRoleField(btn.dataset.role, btn.innerText));
 	});
@@ -1135,9 +1127,7 @@ function renderButtonsFrame() {
 		newFocus: { onclick: openCustomFocusModal },
 		renameFocus: { onclick: openSeeMoreModal },
 		renameAll: { onclick: () => _alert('<p class="h4">Sorry, brother! Not implemented yet</p>') },
-		mikePlusAv: { onclick: () => _alert('<p class="h4">Sorry, brother! Not implemented yet</p>') },
-		spotlightAv: { onclick: spotlightAudioVideo },
-		focusAv: { onclick: focusOnAudioVideo },
+		mikePlusAv: { onclick: () => _alert('<p class="h4">Sorry, brother! Not implemented yet</p>') }
 	});
 
 	return buttonsFrame;
@@ -1192,7 +1182,7 @@ function renderServicesFrame() {
 	refreshScreen();
 	return hydrate(`
         <div class="routines-frame">
-            <div class="routine-div">
+            <div class="routine-div hidden">
                 <p>Nomes inválidos</p>
                 <ul id="${generateId('invalidNames')}"></ul>
             </div>
@@ -1200,7 +1190,7 @@ function renderServicesFrame() {
                 <p>Microfones ligados</p>
                 <ul id="${generateId('mikesOn')}"></ul>
             </div>
-            <div class="routine-div">
+            <div class="routine-div hidden">
                 <p>Rodando (marque para abortar)</p>
                 <ul id="${generateId('continuousAttempts')}"></ul>
             </div>
@@ -1511,10 +1501,6 @@ function startAllMikes() {
 function stopAllMikes(membersToKeep) {
 	membersToKeep = Array.isArray(membersToKeep) ? membersToKeep.map(p => getMemberName(p)) : [];
 
-	// for Porto Seguro it should keep Audio & Video always on
-	const audioVideo = getMember(roles.av);
-	membersToKeep.push(getMemberName(audioVideo));
-
 	getMembers().forEach(member => {
 		if (!membersToKeep.includes(getMemberName(member))) {
 			stopMike(member);
@@ -1584,10 +1570,6 @@ function focusOn(role) {
 
 	stopAutoSpotlight();
 
-	if (!isSpotlightOn(target)) {
-		spotlightAudioVideo();
-	}
-
 	startVideo(target, () => {
 		const member = getMember(role);
 		stopAllMikes([member]);
@@ -1620,7 +1602,6 @@ function focusOnConductor() {
 			startSpotlight(member);
 		});
 	} else if (!isSpotlightOn(conductor)) {
-		spotlightAudioVideo();
 		startVideo(conductor, () => {
 			const member = getMember(roles.conductor);
 			startMike(member, true);
@@ -1654,7 +1635,6 @@ function focusOnReader() {
 			startSpotlight(member);
 		});
 	} else if (!isSpotlightOn(reader)) {
-		spotlightAudioVideo();
 		startVideo(reader, () => {
 			const member = getMember(roles.reader);
 			startMike(member, true);
@@ -1678,10 +1658,6 @@ function focusOnPresident() {
 	stopAllMikes([president]);
 	stopAutoSpotlight();
 
-	if (!isSpotlightOn(president)) {
-		spotlightAudioVideo();
-	}
-
 	startVideo(president, () => {
 		const member = getMember(roles.president);
 		startMike(member, true);
@@ -1703,10 +1679,6 @@ function focusOnSpeaker() {
 
 	stopAllMikes([speaker]);
 	stopAutoSpotlight();
-
-	if (!isSpotlightOn(speaker)) {
-		spotlightAudioVideo();
-	}
 
 	startVideo(speaker, () => {
 		const member = getMember(roles.speaker);
@@ -1921,7 +1893,6 @@ function requestApplause() {
 
 	const mikesAlreadyOn = getMembers().filter(m => isMikeOn(m));
 
-	spotlightAudioVideo();
 	startAllMikes();
 	setBtnApplauseDisabled(true);
 
