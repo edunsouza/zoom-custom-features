@@ -1,10 +1,3 @@
-/*
-	TODO: AUTO RENAME
-	• fetch names list from backend by password
-	• apply autorename
-*/
-
-
 function createDomObserver() {
 	if (observer) {
 		observer.disconnect();
@@ -504,9 +497,9 @@ function createCustomFocus(details, name) {
 			const fields = details.map(detail => {
 				const memberName = getMemberName(getMember(detail.role));
 				const actions = [
-					detail.useMike && 'mic',
-					detail.useVideo && 'vídeo',
-					detail.useSpotlight && 'spot'
+					detail.useMike && 'MIC',
+					detail.useVideo && 'VÍDEO',
+					detail.useSpotlight && 'SPOT'
 				];
 				return `<span class="h4">${memberName} - [${actions.filter(Boolean)}]</span>`;
 			}).join('\n');
@@ -514,9 +507,9 @@ function createCustomFocus(details, name) {
 			const body = `
                 ${fields}
                 <div style="font-weight: 700; margin-top: 10px">
-                    <span style="color: #ff4242">digite "F" para FOCAR</span>
-                    <span style="color: #5cb85c">digite "C" para CHAMAR</span>
-                    <span>Use [outro texto] ou [Cancelar] ou [Confirmar] para cancelar esta ação</span>
+                    <span style="color: #ff4242">${wording.messageFocus}</span>
+                    <span style="color: #5cb85c">${wording.messageCall}</span>
+                    <span>${wording.textCustomFocus}</span>
                 </div>
             `;
 			const action = await _prompt(body, name);
@@ -563,9 +556,9 @@ function createCustomFocusFields() {
 	return hydrate(`
         <div class="custom-modal-fields">
             <div class="input-group custom-focus-name">
-                <input type="text" class="form-control" name="role" placeholder="Participante ou Função" />
+                <input type="text" class="form-control" name="role" placeholder="${wording.participantFunction}" />
                 <span class="input-group-btn">
-                    <button hydrate="btn1" name="check-text" class="btn btn-primary">Validar texto</button>
+                    <button hydrate="btn1" name="check-text" class="btn btn-primary">${wording.validateText}</button>
                 </span>
             </div>
             <label>
@@ -580,9 +573,9 @@ function createCustomFocusFields() {
                 <input hydrate="check3" type="checkbox" class="hidden" name="useSpotlight" id="useSpotlight-${suffix}">
                 <i class="i-sm material-icons-outlined" data-on="gps_fixed" data-off="gps_not_fixed">gps_not_fixed</i>
             </label>
-            <label data-on="Solicitar Vídeo" data-off="Sem Vídeo" for="useVideo-${suffix}" style="color: #5cb85c" grid-column-start: 3;">Solicitar Vídeo</label>
-            <label data-on="Solicitar Microfone" data-off="Sem Microfone" for="useMike-${suffix}" style="color: #5cb85c">Solicitar Microfone</label>
-            <label data-on="Com Spotlight" data-off="Sem Spotlight" for="useSpotlight-${suffix}" style="color: #ff4242">Sem Spotlight</label>
+            <label data-on="${wording.requestVideo}" data-off="${wording.noVideo}" for="useVideo-${suffix}" style="color: #5cb85c" grid-column-start: 3;">${wording.requestVideo}</label>
+            <label data-on="${wording.requestMicro}" data-off="${wording.noMicro}" for="useMike-${suffix}" style="color: #5cb85c">${wording.requestMicro}</label>
+            <label data-on="${wording.spotOn}" data-off="${wording.spotOff}" for="useSpotlight-${suffix}" style="color: #ff4242">${wording.spotOff}</label>
         </div>`, {
 		btn1: { onclick: validateCustomFocusTarget },
 		check1: { onchange },
@@ -599,12 +592,12 @@ function createRenameRoleField(role, label) {
                 <span class="input-group-addon">${label}:</span>
                 <input hydrate="input1" value="${roles[name]}" type="text" class="form-control">
                 <span class="input-group-btn">
-                    <button hydrate="btn1" class="btn btn-primary">Salvar</button>
+                    <button hydrate="btn1" class="btn btn-primary">${wording.save}</button>
                 </span>
             </div>
             <span class="text-primary">${getMemberName(getMember(roles[name]))}</span>
             <span class="saved invisible">
-                <i class="i-sm material-icons-outlined">done_outline</i> Salvo!
+                <i class="i-sm material-icons-outlined">done_outline</i> ${wording.saved}
             </span>
         </div>`, {
 		input1: {
@@ -677,7 +670,7 @@ function getMemberDropdownButtons(member) {
 }
 
 function getMoreDropdownOptions(optionLabels) {
-	const options = document.querySelectorAll('#wc-container-right .participants-section-container__participants-footer ul li a');
+	const options = document.querySelectorAll('#wc-container-right .window-content-bottom ul li a');
 	return Array.from(options).find(a => optionLabels.includes(a.innerText));
 }
 
@@ -915,7 +908,7 @@ function refreshCustomFocusButtons() {
 		const isValid = validate();
 		ul.appendChild(hydrate(`
             <li class="btn-custom-focus">
-                <button hydrate="btn1" ${!isValid && 'disabled'} class="btn-sm">${isValid ? name : 'Não encontrado!'}</button>
+                <button hydrate="btn1" ${!isValid && 'disabled'} class="btn-sm">${isValid ? name : wording.notFound}</button>
                 <i hydrate="icon1" class="i-sm material-icons-outlined" style="font-size: 22px; cursor: pointer">cancel</i>
             </li>`, {
 			btn1: { onclick: e => !e.target.attributes.disabled && click() },
@@ -942,7 +935,7 @@ function updateContextMenu(ul, id, contextMenu) {
 
 function updateInvalidNames(ul) {
 	updateContextMenu(ul, 'invalidNames', [
-		{ text: 'Renomear', onclick: name => renameMember(getMember(name, true)) },
+		{ text: 'Renomear', onclick: name => openRenamePopup(getMember(name, true)) },
 		{ text: 'Mover para sala de espera', onclick: name => removeMember(getMember(name, true)) }
 	]);
 }
@@ -972,7 +965,6 @@ function renderModal() {
 	const optionsModal = createElement(`<div class="hidden" id="${generalIDs.modal}" />`);
 
 	optionsModal.appendChild(renderButtonsFrame());
-	optionsModal.appendChild(renderOptionsFrame());
 	optionsModal.appendChild(renderServicesFrame());
 
 	const customModal = createElement(`<div id="${generalIDs.customModal}" class="hidden" />`);
@@ -999,7 +991,7 @@ function renderCustomFocusModal() {
                 <button hydrate="cancel" class="btn btn-primary-outline btn-close-modal">${wording.cancel}</button>
             </div>
             <div class="input-group" style="margin: auto 5px;">
-                <span class="input-group-addon">${wording.informButtonName}:</span>
+                <span class="input-group-addon">${wording.informButtonName}</span>
                 <input name="custom-focus-name" type="text" class="form-control" placeholder="${wording.customFocusPlaceholder}">
             </div>
         </div>`, {
@@ -1025,13 +1017,18 @@ function renderCustomFocusModal() {
 function renderSeeMoreModal() {
 	const modal = hydrate(`
         <div class="custom-modal-body" style="display: block; position: relative">
-            <button hydrate="close" class="btn btn-primary-outline btn-close-modal">Fechar</button>
-            <h4>Digite o nome do participante e pressione <strong>Salvar</strong></h4>
+		    <div style="display: flex; justify-content: space-between; align-items: center">
+			    <div class="large-checkbox h5">
+				    <input hydrate="input1" id="open-waiting-room" type="checkbox" ${observed.publicRoom && 'checked'}/>
+                    <label for="open-waiting-room">${wording.admitAll}</label>
+			    </div>	
+            <button hydrate="close" class="btn btn-primary-outline btn-close-modal">${wording.close}</button>
         </div>`, {
+		input1: { onchange() { observed.publicRoom = !observed.publicRoom; refreshWaitingRoom(); } },
 		close: { onclick: closeCustomModal },
 	});
 
-	modal.appendChild(createRenameRoleField('av', 'Áudio/Vídeo'));
+	modal.appendChild(createRenameRoleField('av', wording.av));
 
 	document.querySelectorAll('.call-member-frame button:not(.hidden)').forEach(btn => {
 		modal.appendChild(createRenameRoleField(btn.dataset.role, btn.innerText));
@@ -1045,7 +1042,7 @@ function renderButtonsFrame() {
 		const { dataset: { q, a } } = target.closest('button');
 		const answer = await _prompt(`<span class="h4">${q}</span>`);
 		if (typeof answer === 'string') {
-			return answer.toLowerCase() === a.toLowerCase() ? callback() : _alert('Texto incorreto! Ação não executada.');
+			return answer.toLowerCase() === a.toLowerCase() ? callback() : _alert(wording.errorText);
 		}
 	};
 
@@ -1054,59 +1051,59 @@ function renderButtonsFrame() {
 	const buttonsFrame = hydrate(`
         <div class="buttons-frame">
             <div>
-                <div class="buttons-title">Chamar</div>
+                <div class="buttons-title">${wording.call}</div>
                 <div class="call-member-frame">
-                    <button hydrate="call1" data-role="conductor" class="btn btn-success btn-feature">Dirigente</button>
-                    <button hydrate="call2" data-role="reader" class="btn btn-success btn-feature">Leitor</button>
-                    <button hydrate="call3" data-role="president" class="btn btn-warning btn-feature">Presidente</button>
+                    <button hydrate="call1" data-role="conductor" class="btn btn-success btn-feature">${wording.conductor}</button>
+                    <button hydrate="call2" data-role="reader" class="btn btn-success btn-feature">${wording.reader}</button>
+                    <button hydrate="call3" data-role="president" class="btn btn-warning btn-feature">${wording.president}</button>
                     ${isWeekend ? `
-                    <button hydrate="call4" data-role="speaker" class="btn btn-success btn-feature">Orador</button>
+                    <button hydrate="call4" data-role="speaker" class="btn btn-success btn-feature">${wording.speaker}</button>
                     ` : `
-                    <button hydrate="call5" data-role="treasures" class="btn btn-success btn-feature">Tesouros</button>
-                    <button hydrate="call6" data-role="gems" class="btn btn-success btn-feature">Jóias</button>
-                    <button hydrate="call7" data-role="bible" class="btn btn-success btn-feature">Bíblia</button>
-                    <button hydrate="call8" data-role="living1" class="btn btn-success btn-feature">Vida-1</button>
-                    <button hydrate="call9" data-role="living2" class="btn btn-success btn-feature">Vida-2</button>
+                    <button hydrate="call5" data-role="treasures" class="btn btn-success btn-feature">${wording.treasures}</button>
+                    <button hydrate="call6" data-role="gems" class="btn btn-success btn-feature">${wording.gems}</button>
+                    <button hydrate="call7" data-role="bible" class="btn btn-success btn-feature">${wording.bible}</button>
+                    <button hydrate="call8" data-role="living1" class="btn btn-success btn-feature">${wording.living1}</button>
+                    <button hydrate="call9" data-role="living2" class="btn btn-success btn-feature">${wording.living2}</button>
                     `}
                 </div>
             </div>
             <div>
-                <div class="buttons-title">Focar</div>
+                <div class="buttons-title">${wording.spot}</div>
                 <div class="focus-on-frame">
-                    <button hydrate="focus1" data-role="conductor" class="btn btn-primary btn-feature">Dirigente <i class="i-sm material-icons-outlined">group</i> </button>
-                    <button hydrate="focus2" data-role="reader" class="btn btn-primary btn-feature">Leitor <i class="i-sm material-icons-outlined">supervisor_account</i> </button>
-                    <button hydrate="focus3" data-role="president" class="btn btn-warning btn-feature">Presidente <i class="i-sm material-icons-outlined">person</i> </button>
+                    <button hydrate="focus1" data-role="conductor" class="btn btn-primary btn-feature">${wording.conductor} <i class="i-sm material-icons-outlined">group</i> </button>
+                    <button hydrate="focus2" data-role="reader" class="btn btn-primary btn-feature">${wording.reader} <i class="i-sm material-icons-outlined">supervisor_account</i> </button>
+                    <button hydrate="focus3" data-role="president" class="btn btn-warning btn-feature">${wording.president} <i class="i-sm material-icons-outlined">person</i> </button>
                     ${isWeekend ? `
-                    <button hydrate="focus4" data-role="speaker" class="btn btn-primary btn-feature">Orador <i class="i-sm material-icons-outlined">record_voice_over</i> </button>
+                    <button hydrate="focus4" data-role="speaker" class="btn btn-primary btn-feature">${wording.speaker} <i class="i-sm material-icons-outlined">record_voice_over</i> </button>
                     ` : `
-                    <button hydrate="focus5" data-role="treasures" class="btn btn-primary btn-feature">Tesouros <i class="i-sm material-icons-outlined">emoji_events</i> </button>
-                    <button hydrate="focus6" data-role="gems" class="btn btn-primary btn-feature">Jóias <i class="i-sm material-icons-outlined">wb_iridescent</i> </button>
-                    <button hydrate="focus7" data-role="bible" class="btn btn-primary btn-feature">Bíblia <i class="i-sm material-icons-outlined">menu_book</i> </button>
-                    <button hydrate="focus8" data-role="living1" class="btn btn-primary btn-feature">Vida-1 <i class="i-sm material-icons-outlined">looks_one</i> </button>
-                    <button hydrate="focus9" data-role="living2" class="btn btn-primary btn-feature">Vida-2 <i class="i-sm material-icons-outlined">looks_two</i> </button>
+                    <button hydrate="focus5" data-role="treasures" class="btn btn-primary btn-feature">${wording.treasures} <i class="i-sm material-icons-outlined">emoji_events</i> </button>
+                    <button hydrate="focus6" data-role="gems" class="btn btn-primary btn-feature">${wording.gems} <i class="i-sm material-icons-outlined">wb_iridescent</i> </button>
+                    <button hydrate="focus7" data-role="bible" class="btn btn-primary btn-feature">${wording.bible} <i class="i-sm material-icons-outlined">menu_book</i> </button>
+                    <button hydrate="focus8" data-role="living1" class="btn btn-primary btn-feature">${wording.living1} <i class="i-sm material-icons-outlined">looks_one</i> </button>
+                    <button hydrate="focus9" data-role="living2" class="btn btn-primary btn-feature">${wording.living2} <i class="i-sm material-icons-outlined">looks_two</i> </button>
                     `}
                 </div>
             </div>
             <div>
                 <span class="buttons-title close-feature-frame">
-                    <span style="grid-column-start: 2">Ações</span>
+                    <span style="grid-column-start: 2">${wording.actions}</span>
                     <i hydrate="icon1" class="i-sm material-icons-outlined btn-close">cancel</i>
                 </span>
                 <div class="feature-frame">
                     <div class="btn-group">
-                        <button hydrate="micOn" class="btn btn-danger btn-feature" data-q="Digite: 'ON' para LIGAR MICROFONES" data-a="ON">
+                        <button hydrate="micOn" class="btn btn-danger btn-feature" data-q="${wording.micOn}" data-a="${wording.dataMicOn}">
                             <i class="i-sm material-icons-outlined">mic_none</i>
                         </button>
-                        <button hydrate="micOff" class="btn btn-danger btn-feature" data-q="Digite: 'OFF' para DESLIGAR MICROFONES" data-a="OFF">
+                        <button hydrate="micOff" class="btn btn-danger btn-feature" data-q="${wording.micOff}" data-a="${wording.dataMicOff}">
                             <i class="i-sm material-icons-outlined">mic_off</i>
                         </button>
                     </div>
-                    <button hydrate="endSpeech" class="btn btn-danger btn-feature" data-q="Digite: 'FIM' para LIBERAR AS PALMAS" data-a="FIM">Palmas <i class="i-sm material-icons-outlined">dry</i> </button>
-                    <button hydrate="newFocus" class="btn btn-success btn-feature">Criar foco <i class="i-sm material-icons-outlined">person_add</i> </button>
-                    <button hydrate="renameFocus" class="btn btn-success btn-feature">Renomear foco <i class="i-sm material-icons-outlined">account_box</i> </button>
-                    <button hydrate="renameAll" class="btn btn-feature invalid-focus double-span">Auto-Renomear <i class="i-sm material-icons-outlined">drive_file_rename_outline</i> </button>
-                    <button hydrate="spotlightAv" class="btn btn-primary btn-feature">Imagens <i class="i-sm material-icons-outlined">image</i> </button>
-                    <button hydrate="focusAv" class="btn btn-primary btn-feature">Vídeos <i class="i-sm material-icons-outlined">play_circle</i> </button>
+                    <button hydrate="endSpeech" class="btn btn-danger btn-feature" data-q="${wording.endSpeechText}" data-a="${wording.dataClap}">Palmas <i class="i-sm material-icons-outlined">dry</i> </button>
+                    <button hydrate="newFocus" class="btn btn-success btn-feature">${wording.createFocus} <i class="i-sm material-icons-outlined">person_add</i> </button>
+                    <button hydrate="renameFocus" class="btn btn-success btn-feature">${wording.moreOptions} <i class="i-sm material-icons-outlined">add_circle_outline</i> </button>
+                    <button hydrate="renameAll" class="btn btn-feature btn-primary double-span">${wording.autoRename} <i class="i-sm material-icons-outlined">drive_file_rename_outline</i> </button>
+                    <button hydrate="spotlightAv" class="btn btn-primary btn-feature">${wording.pictures} <i class="i-sm material-icons-outlined">image</i> </button>
+                    <button hydrate="focusAv" class="btn btn-primary btn-feature">${wording.clips} <i class="i-sm material-icons-outlined">play_circle</i> </button>
                 </div>
             </div>
         </div>`, {
@@ -1134,30 +1131,12 @@ function renderButtonsFrame() {
 		endSpeech: { onclick: confirmAction(finishSpeech) },
 		newFocus: { onclick: openCustomFocusModal },
 		renameFocus: { onclick: openSeeMoreModal },
-		renameAll: { onclick: () => _alert('<p class="h4">Sorry, brother! Not implemented yet</p>') },
-		mikePlusAv: { onclick: () => _alert('<p class="h4">Sorry, brother! Not implemented yet</p>') },
+		renameAll: { onclick: autoRename },
 		spotlightAv: { onclick: spotlightAudioVideo },
 		focusAv: { onclick: focusOnAudioVideo },
 	});
 
 	return buttonsFrame;
-}
-
-function renderOptionsFrame() {
-	return hydrate(`
-        <div class="options-frame" style="margin-bottom: -30;">
-            <div class="config-item" style="margin-left: 650px; margin-bottom: 0px; margin-top: -65;">
-                <input hydrate="check" id="open-waiting-room" type="checkbox" ${observed.publicRoom && 'checked'}/>
-                <label for="open-waiting-room">Admitir participantes automaticamente</label>
-            </div>
-        </div>`, {
-		check: {
-			onchange() {
-				observed.publicRoom = !observed.publicRoom;
-				refreshWaitingRoom();
-			}
-		}
-	});
 }
 
 function renderServicesFrame() {
@@ -1169,7 +1148,7 @@ function renderServicesFrame() {
                 <ul id="${generateId('invalidNames')}"></ul>
             </div>
             <div class="routine-div">
-                <p>Microfones ligados</p>
+                <p>${wording.micsOn}</p>
                 <ul id="${generateId('mikesOn')}"></ul>
             </div>
             <div class="routine-div hidden">
@@ -1181,14 +1160,14 @@ function renderServicesFrame() {
                 <ul id="${generateId('videosOn')}"></ul>
             </div>
             <div class="routine-div custom-grid">
-                <p>Foco customizado</p>
+                <p>${wording.customFocus}</p>
                 <ul id="${generateId('customFocus')}"></ul>
             </div>
             <div class="routine-div comments-grid">
-                <p>Comentários</p>
+                <p>${wording.comments}</p>
                 <div id="quick-actions">
-                    <button hydrate="btn1" class="btn btn-xs btn-primary"><i class="i-sm material-icons-outlined">mic_off</i> Silenciar comentários</button>
-                    <button hydrate="btn2" class="btn btn-xs btn-success"><i class="i-sm material-icons-outlined">do_not_touch</i> Abaixar mãos</button>
+                    <button hydrate="btn1" class="btn btn-xs btn-primary"><i class="i-sm material-icons-outlined">mic_off</i> ${wording.silenceComments}</button>
+                    <button hydrate="btn2" class="btn btn-xs btn-success"><i class="i-sm material-icons-outlined">do_not_touch</i> ${wording.lowerHands}</button>
                 </div>
                 <ul id="raised-hands"></ul>
             </div>
@@ -1209,8 +1188,8 @@ function renderPopup({ type, title, text, onConfirm = Function, onHide = Functio
             <input hydrate="input" type="text" class="${hideIfAlert} form-control"/>
 
             <div class="actions">
-                <button hydrate="cancel" type="text" class="${hideIfAlert} btn btn-primary-outline">Cancelar</button>
-                <button hydrate="confirm" type="text" class="btn btn-primary">Confirmar</button>
+                <button hydrate="cancel" type="text" class="${hideIfAlert} btn btn-primary-outline">${wording.cancel}</button>
+                <button hydrate="confirm" type="text" class="btn btn-primary">${wording.confirm}</button>
             </div>
         </div>`, {
 		input: {
@@ -1316,13 +1295,13 @@ function validateCustomFocusTarget({ target }) {
 
 	if (foundMember) {
 		classList.remove('alert-danger');
-		_alert(`<span class="h4">Participante encontrado: <strong>${getMemberName(foundMember)}</strong></span>`, 'Encontrado');
+		_alert(`<span class="h4">${wording.foundParticipant} <strong>${getMemberName(foundMember)}</strong></span>`, wording.foundMember);
 	} else {
 		classList.add('alert-danger');
 		const body = value
-			? `Termo procurado: <strong>${value.toUpperCase()}</strong>`
-			: `Informe alguma parte do nome do participante`
-		_alert(`<span class="h4">${body}</span>`, 'Nenhum participante encontrado');
+			? `${wording.termFound} <strong>${value.toUpperCase()}</strong>`
+			: `${wording.informParticipant}`
+		_alert(`<span class="h4">${body}</span>`, wording.alertCustomFocus);
 	}
 }
 
@@ -1335,7 +1314,7 @@ function validateCustomFocusFields() {
 
 	if (!focusNameInput.value) {
 		focusNameInput.classList.add(errorStyle);
-		errorSpan.innerText = 'Informe nome para o novo botão. Preencha o(s) campo(s) em vermelho';
+		errorSpan.innerText = wording.missingError;
 		errorSpan.parentElement.style.display = 'block';
 		return;
 	}
@@ -1358,7 +1337,7 @@ function validateCustomFocusFields() {
 	});
 
 	if (hasError) {
-		errorSpan.innerText = 'Preencha o(s) campo(s) em vermelho e selecione "validar texto"';
+		errorSpan.innerText = wording.errorTextMissing;
 		errorSpan.parentElement.style.display = 'block';
 		return;
 	}
@@ -1549,7 +1528,7 @@ function focusOn(role) {
 	const target = getMember(role);
 
 	if (!role || !target) {
-		return _alert(`Participante: "${role}" não encontrado`);
+		return _alert(`${wording.alertParticipant} "${role}" ${wording.alertParticipantNotFound}`);
 	}
 
 	stopAutoSpotlight();
@@ -1566,8 +1545,8 @@ function focusOnConductor() {
 
 	if (!conductor) {
 		return _alert(`
-            <h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>Anthony Morris - ${roles.conductor}</strong></h5>`,
-			'Dirigente não informado'
+            <h5>${wording.alertFocus}<br/><br/>${wording.example} <strong>Anthony Morris - ${roles.conductor}</strong></h5>`,
+			wording.informConductor
 		);
 	}
 
@@ -1585,8 +1564,8 @@ function focusOnReader() {
 
 	if (!reader) {
 		return _alert(
-			`<h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>David Splane - ${roles.reader}</strong></h5>`,
-			'Leitor não informado'
+			`<h5>${wording.alertFocus}<br/><br/>${wording.example} <strong>David Splane - ${roles.reader}</strong></h5>`,
+			wording.informReader
 		);
 	}
 
@@ -1604,8 +1583,8 @@ function focusOnPresident() {
 
 	if (!president) {
 		return _alert(
-			`<h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>Geoffrey Jackson - ${roles.president}</strong></h5>`,
-			'Presidente não informado'
+			`<h5>${wording.alertFocus}<br/><br/>${wording.example} <strong>Geoffrey Jackson - ${roles.president}</strong></h5>`,
+			wording.informPresident
 		);
 	}
 
@@ -1623,8 +1602,8 @@ function focusOnSpeaker() {
 
 	if (!speaker) {
 		return _alert(
-			`<h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>Gerrit Losch - ${roles.speaker}</strong></h5>`,
-			'Orador não informado'
+			`<h5>${wording.alertFocus}<br/><br/>${wording.example} <strong>Gerrit Losch - ${roles.speaker}</strong></h5>`,
+			wording.informSpeaker
 		);
 	}
 
@@ -1642,8 +1621,8 @@ function focusOnAudioVideo() {
 
 	if (!av) {
 		return _alert(
-			`<h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>Stephen Lett - ${roles.av}</strong></h5>`,
-			'"Áudio e Vídeo" não informado'
+			`<h5>${wording.alertFocus}<br/><br/>${wording.example} <strong>Stephen Lett - ${roles.av}</strong></h5>`,
+			wording.informAudioVideo
 		);
 	}
 
@@ -1661,8 +1640,8 @@ function spotlightAudioVideo() {
 
 	if (!member) {
 		return _alert(
-			`<h5>Com permissão de anfitrião (host) identifique-o renomeando.<br/><br/>Exemplo: <strong>Stephen Lett - ${roles.av}</strong></h5>`,
-			'"Áudio e Vídeo" não informado'
+			`<h5>${wording.alertFocus}<br/><br/>${wording.example} <strong>Stephen Lett - ${roles.av}</strong></h5>`,
+			wording.informAudioVideo
 		);
 	}
 
@@ -1674,7 +1653,7 @@ function callMember(role) {
 	const target = getMember(role);
 
 	if (!role || !target) {
-		return _alert(`Participante: "${role}" não encontrado`);
+		return _alert(`${wording.alertParticipant} "${role}" ${wording.alertParticipantNotFound}`);
 	}
 
 	startVideo(target, () => startMike(getMember(role), true));
@@ -1706,20 +1685,22 @@ function generateId(text) {
 	return btoa(encodeURI(text)).replace(/=/g, '');
 }
 
-// TODO - CALL / CREATE ENDPOINT
-function fetchAutoRenameSettings(id) {
-	fetch('https://zoom.vercel.app/api/renaming-options', {
+function fetchRenamingList(id) {
+	fetch(`https://zoom.vercel.app/api/rename-list?id=${id}`, {
 		method: 'GET',
 		headers: {
 			'Accept': 'application/json',
 			'Content-Type': 'application/json'
-		},
-		params: {
-			id
 		}
 	}).then(async data => {
 		const resp = await data.json();
-		_alert(resp.success ? resp.message : 'Não foi possível obter nomes a renomear');
+
+		if (!resp.success) {
+			return _alert(`<span class="h4">${wording.autoRenameError}</span>`);
+		}
+
+		renameMembers(resp.list);
+		_alert(`<span class="h4">${wording.autoRenameSuccess}</span>`);
 	}).catch(err => _alert(err));
 }
 
@@ -1769,9 +1750,33 @@ function initMembersPanel() {
 	btnOpenPanel.click();
 }
 
-function renameMember(member) {
+function openRenamePopup(member) {
 	clickDropdown(member, uiLabels.rename);
 	clickButton(member, uiLabels.rename);
+}
+
+function renameMembers(renaming = []) {
+	renaming.forEach(([from, to]) => {
+		openRenamePopup(getMember(from, true));
+
+		const nameInput = document.querySelector('#newname');
+		const btnSave = document.querySelector('.zm-modal-footer-default-actions .zm-btn.zm-btn-legacy.zm-btn--primary');
+
+		if (nameInput && btnSave) {
+			Object
+				.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')
+				.set
+				.call(nameInput, to);
+
+			nameInput.dispatchEvent(new InputEvent('input', { bubbles: true }));
+			btnSave && btnSave.click();
+		}
+	});
+}
+
+async function autoRename() {
+	const password = await _prompt(`<span class="h4">${wording.informAutoRenamePassword}</span>`);
+	password && fetchRenamingList(password);
 }
 
 function removeMember(member) {
@@ -1877,18 +1882,6 @@ var generalIDs = {
 	customPopup: 'custom-popup',
 	customMenu: 'context-menu'
 };
-var roles = {
-	av: 'audio e video',
-	conductor: 'dirigente',
-	president: 'presidente',
-	reader: 'leitor',
-	speaker: 'orador',
-	treasures: 'tesouros',
-	gems: 'joias',
-	bible: 'biblia',
-	living1: 'vida-1',
-	living2: 'vida-2'
-};
 var uiLabels = {
 	startVideo: [langResource['apac.wc_video.ask_start_video'], langResource['apac.wc_video.start_video'], langResource['apac.wc_start_video']],
 	stopVideo: [langResource['apac.wc_video.stop_video'], langResource['apac.wc_stop_video']],
@@ -1909,16 +1902,167 @@ var wording = {
 		cancel: 'Cancelar',
 		informButtonName: 'Informe o nome do botão',
 		customFocusPlaceholder: 'Primeira visita/conversa, estudo bíblico, discurso ou oração',
+		call: 'Chamar',
+		spot: 'Focar',
+		actions: 'Ações',
+		clap: 'Palmas',
+		moreOptions: 'Mais opções',
+		createFocus: 'Criar foco',
+		renameFocus: 'Renomear foco',
+		autoRename: 'Auto-Renomear',
+		informAutoRenamePassword: 'Informe o código da lista de nomes',
+		autoRenameSuccess: 'Os participantes detectados foram renomeados',
+		autoRenameError: 'Não foi possível obter nomes a renomear',
+		pictures: 'Imagens',
+		clips: 'Vídeos',
+		micsOn: 'Microfones ligados',
+		comments: 'Comentários',
+		customFocus: 'Foco customizado',
+		silenceComments: 'Silenciar comentários',
+		silenceCommentsDiv: 'Silenciar',
+		lowerHands: 'Abaixar mãos',
+		admitAll: 'Admitir todos os participantes',
+		close: 'Fechar',
+		namedParticipant: 'Digite o nome do participante e pressione',
+		validateText: 'Validar texto',
+		participantFunction: 'Participante ou Função',
+		requestVideo: 'Solicitar Vídeo',
+		noVideo: 'Sem Vídeo',
+		requestMicro: 'Solicitar Microfone',
+		noMicro: 'Sem Microfone',
+		spotOn: 'Com Foco',
+		spotOff: 'Sem Foco',
+		conductor: 'Dirigente',
+		av: 'Áudio e Vídeo',
+		reader: 'Leitor',
+		president: 'Presidente',
+		speaker: 'Orador',
+		treasures: 'Tesouros',
+		gems: 'Jóias',
+		bible: 'Bíblia',
+		living1: 'Vida-1',
+		living2: 'Vida-2',
+		alertFocus: 'Com permissão de anfitrião (host) identifique-o renomeando.',
+		example: 'Exemplo',
+		informConductor: 'Dirigente não informado',
+		informReader: 'Leitor não informado ',
+		informPresident: 'Presidente não informado',
+		informSpeaker: 'Orador não informado',
+		informAudioVideo: 'Áudio e Vídeo não informado',
+		alertParticipant: 'Participante:',
+		alertParticipantNotFound: 'não encontrado',
+		errorText: 'Texto incorreto! Ação não executada.',
+		confirm: 'Confirmar',
+		micOn: 'Digite: \'ON\' para LIGAR MICROFONES',
+		micOff: 'Digite: \'OFF\' para DESLIGAR MICROFONES',
+		dataMicOn: 'ON',
+		dataMicOff: 'OFF',
+		endSpeechText: 'Digite: \'FIM\' para LIBERAR AS PALMAS',
+		dataClap: 'FIM',
+		saved: 'Salvo!',
+		alertCustomFocus: 'Nenhum participante encontrado',
+		foundMember: 'Encontrado',
+		notFound: 'Não encontrado!',
+		termFound: 'Termo procurado',
+		informParticipant: 'Informe alguma parte do nome do participante',
+		foundParticipant: 'Participante encontrado:',
+		missingError: 'Informe nome para o novo botão. Preencha o(s) campo(s) em vermelho',
+		errorTextMissing: 'Preencha o(s) campo(s) em vermelho e selecione \'validar texto\'',
+		messageFocus: 'digite \'F\' para FOCAR',
+		messageCall: 'digite \'C\' para CHAMAR',
+		textCustomFocus: 'Use [outro texto] ou [Cancelar] ou [Confirmar] para cancelar esta ação',
+		scriptError: 'Erro ao executar o script!\nPossível solução: diminuir o tamanho do painel de execução de script (console do navegador)'
 	},
 	es: {
 		newParticipant: 'Nuevo participante',
 		save: 'Guardar',
 		cancel: 'Cancelar',
-		informButtonName: 'Informe o nome do botão',
-		customFocusPlaceholder: 'Primeira visita/conversa, estudo bíblico, discurso ou oração',
+		informButtonName: 'Introduzca el nombre del botón',
+		customFocusPlaceholder: 'Primera visita/conversación, estudo bíblico, discurso ou oración',
+		call: 'Llamar',
+		spot: 'Focar',
+		actions: 'Acciones',
+		clap: 'Aplausos',
+		moreOptions: 'Más opciones',
+		createFocus: 'Crear foco',
+		renameFocus: 'Renombrar foco',
+		autoRename: 'Auto-Renombrar',
+		informAutoRenamePassword: 'Introduzca el código de la lista de nombres',
+		autoRenameSuccess: 'Se cambió el nombre de los participantes detectados',
+		autoRenameError: 'No se pueden obtener nombres para cambiar el nombre',
+		pictures: 'Imágenes',
+		clips: 'Videos',
+		micsOn: 'Micrófonos activados',
+		comments: 'Comentarios',
+		customFocus: 'Foco personalizado',
+		silenceComments: 'Silenciar comentarios',
+		silenceCommentsDiv: 'Silenciar',
+		lowerHands: 'Bajar las manos',
+		admitAll: 'Admitir a todos los participantes',
+		close: 'Cerrar',
+		namedParticipant: 'Introduzca el nombre del participante y pulse',
+		validateText: 'Validar texto',
+		participantFunction: 'Participante o Función',
+		requestVideo: 'Solicitar Vídeo',
+		noVideo: 'Sin Vídeo',
+		requestMicro: 'Solicitar Micrófono',
+		noMicro: 'Sin Micrófono',
+		spotOn: 'Con Foco',
+		spotOff: 'Sin Foco',
+		conductor: 'Conductor',
+		av: 'Audio y Video',
+		reader: 'Lector',
+		president: 'Presidente',
+		speaker: 'Orador',
+		treasures: 'Tesoros',
+		gems: 'Perlas',
+		bible: 'Biblia',
+		living1: 'Vida-1',
+		living2: 'Vida-2',
+		alertFocus: 'Con permiso de host (host) identifíquelo renombrando.',
+		example: 'Ejemplo',
+		informConductor: 'Conductor no informado',
+		informReader: 'Lector no informado ',
+		informPresident: 'Presidente no informado',
+		informSpeaker: 'Orador no informado',
+		informAudioVideo: 'Sonido y Video no informado',
+		alertParticipant: 'Participante:',
+		alertParticipantNotFound: 'no encontrado',
+		errorText: '¡Texto incorrecto! Acción no ejecutada.',
+		confirm: 'Confirmar',
+		micOn: 'Escribe: \'ON\' para ACTIVAR MICRÓFONOS',
+		micOff: 'Escribe: \'OFF\' para DESACTIVAR MICRÓFONOS',
+		dataMicOn: 'ON',
+		dataMicOff: 'OFF',
+		endSpeechText: 'Escribe: \'FIN\' para LIBERAR LOS APLAUSOS',
+		dataClap: 'FIN',
+		saved: 'Guardado!',
+		alertCustomFocus: 'No se han encontrado participantes',
+		foundMember: 'Encontrado',
+		notFound: 'No encontrado!',
+		termFound: 'Término buscado',
+		informParticipant: 'Introduzca alguna parte del nombre del participante',
+		foundParticipant: 'Participante encontrado:',
+		missingError: 'Introduzca nombre para el nuevo botón. Rellene el(los) campo(s) en rojo',
+		errorTextMissing: 'Rellene el(los) campo(s) en rojo y seleccione \'validar texto\'',
+		messageFocus: 'digite \'F\' para FOCAR',
+		messageCall: 'escribe \'L\' para LLAMAR',
+		textCustomFocus: 'Utilice [otro texto] o [Cancelar] o [Confirmar] para cancelar esta acción',
+		scriptError: '¡Error al ejecutar el script!\nPosible solución: reducir el tamaño del panel de ejecución de script (consola del navegador)'
 	}
 }[MeetingConfig.lang === 'es' ? 'es' : 'pt'];
-
+var roles = {
+	av: getCleanText(wording.av).toLowerCase(),
+	conductor: getCleanText(wording.conductor).toLowerCase(),
+	president: getCleanText(wording.president).toLowerCase(),
+	reader: getCleanText(wording.reader).toLowerCase(),
+	speaker: getCleanText(wording.speaker).toLowerCase(),
+	treasures: getCleanText(wording.treasures).toLowerCase(),
+	gems: getCleanText(wording.gems).toLowerCase(),
+	bible: getCleanText(wording.bible).toLowerCase(),
+	living1: getCleanText(wording.living1).toLowerCase(),
+	living2: getCleanText(wording.living2).toLowerCase()
+};
 /* SETTINGS AND CONTROLS */
 var runningIntervals = runningIntervals || {};
 var observer = observer || null;
@@ -1953,8 +2097,5 @@ try {
 	toggleModal();
 	console.clear();
 } catch (erro) {
-	_alert(`
-        Erro ao executar o script!
-        Possível solução: diminuir o tamanho do painel de execução de script (console do navegador)
-    `);
+	_alert(wording.scriptError);
 }
