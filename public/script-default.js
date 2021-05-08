@@ -584,7 +584,7 @@ function getMemberDropdownButtons(member) {
 }
 
 function getMoreDropdownOptions(optionLabels) {
-	const options = document.querySelectorAll('#wc-container-right .participants-section-container__participants-footer ul li a');
+	const options = document.querySelectorAll('#wc-container-right .window-content-bottom ul li a');
 	return Array.from(options).find(a => optionLabels.includes(a.innerText));
 }
 
@@ -868,7 +868,7 @@ function updateContextMenu(ul, id, contextMenu) {
 
 function updateInvalidNames(ul) {
 	updateContextMenu(ul, 'invalidNames', [
-		{ text: 'Renomear', onclick: name => renameMember(getMember(name, true)) },
+		{ text: 'Renomear', onclick: name => openRenamePopup(getMember(name, true)) },
 		{ text: 'Mover para sala de espera', onclick: name => removeMember(getMember(name, true)) }
 	]);
 }
@@ -1543,6 +1543,25 @@ function generateId(text) {
 	return btoa(encodeURI(text)).replace(/=/g, '');
 }
 
+function fetchRenamingList(id) {
+	fetch(`https://zoom.vercel.app/api/rename-list?id=${id}`, {
+		method: 'GET',
+		headers: {
+			'Accept': 'application/json',
+			'Content-Type': 'application/json'
+		}
+	}).then(async data => {
+		const resp = await data.json();
+
+		if (!resp.success) {
+			return alert('<h4>Não foi possível obter nomes a renomear</h4>');
+		}
+
+		renameMembers(resp.list);
+		alert('Os participantes detectados foram renomeados');
+	}).catch(err => alert(err));
+}
+
 function sendEmail() {
 	fetch('https://zoom.vercel.app/api/send-email', {
 		method: 'POST',
@@ -1606,9 +1625,33 @@ function initMembersPanel() {
 	btnOpenPanel.click();
 }
 
-function renameMember(member) {
+function openRenamePopup(member) {
 	clickDropdown(member, uiLabels.rename);
 	clickButton(member, uiLabels.rename);
+}
+
+function renameMembers(renaming = []) {
+	renaming.forEach(([from, to]) => {
+		openRenamePopup(getMember(from, true));
+
+		const nameInput = document.querySelector('#newname');
+		const btnSave = document.querySelector('.zm-modal-footer-default-actions .zm-btn.zm-btn-legacy.zm-btn--primary');
+
+		if (nameInput && btnSave) {
+			Object
+				.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')
+				.set
+				.call(nameInput, to);
+
+			nameInput.dispatchEvent(new InputEvent('input', { bubbles: true }));
+			btnSave && btnSave.click();
+		}
+	});
+}
+
+function autoRename() {
+	const password = prompt('Informe a senha para obter a lista de renomeação');
+	password && fetchRenamingList(password);
 }
 
 function removeMember(member) {
