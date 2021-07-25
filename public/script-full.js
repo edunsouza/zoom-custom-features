@@ -788,7 +788,7 @@ function refreshRoutines() {
 		const ulRoutine = document.getElementById(generateId(routine));
 		const cache = generateId(routineWarnings[routine] + ulRoutine.children.length);
 
-		if (config.cache[routine] !== cache) {
+		if (config.cache[routine] !== cache || routine === 'customFocus') {
 			config.cache[routine] = cache;
 			removeChildren(ulRoutine);
 
@@ -1344,7 +1344,6 @@ function validateCustomFocusFields() {
 		return;
 	}
 
-
 	document.querySelectorAll(`#${generalIDs.customModal} .custom-modal-fields`).forEach(campos => {
 		const customFocus = {};
 
@@ -1782,9 +1781,13 @@ function openRenamePopup(member) {
 }
 
 function renameMembers(renaming = []) {
-	renaming.forEach(([from, to]) => {
-		openRenamePopup(getMember(from, true));
+	if (renaming.length === 0) return;
 
+	const [from, to] = renaming.shift();
+
+	openRenamePopup(getMember(from, true));
+
+	setTimeout(() => {
 		const nameInput = document.querySelector('#newname');
 		const btnSave = document.querySelector('.zm-modal-footer-default-actions .zm-btn.zm-btn-legacy.zm-btn--primary');
 
@@ -1797,7 +1800,9 @@ function renameMembers(renaming = []) {
 			nameInput.dispatchEvent(new InputEvent('input', { bubbles: true }));
 			btnSave && btnSave.click();
 		}
-	});
+
+		renameMembers(renaming);
+	}, 1000);
 }
 
 async function autoRename() {

@@ -492,7 +492,10 @@ function createCustomFocus(details, name) {
 	return {
 		id: generateId(name),
 		name,
-		validate: () => openMembersPanel() || details.every(p => getMember(p.role)),
+		validate: () => {
+			openMembersPanel();
+			return details.every(p => getMember(p.role));
+		},
 		click: async () => {
 			const fields = details.map(detail => {
 				const memberName = getMemberName(getMember(detail.role));
@@ -813,7 +816,7 @@ function refreshRoutines() {
 		const ulRoutine = document.getElementById(generateId(routine));
 		const cache = generateId(routineWarnings[routine] + ulRoutine.children.length);
 
-		if (config.cache[routine] !== cache) {
+		if (config.cache[routine] !== cache || routine === 'customFocus') {
 			config.cache[routine] = cache;
 			removeChildren(ulRoutine);
 
@@ -1306,7 +1309,6 @@ function validateCustomFocusTarget({ target }) {
 }
 
 function validateCustomFocusFields() {
-	let hasError = false;
 	const errorSpan = document.querySelector('#error-alert-modal span[name="error-placeholder"]');
 	const errorStyle = 'alert-danger';
 	const focusNameInput = document.querySelector(`#${generalIDs.customModal} input[name="custom-focus-name"]`);
@@ -1324,23 +1326,12 @@ function validateCustomFocusFields() {
 		const customFocus = {};
 
 		campos.querySelectorAll('input[type="checkbox"]').forEach(({ name, checked }) => customFocus[name] = checked);
-		campos.querySelectorAll('input[type="text"]').forEach(({ value, classList }) => {
-			if (getMember(value)) {
-				customFocus.role = value;
-			} else {
-				classList.add(errorStyle);
-				hasError = true;
-			}
+		campos.querySelectorAll('input[type="text"]').forEach(({ value }) => {
+			customFocus.role = value;
 		});
 
 		members.push(customFocus);
 	});
-
-	if (hasError) {
-		errorSpan.innerText = wording.errorTextMissing;
-		errorSpan.parentElement.style.display = 'block';
-		return;
-	}
 
 	return {
 		members,
@@ -1656,7 +1647,7 @@ function callMember(role) {
 		return _alert(`${wording.alertParticipant} "${role}" ${wording.alertParticipantNotFound}`);
 	}
 
-	startVideo(target, () => startMike(getMember(role), true));
+	startMike(getMember(role), true);
 }
 
 function callCommenter(name) {
@@ -1699,8 +1690,9 @@ function fetchRenamingList(id) {
 			return _alert(`<span class="h4">${wording.autoRenameError}</span>`);
 		}
 
-		renameMembers(resp.list);
-		_alert(`<span class="h4">${wording.autoRenameSuccess}</span>`);
+		renameMembers(resp.list, () => {
+			_alert(`<span class="h4">${wording.autoRenameSuccess}</span>`);
+		});
 	}).catch(err => _alert(err));
 }
 
@@ -1755,10 +1747,16 @@ function openRenamePopup(member) {
 	clickButton(member, uiLabels.rename);
 }
 
-function renameMembers(renaming = []) {
-	renaming.forEach(([from, to]) => {
-		openRenamePopup(getMember(from, true));
+function renameMembers(renaming = [], callback) {
+	if (renaming.length === 0) {
+		return callback();
+	}
 
+	const [from, to] = renaming.shift();
+
+	openRenamePopup(getMember(from, true));
+
+	setTimeout(() => {
 		const nameInput = document.querySelector('#newname');
 		const btnSave = document.querySelector('.zm-modal-footer-default-actions .zm-btn.zm-btn-legacy.zm-btn--primary');
 
@@ -1771,7 +1769,9 @@ function renameMembers(renaming = []) {
 			nameInput.dispatchEvent(new InputEvent('input', { bubbles: true }));
 			btnSave && btnSave.click();
 		}
-	});
+
+		renameMembers(renaming, callback);
+	}, 1000);
 }
 
 async function autoRename() {
