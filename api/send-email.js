@@ -36,12 +36,14 @@ const sendEmail = async (req, res) => {
 		// log metrics
 		axios({
 			method: 'post',
-			url: process.env.METRICS_ENDPOINT || 'http://designacoes.edunsouza.xyz/api/v1/attendance',
+			url: process.env.METRICS_ENDPOINT || 'http://assignments.cloudno.de/api/v1/attendance',
 			headers: {
 				'Accept': 'application/json',
 				'Content-Type': 'application/json'
 			},
 			data: { id, attendance }
+		}).catch(error => {
+			console.log(error);
 		});
 
 		sgMail.setApiKey(process.env.SENDGRID_API_KEY);
