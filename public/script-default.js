@@ -1306,7 +1306,8 @@ function stopMike(member) {
 }
 
 function stopVideo(member) {
-	clickDropdown(member, uiLabels.stopVideo);
+	// comentado devido a modificação da reunião implementada em 04/09/2021
+	// clickDropdown(member, uiLabels.stopVideo);
 }
 
 function stopSpotlight(member) {
