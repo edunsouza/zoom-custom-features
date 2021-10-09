@@ -2,49 +2,218 @@ function createDomObserver() {
 	if (observer) {
 		observer.disconnect();
 	}
-
 	observer = new MutationObserver(refreshScreen);
-	observer.observe(document.getElementById('wc-container-right'), {
+	observer.observe(byId('wc-container-right'), {
 		subtree: true,
 		childList: true,
 		characterData: true,
 		attributes: true
 	});
 }
-
-function createMouseOverEvent() {
-	const bogusEvent = new MouseEvent('mouseover', { bubbles: true });
-	bogusEvent.simulated = true;
-	return bogusEvent;
-}
-
 function createElement(text, events) {
 	const dom = new DOMParser().parseFromString(text.replace(/\s+/g, ' '), 'text/html');
 	const element = dom.body.children[0] || dom.head.children[0];
 	events && Object.keys(events).forEach(k => element[k] = events[k]);
 	return element;
 }
-
+function removeChildren(element) {
+	if (element && element.querySelectorAll) {
+		element.querySelectorAll('*').forEach(child => child.remove());
+	}
+}
+function dispatchMouseOver(element) {
+	const bogusEvent = new MouseEvent('mouseover', { bubbles: true });
+	bogusEvent.simulated = true;
+	element.dispatchEvent(bogusEvent);
+}
 function hydrate(html, bindings) {
 	const markup = html.replace(/\b(undefined|null|false)\b/gi, '').replace(/\s+/g, ' ');
 	const { head, body } = new DOMParser().parseFromString(markup, 'text/html');
 	const element = body.children[0] || head.children[0];
-
 	if (bindings) {
 		element.querySelectorAll('[hydrate]').forEach(dry => {
 			const events = bindings[dry.getAttribute('hydrate')];
 			Object.keys(events).forEach(e => dry[e] = events[e]);
 		});
 	}
-
 	return element;
 }
-
+function query(selector) {
+	return document.querySelector(selector);
+}
+function queryAll(selector) {
+	return document.querySelectorAll(selector);
+}
+function byId(selector) {
+	return document.getElementById(selector);
+}
+function schedule(id, duration, callback) {
+	unschedule(id);
+	runningIntervals[id] = setInterval(() => callback(), duration);
+	routineWarnings.continuousAttempts = [...new Set(routineWarnings.continuousAttempts.concat(id))];
+	refreshScreen();
+}
+function unschedule(id) {
+	runningIntervals[id] = clearInterval(runningIntervals[id]);
+	routineWarnings.continuousAttempts = routineWarnings.continuousAttempts.filter(attempt => attempt !== id);
+	refreshScreen();
+}
+function subscribe({ queue, member }) {
+	observed[queue] = [getMemberName(member), ...observed[queue]];
+}
+function unsubscribe({ queue, member }) {
+	observed[queue] = observed[queue].filter(name => name !== getMemberName(member));
+}
+function subscribeStager(member) {
+	subscribe({ member, queue: constants.ON_STAGE_QUEUE });
+}
+function unsubscribeStager(member) {
+	unsubscribe({ member, queue: constants.ON_STAGE_QUEUE });
+}
+function resetStage() {
+	clearQueue({ queue: constants.ON_STAGE_QUEUE });
+}
+function subscribeCommenter(member) {
+	subscribe({ member, queue: constants.COMMENTING_QUEUE });
+}
+function unsubscribeCommenter(member) {
+	unsubscribe({ member, queue: constants.COMMENTING_QUEUE });
+}
+function clearQueue({ queue }) {
+	observed[queue] = [];
+}
+function setObserved(name, value) {
+	observed[name] = Boolean(value);
+}
+function toggleObserved(name) {
+	observed[name] = !observed[name];
+}
+function toggleModal() {
+	const modal = byId(generalIDs.modal);
+	if (modal.style.display === 'none') {
+		modal.removeAttribute('style');
+	} else {
+		closeModal();
+	}
+}
+function getSubscribedMembers({ queue }) {
+	return observed[queue].map(name => getMember(name, true));
+}
+function getCleanText(text) {
+	return !text ? '' : text
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.toLowerCase()
+		.trim()
+		.replace(/\s+/g, ' ');
+}
+function getMember(role, absolute) {
+	if (!role) {
+		return;
+	}
+	return getMembers().find(member => {
+		const name = getCleanText(getMemberName(member));
+		return name && absolute
+			? getCleanText(name) === getCleanText(role)
+			: name.includes(getCleanText(role));
+	});
+}
+function getMembers() {
+	return Array.from(queryAll('.participants-ul .item-pos.participants-li'));
+}
+function getMemberName(member) {
+	return !member ? '' : member.querySelector('.participants-item__display-name').innerText;
+}
+function getMemberButtons(member) {
+	return !member ? [] : Array.from(member.querySelectorAll('.participants-item__buttons .button-margin-right'));
+}
+function getMemberDropdownButtons(member) {
+	return !member ? [] : Array.from(member.querySelectorAll('.participants-item__buttons .dropdown-menu a'));
+}
+function getMoreDropdownOptions(optionLabels) {
+	const moreOptions = Array.from(queryAll('#wc-container-right .window-content-bottom ul li a'));
+	return moreOptions.find(a => includesInnerText(optionLabels, a));
+}
+function clickButton(member, btnLabels) {
+	if (!member) {
+		return refreshScreen();
+	}
+	dispatchMouseOver(member);
+	getMemberButtons(member).some(btn => {
+		if (btn && btnLabels.includes(btn.innerText)) {
+			btn.click();
+			return true;
+		}
+	});
+}
+function clickDropdown(member, btnLabels) {
+	if (!member) {
+		return refreshScreen();
+	}
+	dispatchMouseOver(member);
+	return getMemberDropdownButtons(member).some(btn => {
+		if (btn && btnLabels.includes(btn.innerText)) {
+			btn.click();
+			return true;
+		}
+	});
+}
+function includesInnerText(list, element) {
+	return list.includes(element.innerText);
+}
+function getCommenters() {
+	return getSubscribedMembers({ queue: constants.COMMENTING_QUEUE });
+}
+function isOnStage(member) {
+	return observed.onStage.includes(getMemberName(member));
+}
+function isCommenting(member) {
+	return observed.commenting.includes(getMemberName(member));
+}
+function isAutoSpotlight() {
+	return Boolean(observed.autoSpotlight);
+}
+function isPublicRoom() {
+	return Boolean(observed.publicRoom);
+}
+/* ACCEPTED FORMAT: (number) members names */
+function isNameValid(member) {
+	const name = getMemberName(member);
+	if (/^\s*[\(\[\{]\s*[0-9]/i.test(name)) {
+		const brands = 'samsung_apple_motorola_nokia_lg_lenovo_huawei_xiaomi_galaxy_note_ipad_iphone_moto_oppo_vivo_tecno'.split('_');
+		return name.toLowerCase().split(/\b/).every(x => !brands.includes(x));
+	}
+	return false;
+}
+function isMikeOn(member) {
+	if (!member) {
+		return false;
+	}
+	dispatchMouseOver(member);
+	return getMemberButtons(member).some(btn => includesInnerText(uiLabels.stopMike, btn));
+}
+function isVideoOn(member) {
+	if (!member) {
+		return false;
+	}
+	dispatchMouseOver(member);
+	return getMemberDropdownButtons(member).some(btn => includesInnerText(uiLabels.stopVideo, btn));
+}
+function isSpotlightOn(member) {
+	if (!member) {
+		return false;
+	}
+	dispatchMouseOver(member);
+	return getMemberDropdownButtons(member).some(btn => includesInnerText(uiLabels.stopSpotlight, btn));
+}
+function isHandRaised(member) {
+	return getMemberButtons(member).some(btn => includesInnerText(uiLabels.lowerHands, btn));
+}
 function createCss() {
-	const membersPaneWidth = parseInt(document.querySelector('#wc-container-right').style.width);
-	const footerButtonsHeight = document.querySelector('#wc-footer').clientHeight;
-	const higherIndex = Math.max.apply(null, Array.from(document.querySelectorAll('body *')).map(({ style = {} }) => style.zIndex || 0));
-	const style = document.getElementById('custom-style') || document.createElement('style');
+	const membersPaneWidth = parseInt(query('#wc-container-right').style.width);
+	const footerButtonsHeight = query('#wc-footer').clientHeight;
+	const higherIndex = Math.max.apply(null, Array.from(queryAll('body *')).map(({ style = {} }) => style.zIndex || 0));
+	const style = byId('custom-style') || createElement('<style id="custom-style"></style>');
 	style.id = 'custom-style';
 	style.innerHTML = `
         .main-modal {
@@ -318,12 +487,12 @@ function createCss() {
             user-select: none;
             margin: 10px;
         }
-        .large-checkbox input {
+		.large-checkbox input {
             margin: 0;
             height: 20px;
             width: 30px;
         }
-        .large-checkbox label {
+		.large-checkbox label {
             line-height: 20px;
             margin: 0;
         }
@@ -370,42 +539,33 @@ function createCss() {
     `;
 	document.body.appendChild(style);
 }
-
 function createCustomOptions() {
-	const currentButton = document.getElementById('open-meeting-options');
-
+	const currentButton = byId('open-meeting-options');
 	if (currentButton) {
 		currentButton.remove();
 	}
-
-	document.querySelector('#wc-footer .footer__inner').appendChild(
-		createElement('<button id="open-meeting-options" style="margin-right: 20px">JW.ORG</button>', {
-			onclick: toggleModal
-		})
+	const btnOptions = createElement(
+		'<button id="open-meeting-options" style="margin-right: 20px">JW.ORG</button>',
+		{ onclick: toggleModal }
 	);
+	query('#wc-footer .footer__inner').appendChild(btnOptions);
 }
-
 function createCustomModal() {
-	const modalBackdrop = document.getElementById(generalIDs.customModal) || createElement(`<div id="${generalIDs.customModal}"></div>`);
+	const modalBackdrop = byId(generalIDs.customModal) || createElement(`<div id="${generalIDs.customModal}"></div>`);
 	modalBackdrop.style.display = 'none';
-	modalBackdrop.onclick = ({ target }) => target !== modalBackdrop || closeCustomModal();
-
+	modalBackdrop.onclick = ({ target }) => (target !== modalBackdrop || closeCustomModal());
 	removeChildren(modalBackdrop);
 	return modalBackdrop;
 }
-
 function createCustomMenu(element, options) {
 	if (!element || !Array.isArray(options)) {
 		return;
 	}
-
-	let menu = document.getElementById(generalIDs.customMenu);
-
+	let menu = byId(generalIDs.customMenu);
 	if (!menu) {
 		menu = createElement(`<div id="${generalIDs.customMenu}" class="context-menu"></div>`);
 		document.body.appendChild(menu);
 	}
-
 	element.oncontextmenu = event => {
 		event.preventDefault();
 		menu.style.top = event.pageY;
@@ -414,14 +574,12 @@ function createCustomMenu(element, options) {
 		removeChildren(menu);
 		options.forEach(({ text, onclick }) => menu.appendChild(createElement(`<span>${text}</span>`, { onclick })));
 	};
-
 	document.body.onclick = ({ path }) => {
 		if (menu && !path.find(e => e.id === 'wc-container-right')) {
 			menu.style.display = 'none';
 		}
 	};
 }
-
 function createCustomFocus(details, name) {
 	return {
 		id: generateId(name),
@@ -433,43 +591,41 @@ function createCustomFocus(details, name) {
 				return `${getMemberName(getMember(role))} - [${list}]\n`;
 			}).join('');
 			const action = prompt(`${name.toUpperCase()}\n${fields}\n"F" = focar\n"C" = chamar\n[Qualquer outra ação] = abortar`);
-			const fullAttention = String(action).toUpperCase() === 'F';
-
 			if (!action) {
 				return;
 			}
-
-			const videoExceptions = [];
-			const mikeExceptions = [];
-
+			const isFocusing = String(action).toUpperCase() === 'F';
+			if (isFocusing) {
+				const mikeExceptions = details.reduce((list, { role, useMike }) => (
+					useMike ? [...list, getMember(role)] : list
+				), []);
+				stopAllMikes(mikeExceptions);
+				stopAllSpotlights();
+				resetStage();
+			}
 			details.forEach(({ role, useVideo, useMike, useSpotlight }) => {
 				const member = getMember(role);
-				useVideo && videoExceptions.push(member);
-				useMike && mikeExceptions.push(member);
-
+				if (useMike) {
+					startMike(member, true);
+					subscribeStager(member);
+				}
 				if (useVideo) {
 					startVideo(member, () => {
-						useSpotlight && fullAttention && startSpotlight(member);
-						useMike && startMike(member, true);
+						if (useSpotlight && isFocusing) {
+							addSpotlight(member);
+							subscribeStager(member);
+						}
 					});
-				} else if (useMike) {
-					startMike(member, true);
 				}
 			});
-
-			if (fullAttention) {
-				stopAllMikes(mikeExceptions);
-				stopAllVideos(videoExceptions);
-			}
 		}
 	};
 }
-
 function createCustomFocusFields() {
 	const suffix = Math.random().toString(36).substring(2);
 	const onchange = ({ target }) => {
 		const icon = target.nextElementSibling;
-		const label = document.querySelector(`label[for="${target.id}"]`);
+		const label = query(`label[for="${target.id}"]`);
 		icon.innerText = target.checked ? icon.dataset.on : icon.dataset.off;
 		label.innerText = target.checked ? label.dataset.on : label.dataset.off;
 		label.style.color = target.checked ? '#5cb85c' : '#ff4242';
@@ -504,7 +660,6 @@ function createCustomFocusFields() {
 		check3: { onchange }
 	});
 }
-
 function createRenameRoleField(role, label) {
 	const name = getCleanText(role);
 	return hydrate(`
@@ -544,122 +699,6 @@ function createRenameRoleField(role, label) {
 		}
 	});
 }
-
-function getCleanText(text) {
-	return !text ? '' : text
-		.normalize('NFD')
-		.replace(/[\u0300-\u036f]/g, '')
-		.toLowerCase()
-		.trim()
-		.replace(/\s+/g, ' ');
-}
-
-function getMember(role, absolute) {
-	if (!role) {
-		return;
-	}
-
-	return getMembers().find(member => {
-		const name = getCleanText(getMemberName(member));
-		return name && absolute
-			? getCleanText(name) === getCleanText(role)
-			: name.includes(getCleanText(role));
-	});
-}
-
-function getMembers() {
-	return Array.from(document.querySelectorAll('.participants-ul .item-pos.participants-li'));
-}
-
-function getMemberName(member) {
-	return !member ? '' : member.querySelector('.participants-item__display-name').innerText;
-}
-
-function getMemberButtons(member) {
-	return !member ? [] : Array.from(member.querySelectorAll('.participants-item__buttons .button-margin-right'));
-}
-
-function getMemberDropdownButtons(member) {
-	return !member ? [] : Array.from(member.querySelectorAll('.participants-item__buttons .dropdown-menu a'));
-}
-
-function getMoreDropdownOptions(optionLabels) {
-	const options = document.querySelectorAll('#wc-container-right .window-content-bottom ul li a');
-	return Array.from(options).find(a => optionLabels.includes(a.innerText));
-}
-
-/* ACCEPTED FORMAT: (number) members names */
-function isNameValid(member) {
-	const name = getMemberName(member);
-
-	if (/^\s*[\(\[\{]\s*[0-9]/i.test(name)) {
-		const brands = 'samsung_apple_motorola_nokia_lg_lenovo_huawei_xiaomi_galaxy_note_ipad_iphone_moto_oppo_vivo_tecno'.split('_');
-		return name.toLowerCase().split(/\b/).every(x => brands.indexOf(x) === -1);
-	} else {
-		return false;
-	}
-}
-
-function isMikeOn(member) {
-	if (!member) {
-		return false;
-	}
-	member.dispatchEvent(createMouseOverEvent());
-	return getMemberButtons(member).some(btn => uiLabels.stopMike.includes(btn.innerText));
-}
-
-function isVideoOn(member) {
-	if (!member) {
-		return false;
-	}
-	member.dispatchEvent(createMouseOverEvent());
-	return getMemberDropdownButtons(member).some(btn => uiLabels.stopVideo.includes(btn.innerText));
-}
-
-function isSpotlightOn(member) {
-	if (!member) {
-		return false;
-	}
-	member.dispatchEvent(createMouseOverEvent());
-	return getMemberDropdownButtons(member).some(btn => uiLabels.stopSpotlight.includes(btn.innerText));
-}
-
-function isHandRaised(member) {
-	return member && getMemberButtons(member).some(btn => uiLabels.lowerHands.includes(btn.innerText));
-}
-
-function clickButton(member, btnLabels) {
-	if (!member) {
-		return refreshScreen();
-	}
-	member.dispatchEvent(createMouseOverEvent());
-	getMemberButtons(member).some(btn => {
-		if (btn && btnLabels.includes(btn.innerText)) {
-			btn.click();
-			return true;
-		}
-	});
-}
-
-function clickDropdown(member, btnLabels) {
-	if (!member) {
-		refreshScreen();
-		return;
-	}
-	member.dispatchEvent(createMouseOverEvent());
-	return getMemberDropdownButtons(member).some(btn => {
-		if (btn && btnLabels.includes(btn.innerText)) {
-			btn.click();
-			return true;
-		}
-	});
-}
-
-function cleanVideoScanner() {
-	unschedule(observed.scanningVideo);
-	delete observed.scanningVideo;
-}
-
 function refreshScreen() {
 	clearTimeout(config.lastChange);
 	config.lastChange = setTimeout(() => {
@@ -677,7 +716,6 @@ function refreshScreen() {
 		refreshRoutines();
 	}, 100);
 }
-
 function refreshWarnings() {
 	Object.keys(routineWarnings).forEach(routine => {
 		if (routine !== 'continuousAttempts' && routineWarnings[routine].length > 10) {
@@ -685,20 +723,15 @@ function refreshWarnings() {
 		}
 	});
 }
-
 function refreshInvalidNames() {
-	routineWarnings.invalidNames = getMembers().reduce((list, member) => {
-		if (!isNameValid(member)) {
-			list.push(getMemberName(member));
-		}
-		return list;
-	}, []);
+	routineWarnings.invalidNames = getMembers().reduce((list, member) => (
+		isNameValid(member) ? list : [...list, getMemberName(member)]
+	), []);
 }
-
 function refreshWaitingRoom() {
-	document.querySelectorAll('.waiting-room-list-conatiner__ul li').forEach(member => {
-		if (isNameValid(member) || observed.publicRoom) {
-			member.dispatchEvent(createMouseOverEvent());
+	queryAll('.waiting-room-list-conatiner__ul li').forEach(member => {
+		if (isNameValid(member) || isPublicRoom()) {
+			dispatchMouseOver(member);
 			const btnAllow = member.querySelector('.btn-primary');
 			if (btnAllow) {
 				btnAllow.click();
@@ -706,38 +739,26 @@ function refreshWaitingRoom() {
 		}
 	});
 }
-
 function refreshVideosOn() {
-	routineWarnings.videosOn = getMembers().reduce((list, member) => {
-		if (isVideoOn(member)) {
-			list.push(getMemberName(member));
-		}
-		return list;
-	}, []);
-
-	if (observed.autoSpotlight) {
+	routineWarnings.videosOn = getMembers().reduce((list, member) => (
+		isVideoOn(member) ? [...list, getMemberName(member)] : list
+	), []);
+	if (isAutoSpotlight()) {
 		stopAllSpotlights();
 	}
 }
-
 function refreshMikesOn() {
-	routineWarnings.mikesOn = getMembers().reduce((list, member) => {
-		if (isMikeOn(member)) {
-			list.push(getMemberName(member));
-		}
-		return list;
-	}, []);
+	routineWarnings.mikesOn = getMembers().reduce((list, member) => (
+		isMikeOn(member) ? [...list, getMemberName(member)] : list
+	), []);
 }
-
 function refreshRoutines() {
 	Object.keys(routineWarnings).forEach(routine => {
-		const ulRoutine = document.getElementById(generateId(routine));
+		const ulRoutine = byId(generateId(routine));
 		const cache = generateId(routineWarnings[routine] + ulRoutine.children.length);
-
 		if (config.cache[routine] !== cache || routine === 'customFocus') {
 			config.cache[routine] = cache;
 			removeChildren(ulRoutine);
-
 			const method = {
 				continuousAttempts: () => refreshContinuousAttempts(),
 				customFocus: () => refreshCustomFocusButtons(),
@@ -745,54 +766,47 @@ function refreshRoutines() {
 				mikesOn: () => updateMikesOn(ulRoutine),
 				videosOn: () => updateVideosOn(ulRoutine)
 			}[routine];
-
 			if (method) {
-				method();
-			} else {
-				routineWarnings[routine].forEach(msg => ulRoutine.appendChild(createElement(`<li class="striped">${msg}</li>`)));
+				return method();
 			}
+			routineWarnings[routine].forEach(msg => {
+				const li = createElement(`<li class="striped">${msg}</li>`);
+				ulRoutine.appendChild(li);
+			});
 		}
 	});
 }
-
 function refreshDefaultButtons() {
-	const toCall = document.querySelectorAll('.call-member-frame > button') || [];
-	const toFocus = document.querySelectorAll('.focus-on-frame > button') || [];
+	const toCall = queryAll('.call-member-frame > button') || [];
+	const toFocus = queryAll('.focus-on-frame > button') || [];
 	const statusClass = 'invalid-focus';
-
-	toCall.forEach((bc, i, _, bf = toFocus[i]) => {
-		if (!getMember(roles[bc.dataset.role])) {
-			bc.classList.add(statusClass);
-			bf.classList.add(statusClass);
+	toCall.forEach((btnCall, i) => {
+		const btnFocus = toFocus[i];
+		if (!getMember(roles[btnCall.dataset.role])) {
+			btnCall.classList.add(statusClass);
+			btnFocus.classList.add(statusClass);
 		} else {
-			bc.classList.remove(statusClass);
-			bf.classList.remove(statusClass);
+			btnCall.classList.remove(statusClass);
+			btnFocus.classList.remove(statusClass);
 		}
 	});
 }
-
 function refreshRaisedHands() {
-	const list = document.querySelector('#raised-hands');
+	const list = query('#raised-hands');
 	removeChildren(list);
-
-	const commenter = getMember(observed.commenting);
-
-	if (isMikeOn(commenter)) {
-		lowerHand(commenter);
-		delete observed.commenting;
+	const [currentCommenter] = getCommenters();
+	if (isMikeOn(currentCommenter)) {
+		lowerHand(currentCommenter);
 	}
-
 	getMembers().forEach(member => {
 		if (!isHandRaised(member)) {
 			return;
 		}
-
 		const name = getMemberName(member);
 		list.appendChild(hydrate(`
             <li>
                 <button hydrate="btn1" data-member="${name}" class="btn-xs btn-commenters">
                     <i data-member="${name}" class="material-icons-outlined">mic_none</i>
-                    ${shouldStartVideo(member) && `<i data-member="${name}" class="material-icons-outlined">duo</i>`}
                     <span data-member="${name}">${name}</span>
                 </button>
             </li>`, {
@@ -800,22 +814,18 @@ function refreshRaisedHands() {
 		}));
 	});
 }
-
 function refreshAttendanceCount() {
 	const attendance = countAttendance();
 	const newCache = generateId(JSON.stringify(attendance));
-
 	if (config.cache.updateAttendance !== newCache) {
 		config.cache.updateAttendance = newCache;
-		document.getElementById(generalIDs.counted).innerText = `${attendance.counted} identificado(s)`;
-		document.getElementById(generalIDs.notCounted).innerText = `${attendance.notCounted} não identificado(s)`;
+		byId(generalIDs.counted).innerText = `${attendance.counted} identificado(s)`;
+		byId(generalIDs.notCounted).innerText = `${attendance.notCounted} não identificado(s)`;
 	}
 }
-
 function refreshContinuousAttempts() {
-	const ul = document.getElementById(generateId('continuousAttempts'));
+	const ul = byId(generateId('continuousAttempts'));
 	ul.querySelectorAll('li').forEach(li => li.remove());
-
 	routineWarnings.continuousAttempts.forEach(attempt => {
 		ul.appendChild(hydrate(`
             <li class="checkbox">
@@ -832,11 +842,9 @@ function refreshContinuousAttempts() {
 		}));
 	});
 }
-
 function refreshCustomFocusButtons() {
-	const ul = document.getElementById(generateId('customFocus'));
+	const ul = byId(generateId('customFocus'));
 	ul.querySelectorAll('li').forEach(li => li.remove());
-
 	routineWarnings.customFocus.forEach(({ id, name, validate, click }) => {
 		const isValid = validate();
 		ul.appendChild(hydrate(`
@@ -856,7 +864,6 @@ function refreshCustomFocusButtons() {
 		}));
 	});
 }
-
 function updateContextMenu(ul, id, contextMenu) {
 	routineWarnings[id].forEach(value => {
 		const element = createElement(`<li class="striped">${value}</li>`);
@@ -865,43 +872,36 @@ function updateContextMenu(ul, id, contextMenu) {
 		ul.appendChild(element);
 	});
 }
-
 function updateInvalidNames(ul) {
 	updateContextMenu(ul, 'invalidNames', [
 		{ text: 'Renomear', onclick: name => openRenamePopup(getMember(name, true)) },
 		{ text: 'Mover para sala de espera', onclick: name => removeMember(getMember(name, true)) }
 	]);
 }
-
 function updateMikesOn(ul) {
 	updateContextMenu(ul, 'mikesOn', [{
 		text: 'Silenciar',
 		onclick: name => stopMike(getMember(name))
 	}]);
 }
-
 function updateVideosOn(ul) {
 	updateContextMenu(ul, 'videosOn', [{
-		text: 'Desligar vídeo',
+		text: 'Desligar vídeo (desativado)',
 		onclick: name => stopVideo(getMember(name))
 	}]);
 }
-
 function renderModal() {
 	importIcons();
-	const modal = document.getElementById(generalIDs.modal);
-
+	const modal = byId(generalIDs.modal);
 	if (modal) {
 		modal.remove();
 	}
-
 	const optionsModal = createElement(`<div style="display: none" class="main-modal" id="${generalIDs.modal}"></div>`);
 	optionsModal.appendChild(renderButtonsFrame());
 	optionsModal.appendChild(renderServicesFrame());
 	optionsModal.appendChild(renderCustomFocusModal());
 	document.body.appendChild(optionsModal);
 }
-
 function renderCustomFocusModal() {
 	const body = hydrate(`
         <div class="custom-modal-body">
@@ -919,7 +919,7 @@ function renderCustomFocusModal() {
                 <input name="custom-focus-name" type="text" class="form-control" placeholder="Primeira Visita">
             </div>
         </div>`, {
-		add: { onclick: () => document.querySelector('.custom-modal-body').appendChild(createCustomFocusFields()) },
+		add: { onclick: () => query('.custom-modal-body').appendChild(createCustomFocusFields()) },
 		cancel: { onclick: closeCustomModal },
 		save: {
 			onclick() {
@@ -933,35 +933,31 @@ function renderCustomFocusModal() {
 			}
 		}
 	});
-
 	body.appendChild(createCustomFocusFields());
 	return createCustomModal().appendChild(body).parentElement;
 }
-
 function renderSeeMoreModal() {
 	const modal = hydrate(`
         <div class="custom-modal-body" style="display: block">
             <div style="display: flex; justify-content: space-between; align-items: center">
                 <div class="large-checkbox h5">
-                    <input hydrate="input1" id="open-waiting-room" type="checkbox" ${observed.publicRoom && 'checked'}/>
+                    <input hydrate="input1" id="open-waiting-room" type="checkbox" ${isPublicRoom() && 'checked'}/>
                     <label for="open-waiting-room">Liberar sala de espera para todos</label>
                 </div>
                 <button hydrate="close" class="btn btn-primary-outline btn-close-modal">Fechar</button>
             </div>
             <div class="large-checkbox h5">
-                <input hydrate="input2" id="auto-spotlight" type="checkbox" ${observed.autoSpotlight && 'checked'}/>
+                <input hydrate="input2" id="auto-spotlight" type="checkbox" ${isAutoSpotlight() && 'checked'}/>
                 <label for="auto-spotlight">Ativar foco automático (remove automaticamente o spotlight)</label>
             </div>
         </div>`, {
-		input1: { onchange() { observed.publicRoom = !observed.publicRoom; refreshWaitingRoom(); } },
-		input2: { onchange() { observed.autoSpotlight = !observed.autoSpotlight; refreshVideosOn(); } },
 		close: { onclick: closeCustomModal },
+		input1: { onchange() { toggleObserved(constants.PUBLIC_ROOM_KEY); refreshWaitingRoom(); } },
+		input2: { onchange() { toggleObserved(constants.AUTO_SPOTLIGHT_KEY); refreshVideosOn(); } },
 	});
-
-	document.querySelectorAll('.call-member-frame button:not(.hidden)').forEach(btn => modal.appendChild(createRenameRoleField(btn.dataset.role, btn.innerText)));
+	queryAll('.call-member-frame button:not(.hidden)').forEach(btn => modal.appendChild(createRenameRoleField(btn.dataset.role, btn.innerText)));
 	return createCustomModal().appendChild(modal);
 }
-
 function renderButtonsFrame() {
 	const { counted, notCounted } = countAttendance();
 	const confirmAction = callback => ({ target }) => {
@@ -971,7 +967,6 @@ function renderButtonsFrame() {
 			return answer.toLowerCase() === a.toLowerCase() ? callback() : alert('Texto incorreto! Ação não executada.');
 		}
 	};
-
 	/* WEEKENDS HAVE DIFFERENT UI LAYOUT */
 	const isWeekend = [0, 6].includes(new Date().getDay());
 	const buttonsFrame = hydrate(`
@@ -1058,7 +1053,7 @@ function renderButtonsFrame() {
 		btn4: { onclick: openSeeMoreModal },
 		btn5: { onclick: confirmAction(northKoreaMode) },
 		btn6: { onclick: confirmAction(requestApplause) },
-		check1: { onchange: () => document.getElementById(generalIDs.modal).classList.toggle('transparent-modal') },
+		check1: { onchange: () => byId(generalIDs.modal).classList.toggle('transparent-modal') },
 		div1: {
 			onclick() {
 				const { counted } = countAttendance();
@@ -1069,10 +1064,8 @@ function renderButtonsFrame() {
 			}
 		}
 	});
-
 	return buttonsFrame;
 }
-
 function renderServicesFrame() {
 	refreshScreen();
 	return hydrate(`
@@ -1100,10 +1093,9 @@ function renderServicesFrame() {
             <div class="routine-div comments-grid">
                 <p>Comentários</p>
                 <div id="quick-actions">
-                    <button hydrate="btn1" class="btn btn-xs btn-primary">Silenciar todos*</button>
+                    <button hydrate="btn1" class="btn btn-xs btn-primary">Silenciar todos</button>
                     <button hydrate="btn2" class="btn btn-xs btn-success">Abaixar mãos</button>
                 </div>
-                <div class="quick-note">*Exceto com vídeos ligados</div>
                 <ul id="raised-hands"></ul>
             </div>
         </div>`, {
@@ -1111,42 +1103,34 @@ function renderServicesFrame() {
 		btn2: { onclick: lowerAllHands }
 	});
 }
-
 function openCustomFocusModal() {
 	renderCustomFocusModal();
 	openCustomModal();
 }
-
 function openSeeMoreModal() {
 	renderSeeMoreModal();
 	openCustomModal();
 }
-
 function openCustomModal() {
-	document.getElementById(generalIDs.customModal).style.display = 'block';
+	byId(generalIDs.customModal).style.display = 'block';
 }
-
 function openMembersPanel() {
-	if (!document.querySelector('.participants-header__title')) {
-		document.querySelector('.footer-button__participants-icon').click();
+	if (!query('.participants-header__title')) {
+		query('.footer-button__participants-icon').click();
 		createDomObserver();
 	}
 }
-
 function closeModal() {
-	document.getElementById(generalIDs.modal).style.display = 'none';
+	byId(generalIDs.modal).style.display = 'none';
 }
-
 function closeCustomModal() {
-	const modal = document.getElementById(generalIDs.customModal);
+	const modal = byId(generalIDs.customModal);
 	removeChildren(modal);
 	modal.style.display = 'none';
 }
-
 function validateCustomFocusTarget({ target }) {
 	const { value, classList } = target.parentElement.previousElementSibling;
 	const foundMember = getMember(value);
-
 	if (foundMember) {
 		classList.remove('alert-danger');
 		alert(`Participante encontrado: ${getMemberName(foundMember)}`);
@@ -1158,27 +1142,22 @@ function validateCustomFocusTarget({ target }) {
 		);
 	}
 }
-
 function validateCustomFocusFields() {
 	let hasError = false;
-	const errorSpan = document.querySelector('#error-alert-modal span[name="error-placeholder"]');
+	const errorSpan = query('#error-alert-modal span[name="error-placeholder"]');
 	const errorStyle = 'alert-danger';
-	const focusNameInput = document.querySelector(`#${generalIDs.customModal} input[name="custom-focus-name"]`);
+	const focusNameInput = query(`#${generalIDs.customModal} input[name="custom-focus-name"]`);
 	const members = [];
-
 	if (!focusNameInput.value) {
 		focusNameInput.classList.add(errorStyle);
 		errorSpan.innerText = 'Informe nome para o novo botão. Preencha o(s) campo(s) em vermelho';
 		errorSpan.parentElement.style.display = 'block';
 		return;
 	}
-
-
-	document.querySelectorAll(`#${generalIDs.customModal} .custom-modal-fields`).forEach(campos => {
+	queryAll(`#${generalIDs.customModal} .custom-modal-fields`).forEach(fields => {
 		const customFocus = {};
-
-		campos.querySelectorAll('input[type="checkbox"]').forEach(({ name, checked }) => customFocus[name] = checked);
-		campos.querySelectorAll('input[type="text"]').forEach(({ value, classList }) => {
+		fields.querySelectorAll('input[type="checkbox"]').forEach(({ name, checked }) => customFocus[name] = checked);
+		fields.querySelectorAll('input[type="text"]').forEach(({ value, classList }) => {
 			if (getMember(value)) {
 				customFocus.role = value;
 			} else {
@@ -1186,364 +1165,263 @@ function validateCustomFocusFields() {
 				hasError = true;
 			}
 		});
-
 		members.push(customFocus);
 	});
-
 	if (hasError) {
 		errorSpan.innerText = 'Preencha o(s) campo(s) em vermelho e selecione "validar texto"';
 		errorSpan.parentElement.style.display = 'block';
 		return;
 	}
-
 	return {
 		members,
 		buttonName: focusNameInput.value
 	};
 }
-
-function shouldStartVideo(member) {
-	return getMemberName(member).match(/\bok\b/gi);
-}
-
 function startMike(member, keepTrying) {
 	if (!member) {
 		return;
 	}
-
-	cleanVideoScanner();
-
 	const routineName = `ligar_som_${getMemberName(member)}`;
 	const routineDelay = 2000;
-
 	if (isMikeOn(member)) {
 		unschedule(routineName);
 		refreshScreen();
 		return;
 	}
-
 	clickButton(member, uiLabels.startMike);
-
 	if (keepTrying) {
 		schedule(routineName, routineDelay, () => {
 			if (isMikeOn(member)) {
 				unschedule(routineName);
 				refreshScreen();
-			} else {
-
-				if (!routineWarnings.continuousAttempts.includes(routineName)) {
-					routineWarnings.continuousAttempts.push(routineName);
-					refreshScreen();
-				}
-
-				clickButton(member, uiLabels.startMike);
+				return;
 			}
+			if (!routineWarnings.continuousAttempts.includes(routineName)) {
+				routineWarnings.continuousAttempts.push(routineName);
+				refreshScreen();
+			}
+			clickButton(member, uiLabels.startMike);
 		});
 	}
 }
-
-function startVideo(member, callback, singleShot) {
+function startVideo(member, callback) {
 	if (!member) {
 		return;
 	}
-
-	cleanVideoScanner();
-
 	if (isVideoOn(member)) {
 		return callback && callback();
 	}
-
 	clickDropdown(member, uiLabels.startVideo);
-
-	if (callback) {
-		const scheduleId = `ligar_video_${getMemberName(member)}`;
-		const refreshDelay = 500;
-		const attemptDelay = 4000;
-		let attempts = 0;
-
-		schedule(scheduleId, refreshDelay, () => {
-			attempts++;
-
-			if (isVideoOn(member)) {
-				unschedule(scheduleId);
-				refreshScreen();
-				callback();
-			} else if (singleShot) {
-				observed.scanningVideo = scheduleId;
-				routineWarnings.continuousAttempts = routineWarnings.continuousAttempts.filter(attempt => attempt !== scheduleId);
-				refreshScreen();
-			} else {
-				if (!routineWarnings.continuousAttempts.includes(scheduleId)) {
-					routineWarnings.continuousAttempts.push(scheduleId);
-					refreshScreen();
-				}
-
-				if (attempts >= (attemptDelay / refreshDelay)) {
-					attempts = 0;
-					clickDropdown(member, uiLabels.startVideo);
-				}
-			}
-		});
+	if (!callback) {
+		return;
 	}
+	const scheduleId = `ligar_video_${getMemberName(member)}`;
+	const refreshDelay = 500;
+	const attemptDelay = 4000;
+	let attempts = 0;
+	schedule(scheduleId, refreshDelay, () => {
+		attempts++;
+		if (isVideoOn(member)) {
+			unschedule(scheduleId);
+			refreshScreen();
+			callback();
+			return;
+		}
+		if (!routineWarnings.continuousAttempts.includes(scheduleId)) {
+			routineWarnings.continuousAttempts.push(scheduleId);
+			refreshScreen();
+		}
+		if (attempts >= (attemptDelay / refreshDelay)) {
+			attempts = 0;
+			clickDropdown(member, uiLabels.startVideo);
+		}
+	});
 }
-
 function startSpotlight(member) {
-	cleanVideoScanner();
 	stopAllSpotlights();
 	clickDropdown(member, uiLabels.startSpotlight);
 }
-
 function addSpotlight(member) {
-	cleanVideoScanner();
 	clickDropdown(member, [
 		...uiLabels.addSpotlight,
 		...uiLabels.startSpotlight
 	]);
 }
-
 function stopMike(member) {
 	clickButton(member, uiLabels.stopMike);
 }
-
-function stopVideo(member) {
-	// comentado devido a modificação da reunião implementada em 04/09/2021
+function stopVideo() {
+	console.log("tried to stop a member's video");
 	// clickDropdown(member, uiLabels.stopVideo);
 }
-
 function stopSpotlight(member) {
 	clickDropdown(member, uiLabels.stopSpotlight);
 }
-
 function lowerHand(member) {
-
 	if (!member) {
 		return;
 	}
-
-	const btn = getMemberButtons(member).find(btn => uiLabels.lowerHands.includes(btn.innerText));
-
+	const btn = getMemberButtons(member).find(btn => includesInnerText(uiLabels.lowerHands, btn));
 	if (btn) {
 		btn.click();
 	}
 }
-
 function startAllMikes() {
 	getMembers().forEach(member => startMike(member));
 }
-
 function stopAllMikes(membersToKeep) {
-	membersToKeep = Array.isArray(membersToKeep) ? membersToKeep.map(p => getMemberName(p)) : [];
-
+	membersToKeep = Array.isArray(membersToKeep) ? membersToKeep.map(getMemberName) : [];
 	getMembers().forEach(member => {
 		if (!membersToKeep.includes(getMemberName(member))) {
 			stopMike(member);
 		}
 	});
 }
-
-function stopAllVideos(membersToKeep) {
-	membersToKeep = Array.isArray(membersToKeep) ? membersToKeep.map(p => getMemberName(p)) : [];
-
-	getMembers().forEach(member => {
-		if (!membersToKeep.includes(getMemberName(member))) {
-			stopVideo(member);
-		}
-	});
-}
-
 function stopAllSpotlights() {
-	getMembers().forEach(member => stopSpotlight(member));
+	getMembers().forEach(stopSpotlight);
 }
-
 function lowerAllHands(membersToKeep) {
-	membersToKeep = Array.isArray(membersToKeep) ? membersToKeep.map(p => getMemberName(p)) : [];
-
+	membersToKeep = Array.isArray(membersToKeep) ? membersToKeep.map(getMemberName) : [];
 	getMembers().forEach(member => {
 		if (!membersToKeep.includes(getMemberName(member))) {
-			const btnLowerHand = getMemberButtons(member).find(btn => uiLabels.lowerHands.includes(btn.innerText));
-
+			const btnLowerHand = getMemberButtons(member).find(btn => includesInnerText(uiLabels.lowerHands, btn));
 			if (btnLowerHand) {
 				btnLowerHand.click();
 			}
 		}
 	});
 }
-
 function texasMode() {
-
 	getMembers().forEach(member => {
 		startVideo(member);
 		startMike(member);
+		stopSpotlight(member);
 	});
-
 	enableAllowMikes(true);
 	enableMuteOnEntry(false);
-	stopAllSpotlights();
-	observed.publicRoom = true;
+	setObserved(constants.PUBLIC_ROOM_KEY, true);
 }
-
 function northKoreaMode() {
-	stopAllVideos();
 	stopAllMikes();
 	enableAllowMikes(false);
 	enableMuteOnEntry(true);
 }
-
 function focusOn(role) {
 	const target = getMember(role);
-
 	if (!role || !target) {
 		return alert(`Participante: "${role}" não encontrado`);
 	}
-
+	resetStage();
 	startVideo(target, () => {
-		observed.autoSpotlight = false;
+		setObserved(constants.AUTO_SPOTLIGHT_KEY, false);
 		const member = getMember(role);
-		stopAllVideos([member]);
 		stopAllMikes([member]);
 		startSpotlight(member);
 		startMike(member, true);
+		subscribeStager(member);
 	});
 }
-
 function focusOnConductor() {
 	const conductor = getMember(roles.conductor);
-	const president = getMember(roles.president);
 	const reader = getMember(roles.reader);
-
 	if (!conductor) {
 		return alert(`Dirigente não informado.\nCom permissão de anfitrião (host) identifique-o renomeando.\nExemplo: Anthony Morris - ${roles.conductor}`);
 	}
-
-	stopAllVideos([conductor, reader, president]);
 	stopAllMikes([conductor, reader]);
-
+	resetStage();
 	startVideo(conductor, () => {
-		observed.autoSpotlight = false;
+		setObserved(constants.AUTO_SPOTLIGHT_KEY, false);
 		const member = getMember(roles.conductor);
 		startSpotlight(member);
 		startMike(member, true);
-		stopVideo(getMember(roles.president));
+		subscribeStager(member);
 	});
 }
-
 function focusOnReader() {
 	const reader = getMember(roles.reader);
 	const conductor = getMember(roles.conductor);
-
 	if (!reader) {
 		return alert(`Leitor não informado.\nCom permissão de anfitrião (host) identifique-o renomeando.\nExemplo: David Splane - ${roles.reader}`);
 	}
-
-	stopAllVideos([conductor, reader]);
 	stopAllMikes([conductor, reader]);
-
+	resetStage();
 	startVideo(reader, () => {
-		observed.autoSpotlight = false;
+		setObserved(constants.AUTO_SPOTLIGHT_KEY, false);
 		const member = getMember(roles.reader);
 		addSpotlight(member);
 		startMike(member, true);
+		subscribeStager(member);
 	});
 }
-
 function focusOnPresident() {
 	const president = getMember(roles.president);
-
 	if (!president) {
 		return alert(`Presidente não informado.\nCom permissão de anfitrião (host) identifique-o renomeando.\nExemplo: Geoffrey Jackson - ${roles.president}`);
 	}
-
 	stopAllMikes([president]);
-
+	resetStage();
 	startVideo(president, () => {
-		observed.autoSpotlight = false;
+		setObserved(constants.AUTO_SPOTLIGHT_KEY, false);
 		const member = getMember(roles.president);
 		startMike(member, true);
 		startSpotlight(member);
-		stopAllVideos([member]);
+		subscribeStager(member);
 	});
 }
-
 function focusOnSpeaker() {
 	const speaker = getMember(roles.speaker);
-
 	if (!speaker) {
 		return alert(`Orador não informado.\nCom permissão de anfitrião (host) identifique-o renomeando.\nExemplo: Gerrit Losch - ${roles.speaker}`);
 	}
-
-	stopAllVideos([speaker]);
 	stopAllMikes([speaker]);
-
+	resetStage();
 	startVideo(speaker, () => {
-		observed.autoSpotlight = false;
+		setObserved(constants.AUTO_SPOTLIGHT_KEY, false);
 		const member = getMember(roles.speaker);
 		startSpotlight(member);
 		startMike(member, true);
+		subscribeStager(member);
 	});
 }
-
 function callMember(role) {
 	const target = getMember(role);
-
 	if (!role || !target) {
 		return alert(`Participante: "${role}" não encontrado`);
 	}
-
-	startVideo(target, () => startMike(getMember(role), true));
+	startVideo(target, () => {
+		startMike(getMember(role), true);
+	});
 }
-
 function callCommenter(name) {
 	if (!name) {
 		return;
 	}
-
-	observed.commenting = name;
 	const member = getMember(name);
-
-	lowerAllHands([member]);
 	startMike(member);
-	stopAllMikes([
-		member,
-		...getMembers().filter(m => isVideoOn(m) && !observed.commentersOnVideo.includes(getMemberName(m)))
-	]);
-
-	if (shouldStartVideo(member)) {
-		startVideo(member, () => {
-			observed.commentersOnVideo.push(name);
-			const m = getMember(name);
-			addSpotlight(m);
-		}, true);
-	}
-}
-
-function muteCommenters() {
-	cleanVideoScanner();
-
-	const keepSpotlight = [];
-
-	getMembers().forEach(member => {
-		if (!isVideoOn(member)) {
-			return stopMike(member);
-		}
-
-		if (observed.commentersOnVideo.includes(getMemberName(member))) {
-			stopSpotlight(member);
-			stopVideo(member);
-			stopMike(member);
-		} else {
-			keepSpotlight.push(member);
+	lowerAllHands([member]);
+	subscribeCommenter(member);
+	getCommenters().forEach(m => {
+		if (name !== getMemberName(m)) {
+			stopMike(m);
+			unsubscribeCommenter(m);
 		}
 	});
-
-	startSpotlight(keepSpotlight.pop());
-	keepSpotlight.forEach(m => addSpotlight(m));
-	observed.commentersOnVideo = [];
 }
-
+function muteCommenters() {
+	getCommenters().forEach(member => {
+		unsubscribeCommenter(member);
+		if (isOnStage(member)) {
+			addSpotlight(member);
+			return;
+		}
+		if (isMikeOn(member)) {
+			stopMike(member);
+		}
+	});
+}
 function generateId(text) {
 	return btoa(encodeURI(text)).replace(/=/g, '');
 }
-
 function fetchRenamingList(id) {
 	fetch(`https://zoom.vercel.app/api/rename-list?id=${id}`, {
 		method: 'GET',
@@ -1553,16 +1431,13 @@ function fetchRenamingList(id) {
 		}
 	}).then(async data => {
 		const resp = await data.json();
-
 		if (!resp.success) {
 			return alert('<h4>Não foi possível obter nomes a renomear</h4>');
 		}
-
 		renameMembers(resp.list);
 		alert('Os participantes detectados foram renomeados');
 	}).catch(err => alert(err));
 }
-
 function sendEmail() {
 	fetch('https://zoom.vercel.app/api/send-email', {
 		method: 'POST',
@@ -1579,180 +1454,122 @@ function sendEmail() {
 		alert(resp.success ? resp.message : 'Não foi possível enviar e-mail');
 	}).catch(err => alert(err));
 }
-
 function importIcons() {
-	if (!document.querySelector('#icons')) {
+	if (!query('#icons')) {
 		const link = createElement('<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" id="icons"/>');
 		document.head.appendChild(link);
 	}
 }
-
-function removeChildren(element) {
-	if (element && element.querySelectorAll) {
-		element.querySelectorAll('*').forEach(child => child.remove());
-	}
-}
-
-function schedule(id, duration, callback) {
-	unschedule(id);
-	runningIntervals[id] = setInterval(() => callback(), duration);
-	routineWarnings.continuousAttempts = [...new Set(routineWarnings.continuousAttempts.concat(id))];
-	refreshScreen();
-}
-
-function unschedule(id) {
-	runningIntervals[id] = clearInterval(runningIntervals[id]);
-	routineWarnings.continuousAttempts = routineWarnings.continuousAttempts.filter(attempt => attempt !== id);
-	refreshScreen();
-}
-
-function toggleModal() {
-	const modal = document.getElementById(generalIDs.modal);
-	if (modal.style.display === 'none') {
-		modal.removeAttribute('style');
-	} else {
-		closeModal();
-	}
-}
-
 function initMembersPanel() {
-	const btnOpenPanel = document.querySelector('.footer-button__participants-icon');
-
-	if (!document.getElementById('wc-container-right')) {
+	const btnOpenPanel = query('.footer-button__participants-icon');
+	if (!byId('wc-container-right')) {
 		btnOpenPanel.click();
 	}
-
 	createDomObserver();
 	btnOpenPanel.click();
 }
-
 function openRenamePopup(member) {
 	clickDropdown(member, uiLabels.rename);
 	clickButton(member, uiLabels.rename);
 }
-
 function renameMembers(renaming = []) {
-	if (renaming.length === 0) return;
-
+	if (renaming.length === 0) {
+		return;
+	}
 	const [from, to] = renaming.shift();
-
 	openRenamePopup(getMember(from, true));
-
 	setTimeout(() => {
-		const nameInput = document.querySelector('#newname');
-		const btnSave = document.querySelector('.zm-modal-footer-default-actions .zm-btn.zm-btn-legacy.zm-btn--primary');
-
+		const nameInput = query('#newname');
+		const btnSave = query('.zm-modal-footer-default-actions .zm-btn.zm-btn-legacy.zm-btn--primary');
 		if (nameInput && btnSave) {
-			Object
-				.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')
-				.set
-				.call(nameInput, to);
-
-			nameInput.dispatchEvent(new InputEvent('input', { bubbles: true }));
-			btnSave && btnSave.click();
+			const inputPrototype = window.HTMLInputElement.prototype;
+			const propertyDescriptor = Object.getOwnPropertyDescriptor(inputPrototype, 'value');
+			const inputEvent = new InputEvent('input', { bubbles: true });
+			propertyDescriptor.set.call(nameInput, to);
+			nameInput.dispatchEvent(inputEvent);
+			btnSave.click();
 		}
-
 		renameMembers(renaming);
 	}, 1000);
 }
-
 function autoRename() {
 	const password = prompt('Informe a senha para obter a lista de renomeação');
-	password && fetchRenamingList(password);
+	if (password) {
+		fetchRenamingList(password);
+	}
 }
-
 function removeMember(member) {
 	clickDropdown(member, uiLabels.kickOut);
 }
-
 function countAttendance() {
 	let counted = 0;
 	let notCounted = 0;
-
 	getMembers().forEach(member => {
-		if (isNameValid(member)) {
-			const attendance = parseInt(getMemberName(member).replace(/\(|\{|\[/, '').trim());
-			if (attendance > 0) {
-				counted += attendance;
-			}
-		} else {
-			notCounted++;
+		if (!isNameValid(member)) {
+			return notCounted++;
+		}
+		const attendance = parseInt(getMemberName(member).replace(/\(|\{|\[/, '').trim());
+		if (attendance > 0) {
+			counted += attendance;
 		}
 	});
-
 	return { counted, notCounted };
 }
-
 function enableMuteOnEntry(enable) {
 	const muteOnEntryOption = getMoreDropdownOptions(uiLabels.muteOnEntry);
-
 	if (!muteOnEntryOption) {
 		return;
 	}
-
 	const isActive = muteOnEntryOption.querySelector('.i-ok-margin');
-
 	if ((enable && !isActive) || (!enable && isActive)) {
 		muteOnEntryOption.click();
-
 		setTimeout(() => {
-			const allowMikesOption = document.querySelector('.zm-modal-footer-default-checkbox');
-
+			const allowMikesOption = query('.zm-modal-footer-default-checkbox');
 			if (allowMikesOption) {
 				if (allowMikesOption.querySelector('.zm-checkbox-checked')) {
 					allowMikesOption.querySelector('.zm-checkbox-message').click();
 				}
-				document.querySelector('.zm-modal-footer-default-actions .zm-btn__outline--blue').click();
+				query('.zm-modal-footer-default-actions .zm-btn__outline--blue').click();
 			}
 		}, 100);
 	}
 }
-
 function enableAllowMikes(enable) {
 	const allowMikesOption = getMoreDropdownOptions(uiLabels.allowMikes);
-
 	if (!allowMikesOption) {
 		return;
 	}
-
-	const isAtivo = allowMikesOption.querySelector('.i-ok-margin');
-
-	if ((enable && !isAtivo) || (!enable && isAtivo)) {
+	const isActive = allowMikesOption.querySelector('.i-ok-margin');
+	if ((enable && !isActive) || (!enable && isActive)) {
 		allowMikesOption.click();
 	}
 }
-
 function requestApplause() {
 	startAllMikes();
-
-	document.querySelector('.btn-applause').classList.add('disabled');
-
+	query('.btn-applause').classList.add('disabled');
 	setTimeout(() => {
 		stopAllMikes();
-		document.querySelector('.btn-applause').classList.remove('disabled');
+		query('.btn-applause').classList.remove('disabled');
 		refreshScreen();
 	}, config.applauseDuration);
 }
-
 function finishSpeech() {
-	const presidente = getMember(roles.president);
-
-	stopAllVideos();
+	const president = getMember(roles.president);
 	startAllMikes();
-
-	document.querySelectorAll('.btn-feature').forEach(btn => btn.classList.add('disabled'));
-
+	queryAll('.btn-feature').forEach(btn => btn.classList.add('disabled'));
 	setTimeout(() => {
-		stopAllMikes([presidente]);
-		document.querySelectorAll('.btn-feature').forEach(btn => btn.classList.remove('disabled'));
+		startVideo(president, () => {
+			startSpotlight(president);
+			startMike(president, true);
+			resetStage();
+			subscribeStager(president);
+		});
+	}, config.applauseDuration / 2);
+	setTimeout(() => {
+		stopAllMikes([president]);
+		queryAll('.btn-feature').forEach(btn => btn.classList.remove('disabled'));
 		refreshScreen();
 	}, config.applauseDuration);
-
-	setTimeout(() => startVideo(presidente, () => {
-		startSpotlight(presidente);
-		startMike(presidente, true);
-	}), config.applauseDuration / 2);
-
 	refreshScreen();
 }
 
@@ -1791,10 +1608,15 @@ var uiLabels = {
 /* SETTINGS AND CONTROLS */
 var runningIntervals = runningIntervals || {};
 var observer = observer || null;
+var constants = {
+	ON_STAGE_QUEUE: 'onStage',
+	COMMENTING_QUEUE: 'commenting',
+	PUBLIC_ROOM_KEY: 'publicRoom',
+	AUTO_SPOTLIGHT_KEY: 'autoSpotlight',
+};
 var observed = observed || {
-	commenting: null,
-	scanningVideo: null,
-	commentersOnVideo: [],
+	onStage: [],
+	commenting: [],
 	publicRoom: false,
 	autoSpotlight: false
 };
