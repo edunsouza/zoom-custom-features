@@ -124,6 +124,10 @@ function getMembers() {
 function getMemberName(member) {
 	return !member ? '' : member.querySelector('.participants-item__display-name').innerText;
 }
+function getParticipantsButton() {
+	const btn = Array.from(queryAll('.footer-button-base__button-label'));
+	return btn.find(btn => uiLabels.participants.includes(btn.innerText));
+}
 function getMemberButtons(member) {
 	return !member ? [] : Array.from(member.querySelectorAll('.participants-item__buttons .button-margin-right'));
 }
@@ -1098,7 +1102,7 @@ function renderServicesFrame() {
                 </div>
                 <ul id="raised-hands"></ul>
             </div>
-        </div>`, {
+        </div>`, {
 		btn1: { onclick: muteCommenters },
 		btn2: { onclick: lowerAllHands }
 	});
@@ -1116,7 +1120,7 @@ function openCustomModal() {
 }
 function openMembersPanel() {
 	if (!query('.participants-header__title')) {
-		query('.footer-button__participants-icon').click();
+		getParticipantsButton().click();
 		createDomObserver();
 	}
 }
@@ -1461,7 +1465,7 @@ function importIcons() {
 	}
 }
 function initMembersPanel() {
-	const btnOpenPanel = query('.footer-button__participants-icon');
+	const btnOpenPanel = getParticipantsButton();
 	if (!byId('wc-container-right')) {
 		btnOpenPanel.click();
 	}
@@ -1604,6 +1608,7 @@ var uiLabels = {
 	kickOut: [langResource['apac.wc_put_in_waiting']],
 	allowMikes: [langResource['apac.wc_allow_unmute']],
 	muteOnEntry: [langResource['apac.wc_mute_participants_on_entry']],
+	participants: [langResource['apac.wc_participants']],
 };
 /* SETTINGS AND CONTROLS */
 var runningIntervals = runningIntervals || {};

@@ -11,20 +11,17 @@ function createDomObserver() {
 		attributes: true
 	});
 }
-
 function createMouseOverEvent() {
 	const bogusEvent = new MouseEvent('mouseover', { bubbles: true });
 	bogusEvent.simulated = true;
 	return bogusEvent;
 }
-
 function createElement(text, events) {
 	const dom = new DOMParser().parseFromString(text.replace(/\s+/g, ' '), 'text/html');
 	const element = dom.body.children[0] || dom.head.children[0];
 	events && Object.keys(events).forEach(k => element[k] = events[k]);
 	return element;
 }
-
 function hydrate(html, bindings) {
 	const markup = html.replace(/\b(undefined|null|false)\b/gi, '').replace(/\s+/g, ' ');
 	const { head, body } = new DOMParser().parseFromString(markup, 'text/html');
@@ -39,7 +36,6 @@ function hydrate(html, bindings) {
 
 	return element;
 }
-
 function createCss() {
 	const membersPaneWidth = parseInt(document.querySelector('#wc-container-right').style.width);
 	const footerButtonsHeight = document.querySelector('#wc-footer').clientHeight;
@@ -445,7 +441,6 @@ function createCss() {
     `;
 	document.body.appendChild(style);
 }
-
 function createCustomOptions() {
 	const currentButton = document.getElementById('open-meeting-options');
 
@@ -459,7 +454,6 @@ function createCustomOptions() {
 		})
 	);
 }
-
 function createCustomMenu(element, options) {
 	if (!element || !Array.isArray(options)) {
 		return;
@@ -487,7 +481,6 @@ function createCustomMenu(element, options) {
 		}
 	};
 }
-
 function createCustomFocus(details, name) {
 	return {
 		id: generateId(name),
@@ -546,7 +539,6 @@ function createCustomFocus(details, name) {
 		}
 	};
 }
-
 function createCustomFocusFields() {
 	const suffix = Math.random().toString(36).substring(2);
 	const onchange = ({ target }) => {
@@ -586,7 +578,6 @@ function createCustomFocusFields() {
 		check3: { onchange }
 	});
 }
-
 function createRenameRoleField(role, label) {
 	const name = getCleanText(role);
 	return hydrate(`
@@ -633,7 +624,6 @@ function createRenameRoleField(role, label) {
 		}
 	});
 }
-
 function getCleanText(text) {
 	return !text ? '' : text
 		.normalize('NFD')
@@ -642,7 +632,6 @@ function getCleanText(text) {
 		.trim()
 		.replace(/\s+/g, ' ');
 }
-
 function getMember(role, absolute) {
 	if (!role) {
 		return;
@@ -655,28 +644,26 @@ function getMember(role, absolute) {
 			: name.includes(getCleanText(role));
 	});
 }
-
 function getMembers() {
 	return Array.from(document.querySelectorAll('.participants-ul .item-pos.participants-li'));
 }
-
 function getMemberName(member) {
 	return !member ? '' : member.querySelector('.participants-item__display-name').innerText;
 }
-
+function getParticipantsButton() {
+	const btn = Array.from(document.querySelectorAll('.footer-button-base__button-label'));
+	return btn.find(btn => uiLabels.participants.includes(btn.innerText));
+}
 function getMemberButtons(member) {
 	return !member ? [] : Array.from(member.querySelectorAll('.participants-item__buttons .button-margin-right'));
 }
-
 function getMemberDropdownButtons(member) {
 	return !member ? [] : Array.from(member.querySelectorAll('.participants-item__buttons .dropdown-menu a'));
 }
-
 function getMoreDropdownOptions(optionLabels) {
 	const options = document.querySelectorAll('#wc-container-right .window-content-bottom ul li a');
 	return Array.from(options).find(a => optionLabels.includes(a.innerText));
 }
-
 /* ACCEPTED FORMAT: (number) members names */
 function isNameValid(member) {
 	const name = getMemberName(member);
@@ -688,7 +675,6 @@ function isNameValid(member) {
 		return false;
 	}
 }
-
 function isMikeOn(member) {
 	if (!member) {
 		return false;
@@ -696,7 +682,6 @@ function isMikeOn(member) {
 	member.dispatchEvent(createMouseOverEvent());
 	return getMemberButtons(member).some(btn => uiLabels.stopMike.includes(btn.innerText));
 }
-
 function isVideoOn(member) {
 	if (!member) {
 		return false;
@@ -704,7 +689,6 @@ function isVideoOn(member) {
 	member.dispatchEvent(createMouseOverEvent());
 	return getMemberDropdownButtons(member).some(btn => uiLabels.stopVideo.includes(btn.innerText));
 }
-
 function isSpotlightOn(member) {
 	if (!member) {
 		return false;
@@ -712,11 +696,9 @@ function isSpotlightOn(member) {
 	member.dispatchEvent(createMouseOverEvent());
 	return getMemberDropdownButtons(member).some(btn => uiLabels.stopSpotlight.includes(btn.innerText));
 }
-
 function isHandRaised(member) {
 	return member && getMemberButtons(member).some(btn => uiLabels.lowerHands.includes(btn.innerText));
 }
-
 function clickButton(member, btnLabels) {
 	if (!member) {
 		return refreshScreen();
@@ -729,7 +711,6 @@ function clickButton(member, btnLabels) {
 		}
 	});
 }
-
 function clickDropdown(member, btnLabels) {
 	if (!member) {
 		refreshScreen();
@@ -743,7 +724,6 @@ function clickDropdown(member, btnLabels) {
 		}
 	});
 }
-
 function refreshScreen() {
 	clearTimeout(config.lastChange);
 	config.lastChange = setTimeout(() => {
@@ -759,7 +739,6 @@ function refreshScreen() {
 		refreshRoutines();
 	}, 100);
 }
-
 function refreshWarnings() {
 	Object.keys(routineWarnings).forEach(routine => {
 		if (routine !== 'continuousAttempts' && routineWarnings[routine].length > 10) {
@@ -767,7 +746,6 @@ function refreshWarnings() {
 		}
 	});
 }
-
 function refreshInvalidNames() {
 	routineWarnings.invalidNames = getMembers().reduce((list, member) => {
 		if (!isNameValid(member)) {
@@ -776,7 +754,6 @@ function refreshInvalidNames() {
 		return list;
 	}, []);
 }
-
 function refreshWaitingRoom() {
 	document.querySelectorAll('.waiting-room-list-conatiner__ul li').forEach(member => {
 		if (isNameValid(member) || observed.publicRoom) {
@@ -788,7 +765,6 @@ function refreshWaitingRoom() {
 		}
 	});
 }
-
 function refreshVideosOn() {
 	routineWarnings.videosOn = getMembers().reduce((list, member) => {
 		if (isVideoOn(member)) {
@@ -801,7 +777,6 @@ function refreshVideosOn() {
 		stopAllSpotlights();
 	}
 }
-
 function refreshMikesOn() {
 	routineWarnings.mikesOn = getMembers().reduce((list, member) => {
 		if (isMikeOn(member)) {
@@ -810,7 +785,6 @@ function refreshMikesOn() {
 		return list;
 	}, []);
 }
-
 function refreshRoutines() {
 	Object.keys(routineWarnings).forEach(routine => {
 		const ulRoutine = document.getElementById(generateId(routine));
@@ -836,7 +810,6 @@ function refreshRoutines() {
 		}
 	});
 }
-
 function refreshDefaultButtons() {
 	const toCall = document.querySelectorAll('.call-member-frame > button') || [];
 	const toFocus = document.querySelectorAll('.focus-on-frame > button') || [];
@@ -852,7 +825,6 @@ function refreshDefaultButtons() {
 		}
 	});
 }
-
 function refreshRaisedHands() {
 	const list = document.querySelector('#raised-hands');
 	removeChildren(list);
@@ -881,7 +853,6 @@ function refreshRaisedHands() {
 		}));
 	});
 }
-
 function refreshContinuousAttempts() {
 	const ul = document.getElementById(generateId('continuousAttempts'));
 	ul.querySelectorAll('li').forEach(li => li.remove());
@@ -902,7 +873,6 @@ function refreshContinuousAttempts() {
 		}));
 	});
 }
-
 function refreshCustomFocusButtons() {
 	const ul = document.getElementById(generateId('customFocus'));
 	ul.querySelectorAll('li').forEach(li => li.remove());
@@ -926,7 +896,6 @@ function refreshCustomFocusButtons() {
 		}));
 	});
 }
-
 function updateContextMenu(ul, id, contextMenu) {
 	routineWarnings[id].forEach(value => {
 		const element = createElement(`<li class="striped">${value}</li>`);
@@ -935,28 +904,24 @@ function updateContextMenu(ul, id, contextMenu) {
 		ul.appendChild(element);
 	});
 }
-
 function updateInvalidNames(ul) {
 	updateContextMenu(ul, 'invalidNames', [
 		{ text: 'Renomear', onclick: name => openRenamePopup(getMember(name, true)) },
 		{ text: 'Mover para sala de espera', onclick: name => removeMember(getMember(name, true)) }
 	]);
 }
-
 function updateMikesOn(ul) {
 	updateContextMenu(ul, 'mikesOn', [{
 		text: 'Silenciar',
 		onclick: name => stopMike(getMember(name))
 	}]);
 }
-
 function updateVideosOn(ul) {
 	updateContextMenu(ul, 'videosOn', [{
 		text: 'Desligar vídeo',
 		onclick: name => stopVideo(getMember(name))
 	}]);
 }
-
 function renderModal() {
 	importIcons();
 	const modal = document.getElementById(generalIDs.modal);
@@ -980,7 +945,6 @@ function renderModal() {
 
 	document.body.appendChild(optionsModal);
 }
-
 function renderCustomFocusModal() {
 	const body = hydrate(`
         <div class="custom-modal-body">
@@ -1016,7 +980,6 @@ function renderCustomFocusModal() {
 	body.appendChild(createCustomFocusFields());
 	return body;
 }
-
 function renderSeeMoreModal() {
 	const modal = hydrate(`
         <div class="custom-modal-body" style="display: block; position: relative">
@@ -1039,7 +1002,6 @@ function renderSeeMoreModal() {
 
 	return modal;
 }
-
 function renderButtonsFrame() {
 	const confirmAction = callback => async ({ target }) => {
 		const { dataset: { q, a } } = target.closest('button');
@@ -1141,7 +1103,6 @@ function renderButtonsFrame() {
 
 	return buttonsFrame;
 }
-
 function renderServicesFrame() {
 	refreshScreen();
 	return hydrate(`
@@ -1174,12 +1135,11 @@ function renderServicesFrame() {
                 </div>
                 <ul id="raised-hands"></ul>
             </div>
-        </div>`, {
+        </div>`, {
 		btn1: { onclick: muteCommenters },
 		btn2: { onclick: lowerAllHands }
 	});
 }
-
 function renderPopup({ type, title, text, onConfirm = Function, onHide = Function }) {
 	refreshScreen();
 	const hideIfAlert = type === 'alert' && 'hidden';
@@ -1212,7 +1172,6 @@ function renderPopup({ type, title, text, onConfirm = Function, onHide = Functio
 		}
 	});
 }
-
 function _alert(text, title) {
 	return new Promise(resolve => {
 		const customPopup = document.getElementById(generalIDs.customPopup);
@@ -1226,7 +1185,6 @@ function _alert(text, title) {
 		openCustomPopup();
 	});
 }
-
 function _prompt(text, title) {
 	return new Promise(resolve => {
 		const customPopup = document.getElementById(generalIDs.customPopup);
@@ -1246,52 +1204,43 @@ function _prompt(text, title) {
 		}
 	});
 }
-
 function openCustomFocusModal() {
 	const customModal = document.getElementById(generalIDs.customModal);
 	removeChildren(customModal);
 	customModal.appendChild(renderCustomFocusModal());
 	openCustomModal();
 }
-
 function openSeeMoreModal() {
 	const customModal = document.getElementById(generalIDs.customModal);
 	removeChildren(customModal);
 	customModal.appendChild(renderSeeMoreModal());
 	openCustomModal();
 }
-
 function openCustomModal() {
 	document.getElementById(generalIDs.customModal).classList.remove('hidden');
 }
-
 function openCustomPopup() {
 	document.getElementById(generalIDs.customPopup).classList.remove('hidden');
 }
-
 function openMembersPanel() {
 	if (!document.querySelector('.participants-header__title')) {
-		document.querySelector('.footer-button__participants-icon').click();
+		getParticipantsButton().click();
 		createDomObserver();
 	}
 }
-
 function closeModal() {
 	document.getElementById(generalIDs.modal).classList.add('hidden');
 }
-
 function closeCustomModal() {
 	const modal = document.getElementById(generalIDs.customModal);
 	removeChildren(modal);
 	modal.classList.add('hidden');
 }
-
 function closeCustomPopup() {
 	const popup = document.getElementById(generalIDs.customPopup);
 	removeChildren(popup);
 	popup.classList.add('hidden');
 }
-
 function validateCustomFocusTarget({ target }) {
 	const { value, classList } = target.parentElement.previousElementSibling;
 	const foundMember = getMember(value);
@@ -1307,7 +1256,6 @@ function validateCustomFocusTarget({ target }) {
 		_alert(`<span class="h4">${body}</span>`, wording.alertCustomFocus);
 	}
 }
-
 function validateCustomFocusFields() {
 	const errorSpan = document.querySelector('#error-alert-modal span[name="error-placeholder"]');
 	const errorStyle = 'alert-danger';
@@ -1338,7 +1286,6 @@ function validateCustomFocusFields() {
 		buttonName: focusNameInput.value
 	};
 }
-
 function startMike(member, keepTrying) {
 	if (!member) {
 		return;
@@ -1372,7 +1319,6 @@ function startMike(member, keepTrying) {
 		});
 	}
 }
-
 function startVideo(member, callback) {
 	if (!member) {
 		return;
@@ -1411,28 +1357,22 @@ function startVideo(member, callback) {
 		});
 	}
 }
-
 function startSpotlight(member) {
 	stopAllSpotlights([member]);
 	clickDropdown(member, uiLabels.startSpotlight);
 }
-
 function stopMike(member) {
 	clickButton(member, uiLabels.stopMike);
 }
-
 function stopVideo(member) {
 	clickDropdown(member, uiLabels.stopVideo);
 }
-
 function stopSpotlight(member) {
 	clickDropdown(member, uiLabels.stopSpotlight);
 }
-
 function stopAutoSpotlight() {
 	observed.autoSpotlight = false;
 }
-
 function startAutoSpotlight() {
 	if (isSpotlightOn(getMember(roles.av))) {
 		return;
@@ -1440,7 +1380,6 @@ function startAutoSpotlight() {
 
 	observed.autoSpotlight = true;
 }
-
 function lowerHand(member) {
 
 	if (!member) {
@@ -1453,11 +1392,9 @@ function lowerHand(member) {
 		btn.click();
 	}
 }
-
 function startAllMikes() {
 	getMembers().forEach(member => startMike(member));
 }
-
 function stopAllMikes(membersToKeep) {
 	membersToKeep = Array.isArray(membersToKeep) ? membersToKeep.map(p => getMemberName(p)) : [];
 
@@ -1471,7 +1408,6 @@ function stopAllMikes(membersToKeep) {
 		}
 	});
 }
-
 function stopAllSpotlights(membersToKeep) {
 	membersToKeep = Array.isArray(membersToKeep) ? membersToKeep.map(p => getMemberName(p)) : [];
 
@@ -1481,7 +1417,6 @@ function stopAllSpotlights(membersToKeep) {
 		}
 	});
 }
-
 function lowerAllHands(membersToKeep) {
 	membersToKeep = Array.isArray(membersToKeep) ? membersToKeep.map(p => getMemberName(p)) : [];
 
@@ -1495,7 +1430,6 @@ function lowerAllHands(membersToKeep) {
 		}
 	});
 }
-
 function texasMode() {
 
 	getMembers().forEach(member => {
@@ -1508,13 +1442,11 @@ function texasMode() {
 	stopAllSpotlights();
 	observed.publicRoom = true;
 }
-
 function northKoreaMode() {
 	stopAllMikes();
 	enableAllowMikes(false);
 	enableMuteOnEntry(true);
 }
-
 function focusOn(role) {
 	const target = getMember(role);
 
@@ -1530,7 +1462,6 @@ function focusOn(role) {
 		startSpotlight(member);
 	});
 }
-
 function focusOnConductor() {
 	const conductor = getMember(roles.conductor);
 
@@ -1549,7 +1480,6 @@ function focusOnConductor() {
 		startSpotlight(member);
 	});
 }
-
 function focusOnReader() {
 	const reader = getMember(roles.reader);
 
@@ -1568,7 +1498,6 @@ function focusOnReader() {
 		startSpotlight(member);
 	});
 }
-
 function focusOnPresident() {
 	const president = getMember(roles.president);
 
@@ -1587,7 +1516,6 @@ function focusOnPresident() {
 		startSpotlight(member);
 	});
 }
-
 function focusOnSpeaker() {
 	const speaker = getMember(roles.speaker);
 
@@ -1606,7 +1534,6 @@ function focusOnSpeaker() {
 		startSpotlight(member);
 	});
 }
-
 function focusOnAudioVideo() {
 	const av = getMember(roles.av);
 
@@ -1625,7 +1552,6 @@ function focusOnAudioVideo() {
 		startSpotlight(member);
 	});
 }
-
 function spotlightAudioVideo() {
 	const member = getMember(roles.av);
 
@@ -1639,7 +1565,6 @@ function spotlightAudioVideo() {
 	stopAutoSpotlight();
 	startVideo(member, () => startSpotlight(member));
 }
-
 function callMember(role) {
 	const target = getMember(role);
 
@@ -1649,7 +1574,6 @@ function callMember(role) {
 
 	startMike(getMember(role), true);
 }
-
 function callCommenter(name) {
 	if (!name) {
 		return;
@@ -1665,17 +1589,14 @@ function callCommenter(name) {
 	lowerAllHands([member]);
 	startMike(member);
 }
-
 function muteCommenters() {
 	stopAutoSpotlight();
 	observed.commentersCalled.forEach(name => stopMike(getMember(name)));
 	observed.commentersCalled = [];
 }
-
 function generateId(text) {
 	return btoa(encodeURI(text)).replace(/=/g, '');
 }
-
 function fetchRenamingList(id) {
 	fetch(`https://zoom.vercel.app/api/rename-list?id=${id}`, {
 		method: 'GET',
@@ -1695,33 +1616,28 @@ function fetchRenamingList(id) {
 		});
 	}).catch(err => _alert(err));
 }
-
 function importIcons() {
 	if (!document.querySelector('#icons')) {
 		const link = createElement('<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" id="icons"/>');
 		document.head.appendChild(link);
 	}
 }
-
 function removeChildren(element) {
 	if (element) {
 		element.innerHTML = '';
 	}
 }
-
 function schedule(id, duration, callback) {
 	unschedule(id);
 	runningIntervals[id] = setInterval(() => callback(), duration);
 	routineWarnings.continuousAttempts = [...new Set(routineWarnings.continuousAttempts.concat(id))];
 	refreshScreen();
 }
-
 function unschedule(id) {
 	runningIntervals[id] = clearInterval(runningIntervals[id]);
 	routineWarnings.continuousAttempts = routineWarnings.continuousAttempts.filter(attempt => attempt !== id);
 	refreshScreen();
 }
-
 function toggleModal() {
 	const modal = document.getElementById(generalIDs.modal);
 	if (modal.classList.contains('hidden')) {
@@ -1730,9 +1646,8 @@ function toggleModal() {
 		closeModal();
 	}
 }
-
 function initMembersPanel() {
-	const btnOpenPanel = document.querySelector('.footer-button__participants-icon');
+	const btnOpenPanel = getParticipantsButton();
 
 	if (!document.getElementById('wc-container-right')) {
 		btnOpenPanel.click();
@@ -1741,12 +1656,10 @@ function initMembersPanel() {
 	createDomObserver();
 	btnOpenPanel.click();
 }
-
 function openRenamePopup(member) {
 	clickDropdown(member, uiLabels.rename);
 	clickButton(member, uiLabels.rename);
 }
-
 function renameMembers(renaming = [], callback) {
 	if (renaming.length === 0) {
 		return callback();
@@ -1773,16 +1686,13 @@ function renameMembers(renaming = [], callback) {
 		renameMembers(renaming, callback);
 	}, 1000);
 }
-
 async function autoRename() {
 	const password = await _prompt(`<span class="h4">${wording.informAutoRenamePassword}</span>`);
 	password && fetchRenamingList(password);
 }
-
 function removeMember(member) {
 	clickDropdown(member, uiLabels.kickOut);
 }
-
 function countAttendance() {
 	let counted = 0;
 	let notCounted = 0;
@@ -1800,7 +1710,6 @@ function countAttendance() {
 
 	return { counted, notCounted };
 }
-
 function enableMuteOnEntry(enable) {
 	const muteOnEntryOption = getMoreDropdownOptions(uiLabels.muteOnEntry);
 
@@ -1825,7 +1734,6 @@ function enableMuteOnEntry(enable) {
 		}, 100);
 	}
 }
-
 function enableAllowMikes(enable) {
 	const allowMikesOption = getMoreDropdownOptions(uiLabels.allowMikes);
 
@@ -1839,7 +1747,6 @@ function enableAllowMikes(enable) {
 		allowMikesOption.click();
 	}
 }
-
 function requestApplause() {
 	const setBtnApplauseDisabled = disable => document.querySelector('.btn-applause').classList[
 		disable ? 'add' : 'remove'
@@ -1857,7 +1764,6 @@ function requestApplause() {
 		refreshScreen();
 	}, config.applauseDuration);
 }
-
 function finishSpeech() {
 	const presidente = getMember(roles.president);
 
@@ -1894,6 +1800,7 @@ var uiLabels = {
 	kickOut: [langResource['apac.wc_put_in_waiting']],
 	allowMikes: [langResource['apac.wc_allow_unmute']],
 	muteOnEntry: [langResource['apac.wc_mute_participants_on_entry']],
+	participants: [langResource['apac.wc_participants']],
 };
 var wording = {
 	pt: {
