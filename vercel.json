@@ -29,11 +29,15 @@
 	"rewrites": [
 		{
 			"source": "/",
-			"destination": "/public/script-default.js"
+			"destination": "/public/script-hybrid.js"
 		},
 		{
 			"source": "/api/:match*",
 			"destination": "/api/:match*.js"
+		},
+		{
+			"source": "/old",
+			"destination": "/public/script-default.js"
 		},
 		{
 			"source": "/obs",
