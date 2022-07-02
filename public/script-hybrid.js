@@ -2,7 +2,7 @@ function createDomObserver() {
 	if (observer) {
 		observer.disconnect();
 	}
-	observer = new MutationObserver(refreshScreen);
+	observer = new MutationObserver(validateMutations);
 	observer.observe(byId('wc-container-right'), {
 		subtree: true,
 		childList: true,
@@ -129,14 +129,14 @@ function getParticipantsButton() {
 	return btn.find(btn => uiLabels.participants.includes(btn.innerText));
 }
 function getMemberButtons(member) {
-	return !member ? [] : Array.from(member.querySelectorAll('.participants-item__buttons .button-margin-right'));
+	return !member ? [] : Array.from(member.querySelectorAll('.participants-item__right-section--buttons button'));
 }
 function getMemberDropdownButtons(member) {
-	return !member ? [] : Array.from(member.querySelectorAll('.participants-item__buttons .dropdown-menu a'));
+	return !member ? [] : Array.from(queryAll('#zmu-portal-dropdown--participant-list .zmu-portal-dropdown__menu-item button'));
 }
 function getMoreDropdownOptions(optionLabels) {
 	const moreOptions = Array.from(queryAll('#wc-container-right .window-content-bottom ul li a'));
-	return moreOptions.find(a => includesInnerText(optionLabels, a));
+	return moreOptions.find(option => includesInnerText(optionLabels, option));
 }
 function clickButton(member, btnLabels) {
 	if (!member) {
@@ -144,7 +144,7 @@ function clickButton(member, btnLabels) {
 	}
 	dispatchMouseOver(member);
 	getMemberButtons(member).some(btn => {
-		if (btn && btnLabels.includes(btn.innerText)) {
+		if (includesInnerText(btnLabels, btn)) {
 			btn.click();
 			return true;
 		}
@@ -155,18 +155,23 @@ function clickDropdown(member, btnLabels) {
 		return refreshScreen();
 	}
 	dispatchMouseOver(member);
-	return getMemberDropdownButtons(member).some(btn => {
-		if (btn && btnLabels.includes(btn.innerText)) {
+	openMemberDropdown(member);
+	getMemberDropdownButtons(member).some(btn => {
+		if (includesInnerText(btnLabels, btn)) {
 			btn.click();
 			return true;
 		}
 	});
+	closeMemberDropdown(member);
 }
 function includesInnerText(list, element) {
-	return list.includes(element.innerText);
+	return list?.includes(element?.innerText?.trim());
 }
 function getCommenters() {
 	return getSubscribedMembers({ queue: constants.COMMENTING_QUEUE });
+}
+function isMemberDropdownOpen() {
+	return !!query('#zmu-portal-dropdown--participant-list .zmu-portal-dropdown__menu-item button');
 }
 function isOnStage(member) {
 	return observed.onStage.includes(getMemberName(member));
@@ -201,14 +206,20 @@ function isVideoOn(member) {
 		return false;
 	}
 	dispatchMouseOver(member);
-	return getMemberDropdownButtons(member).some(btn => includesInnerText(uiLabels.stopVideo, btn));
+	openMemberDropdown(member);
+	const isOn = getMemberDropdownButtons(member).some(btn => includesInnerText(uiLabels.stopVideo, btn));
+	closeMemberDropdown(member);
+	return isOn;
 }
 function isSpotlightOn(member) {
 	if (!member) {
 		return false;
 	}
 	dispatchMouseOver(member);
-	return getMemberDropdownButtons(member).some(btn => includesInnerText(uiLabels.stopSpotlight, btn));
+	openMemberDropdown(member);
+	const isOn = getMemberDropdownButtons(member).some(btn => includesInnerText(uiLabels.stopSpotlight, btn));
+	closeMemberDropdown(member);
+	return isOn;
 }
 function isHandRaised(member) {
 	return getMemberButtons(member).some(btn => includesInnerText(uiLabels.lowerHands, btn));
@@ -735,7 +746,7 @@ function refreshInvalidNames() {
 	), []);
 }
 function refreshWaitingRoom() {
-	queryAll('.waiting-room-list-conatiner__ul li').forEach(member => {
+	queryAll('.waiting-room-list-container .participants-li').forEach(member => {
 		if (isNameValid(member) || isPublicRoom()) {
 			dispatchMouseOver(member);
 			const btnAllow = member.querySelector('.btn-primary');
@@ -1106,6 +1117,16 @@ function openMembersPanel() {
 		createDomObserver();
 	}
 }
+function openMemberDropdown(member) {
+	if (!isMemberDropdownOpen()) {
+		clickButton(member, uiLabels.memberDropdown);
+	}
+}
+function closeMemberDropdown(member) {
+	if (isMemberDropdownOpen()) {
+		clickButton(member, uiLabels.memberDropdown);
+	}
+}
 function closeModal() {
 	byId(generalIDs.modal).style.display = 'none';
 }
@@ -1113,6 +1134,18 @@ function closeCustomModal() {
 	const modal = byId(generalIDs.customModal);
 	removeChildren(modal);
 	modal.style.display = 'none';
+}
+function validateMutations(mutations) {
+	const dropdownId = 'zmu-portal-dropdown--participant-list';
+	const iconsClass = 'participants-icon__icon-box';
+	const isUnexpected = !mutations || (
+		mutations.every(({ target }) => target.id !== dropdownId) &&
+		mutations.some(({ target }) => !target?.classList?.contains?.(iconsClass))
+	);
+
+	if (isUnexpected) {
+		refreshScreen(mutations);
+	}
 }
 function validateCustomFocusTarget({ target }) {
 	const { value, classList } = target.parentElement.previousElementSibling;
@@ -1456,7 +1489,6 @@ function initMembersPanel() {
 }
 function openRenamePopup(member) {
 	clickDropdown(member, uiLabels.rename);
-	clickButton(member, uiLabels.rename);
 }
 function renameMembers(renaming = []) {
 	if (renaming.length === 0) {
@@ -1591,6 +1623,7 @@ var uiLabels = {
 	allowMikes: [langResource['apac.wc_allow_unmute']],
 	muteOnEntry: [langResource['apac.wc_mute_participants_on_entry']],
 	participants: [langResource['apac.wc_participants']],
+	memberDropdown: [langResource['apac.wc_more']]
 };
 /* SETTINGS AND CONTROLS */
 var runningIntervals = runningIntervals || {};
