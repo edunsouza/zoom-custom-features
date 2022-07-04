@@ -231,329 +231,329 @@ function createCss() {
 	const style = byId('custom-style') || createElement('<style id="custom-style"></style>');
 	style.id = 'custom-style';
 	style.innerHTML = `
-        .main-modal {
-            display: grid;
-            grid-template-rows: 1fr 1fr;
-            overflow-y: hidden;
-            position: fixed;
-            right: ${membersPaneWidth + 5}px;
-            left: 5px;
-            top: 20px;
-            bottom: ${footerButtonsHeight + 10}px;
-            background-color: #edf2f7e6;
-            font-size: 12px;
-            z-index: ${higherIndex + 2};
-        }
-        .transparent-modal { background-color: #ffffff11; }
-        .transparent-modal .buttons-frame *, .transparent-modal .routines-frame * { color: #ffffffbb; }
-        .transparent-modal .btn-warning .material-icons-outlined { color: #111111bb; }
-        .transparent-modal .configuration, .transparent-modal .config-item { background-color: #24282ccf; }
-        .transparent-modal .routines-frame { background-color: #21212147; }
-        .transparent-modal #custom-modal .input-group-addon, .transparent-modal #custom-modal input { color: #555555;}
-        .transparent-modal #custom-modal .btn-primary, .transparent-modal #custom-modal .btn-success { color: #ffffff;}
-        .transparent-modal #custom-modal .alert-danger * { color: #a94442; }
-        #custom-modal {
-            position: absolute;
-            left: 0%;
-            top: 0%;
-            background-color: #0000008a;
-            width: 100%;
-            height: 100%;
-        }
-        .routines-frame {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 5px;
-            margin: 0px 5px;
-            padding-bottom: 10px;
-        }
-        .buttons-frame {
-            display: grid;
-            grid-template-columns: 2fr 3fr 3fr;
-            grid-template-rows: 20px auto;
-            gap: 5px;
-            padding: 0;
-            margin: 5px;
-        }
-        .close-feature-frame {
-            display: grid;
-            grid-template-columns: 1fr 3fr 1fr;
-            align-items: center;
-            text-align: center;
-        }
-        .call-member-frame,
-        .focus-on-frame,
-        .feature-frame {
-            display: grid;
-            gap: 5px;
-        }
-        .feature-frame {
-          grid-template-columns: 1fr 1fr;
-        }
-        .exit-frame {
-            display: grid;
-            grid-template-columns: 2fr 3fr 3fr;
-            grid-column: span 3;
-            gap: 5px;
-        }
-        .hidden { display: none; }
-        .btn-close {
-            opacity: 0.7;
-            cursor: pointer;
-            color: #ffffff;
-            font-size: 22px !important;
-        }
-        .btn-feature {
-            display: flex;
-            flex-direction: row-reverse;
-            justify-content: space-evenly;
-            align-items: center;
-            font-size: 14px;
-            opacity: 0.8;
-            min-height: 40px;
-            font-weight: 500;
-        }
-        .custom-focus-name {
-            grid-row: span 2;
-            grid-column: span 2;
-            width: calc(100% - 5px);
-            margin: auto 0 auto 5px;
-        }
-        .btn-custom-focus {
-            display: flex;
-            max-height: 55px;
-            align-items: center;
-            width: fit-content;
-        }
-        .btn-custom-focus button {
-            background-color: #d32f2f;
-            color: #fff;
-            font-weight: 600;
-        }
-        .btn-custom-focus button:hover {
-            background-color: #9a1010;
-            color: #fff;
-        }
-        .btn-custom-focus button[disabled] {
-            cursor: no-drop;
-            background-color: #616161;
-        }
-        .btn-commenters {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: flex-start;
-            min-width: 100%;
-            background-color: #1565c0;
-            color: #fff;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .btn-commenters:hover {
-            background-color: #0c468a;
-            color: #fff;
-        }
-        .btn-commenters i { font-size: 16px; }
-        .btn-commenters span { margin-left: 10px; }
-        .btn-primary { background-color: #1565c0; }
-        .btn-warning { background-color: #ff8f00; color: #111111; }
-        .btn-danger:hover, .btn-danger:focus, .btn-danger:active, .btn-danger:visited { font-weight: 500; }
-        .btn-warning:hover, .btn-warning:focus, .btn-warning:active, .btn-warning:visited {
-            background-color: #ffb300;
-            color: #111111;
-        }
-        .btn-primary-outline {
-            background-color: transparent !important;
-            color: #1665c0 !important;
-            border-color: #1665c0 !important;
-        }
-        .alert-danger {
-            background-color: #f3958e9c;
-            color: #a94442;
-        }
-        .invalid-focus {
-            pointer-events: none;
-            font-weight: bolder;
-            border-color: transparent;
-            color: #525253;
-            background-color: #000000;
-            text-decoration: line-through;
-            font-style: italic;
-            text-decoration-style: double;
-        }
-        .alert-danger::-webkit-input-placeholder, .alert-danger::placeholder { color: #a94442; }
-        .configuration {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            user-select: none;
-            border-radius: 4px;
-            border: 1px solid #afb4b7;
-            box-shadow: 3px 7px 5px 0px #00000026;
-            padding: 6px 12px;
-            font-size: 14px;
-            text-align: center;
-            white-space: nowrap;
-        }
-        .buttons-title {
-            text-align: center;
-            font-size: 16px;
-            color: #ffffff;
-            background-color: #23272b;
-        }
-        .config-item {
-            grid-column: span 2;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 5px 0px;
-        }
-        .config-item * {
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            cursor: pointer;
-        }
-        .config-item input {
-            margin: 0;
-            margin-right: 10px;
-        }
-        .routine-div p {
-            margin: 0px;
-            background-color: #23272b;
-            text-align: center;
-            color: white;
-        }
-        .routine-div ul {
-            list-style-type: none;
-            overflow-y: scroll;
-            height: 140px;
-            margin: 0px;
-            padding: 0px;
-        }
-        .routine-div ul li { padding-top: 10px; }
-        .routine-div ul li.checkbox {
-            display: flex;
-            flex-direction: row-reverse;
-            align-items: center;
-            justify-content: flex-end;
-            margin: 0px;
-            padding: 0px;
-        }
-        .routine-div ul li input[type=checkbox] { margin: 5px; }
-        .routine-div ul li.striped input { margin-right: 10px; }
-        .routine-div ul .striped:nth-child(2n) { font-weight: bold; }
-        .routine-div ul::-webkit-scrollbar-thumb {
-            background-color: #23272b2e;
-            border-radius: 10px;
-        }
-        .comments-grid {
-            grid-row: 1 / span 2;
-            grid-column: 4;
-        }
-        .custom-grid {
-            grid-row: 1 / span 2;
-            grid-column: 3;
-        }
-        .custom-grid ul { height: 310px; }
-        .comments-grid ul { height: 280px; }
-        .i-sm { font-size: 20px; }
-        #quick-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            min-height: 25px;
-        }
-        #quick-actions button { border-radius: 0px; }
-        #quick-actions span {
-            font-size: 10px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .quick-note {
-            display: flex;
-            align-items: center;
-            font-size: 11px;
-            font-weight: bold;
-            color: #427dc6;
-        }
-        .custom-modal-body {
-            display: grid;
-            grid-template-rows: repeat(7, 60px);
-            grid-gap: 10px;
-            overflow-y: scroll;
-            margin: auto;
-            margin-top: 5%;
-            padding: 30px;
-            height: 80%;
-            width: 75%;
-            border-radius: 10px;
-            background-color: #ffffffc7;
-        }
-        .custom-modal-options {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            align-items: center;
-            justify-content: center;
-        }
-        .custom-modal-options * { margin: 0 5px; }
-        .custom-modal-options .btn-close-modal { grid-column-start: 5; }
-        .large-checkbox {
-            display: flex;
-            align-items: center;
-            user-select: none;
-            margin: 10px;
-        }
+		.main-modal {
+				display: grid;
+				grid-template-rows: 1fr 1fr;
+				overflow-y: hidden;
+				position: fixed;
+				right: ${membersPaneWidth + 5}px;
+				left: 5px;
+				top: 20px;
+				bottom: ${footerButtonsHeight + 10}px;
+				background-color: #edf2f7e6;
+				font-size: 12px;
+				z-index: ${higherIndex + 2};
+		}
+		.transparent-modal { background-color: #ffffff11; }
+		.transparent-modal .buttons-frame *, .transparent-modal .routines-frame * { color: #ffffffbb; }
+		.transparent-modal .btn-warning .material-icons-outlined { color: #111111bb; }
+		.transparent-modal .configuration, .transparent-modal .config-item { background-color: #24282ccf; }
+		.transparent-modal .routines-frame { background-color: #21212147; }
+		.transparent-modal #custom-modal .input-group-addon, .transparent-modal #custom-modal input { color: #555555;}
+		.transparent-modal #custom-modal .btn-primary, .transparent-modal #custom-modal .btn-success { color: #ffffff;}
+		.transparent-modal #custom-modal .alert-danger * { color: #a94442; }
+		#custom-modal {
+				position: absolute;
+				left: 0%;
+				top: 0%;
+				background-color: #0000008a;
+				width: 100%;
+				height: 100%;
+		}
+		.routines-frame {
+				display: grid;
+				grid-template-columns: 1fr 1fr 1fr 1fr;
+				gap: 5px;
+				margin: 0px 5px;
+				padding-bottom: 10px;
+		}
+		.buttons-frame {
+				display: grid;
+				grid-template-columns: 2fr 3fr 3fr;
+				grid-template-rows: 20px auto;
+				gap: 5px;
+				padding: 0;
+				margin: 5px;
+		}
+		.close-feature-frame {
+				display: grid;
+				grid-template-columns: 1fr 3fr 1fr;
+				align-items: center;
+				text-align: center;
+		}
+		.call-member-frame,
+		.focus-on-frame,
+		.feature-frame {
+				display: grid;
+				gap: 5px;
+		}
+		.feature-frame {
+			grid-template-columns: 1fr 1fr;
+		}
+		.exit-frame {
+				display: grid;
+				grid-template-columns: 2fr 3fr 3fr;
+				grid-column: span 3;
+				gap: 5px;
+		}
+		.hidden { display: none; }
+		.btn-close {
+				opacity: 0.7;
+				cursor: pointer;
+				color: #ffffff;
+				font-size: 22px !important;
+		}
+		.btn-feature {
+				display: flex;
+				flex-direction: row-reverse;
+				justify-content: space-evenly;
+				align-items: center;
+				font-size: 14px;
+				opacity: 0.8;
+				min-height: 40px;
+				font-weight: 500;
+		}
+		.custom-focus-name {
+				grid-row: span 2;
+				grid-column: span 2;
+				width: calc(100% - 5px);
+				margin: auto 0 auto 5px;
+		}
+		.btn-custom-focus {
+				display: flex;
+				max-height: 55px;
+				align-items: center;
+				width: fit-content;
+		}
+		.btn-custom-focus button {
+				background-color: #d32f2f;
+				color: #fff;
+				font-weight: 600;
+		}
+		.btn-custom-focus button:hover {
+				background-color: #9a1010;
+				color: #fff;
+		}
+		.btn-custom-focus button[disabled] {
+				cursor: no-drop;
+				background-color: #616161;
+		}
+		.btn-commenters {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+				justify-content: flex-start;
+				min-width: 100%;
+				background-color: #1565c0;
+				color: #fff;
+				font-size: 12px;
+				font-weight: 600;
+		}
+		.btn-commenters:hover {
+				background-color: #0c468a;
+				color: #fff;
+		}
+		.btn-commenters i { font-size: 16px; }
+		.btn-commenters span { margin-left: 10px; }
+		.btn-primary { background-color: #1565c0; }
+		.btn-warning { background-color: #ff8f00; color: #111111; }
+		.btn-danger:hover, .btn-danger:focus, .btn-danger:active, .btn-danger:visited { font-weight: 500; }
+		.btn-warning:hover, .btn-warning:focus, .btn-warning:active, .btn-warning:visited {
+				background-color: #ffb300;
+				color: #111111;
+		}
+		.btn-primary-outline {
+				background-color: transparent !important;
+				color: #1665c0 !important;
+				border-color: #1665c0 !important;
+		}
+		.alert-danger {
+				background-color: #f3958e9c;
+				color: #a94442;
+		}
+		.invalid-focus {
+				pointer-events: none;
+				font-weight: bolder;
+				border-color: transparent;
+				color: #525253;
+				background-color: #000000;
+				text-decoration: line-through;
+				font-style: italic;
+				text-decoration-style: double;
+		}
+		.alert-danger::-webkit-input-placeholder, .alert-danger::placeholder { color: #a94442; }
+		.configuration {
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				user-select: none;
+				border-radius: 4px;
+				border: 1px solid #afb4b7;
+				box-shadow: 3px 7px 5px 0px #00000026;
+				padding: 6px 12px;
+				font-size: 14px;
+				text-align: center;
+				white-space: nowrap;
+		}
+		.buttons-title {
+				text-align: center;
+				font-size: 16px;
+				color: #ffffff;
+				background-color: #23272b;
+		}
+		.config-item {
+				grid-column: span 2;
+				font-size: 12px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: 5px 0px;
+		}
+		.config-item * {
+				margin: 0;
+				padding: 0;
+				user-select: none;
+				cursor: pointer;
+		}
+		.config-item input {
+				margin: 0;
+				margin-right: 10px;
+		}
+		.routine-div p {
+				margin: 0px;
+				background-color: #23272b;
+				text-align: center;
+				color: white;
+		}
+		.routine-div ul {
+				list-style-type: none;
+				overflow-y: scroll;
+				height: 140px;
+				margin: 0px;
+				padding: 0px;
+		}
+		.routine-div ul li { padding-top: 10px; }
+		.routine-div ul li.checkbox {
+				display: flex;
+				flex-direction: row-reverse;
+				align-items: center;
+				justify-content: flex-end;
+				margin: 0px;
+				padding: 0px;
+		}
+		.routine-div ul li input[type=checkbox] { margin: 5px; }
+		.routine-div ul li.striped input { margin-right: 10px; }
+		.routine-div ul .striped:nth-child(2n) { font-weight: bold; }
+		.routine-div ul::-webkit-scrollbar-thumb {
+				background-color: #23272b2e;
+				border-radius: 10px;
+		}
+		.comments-grid {
+				grid-row: 1 / span 2;
+				grid-column: 4;
+		}
+		.custom-grid {
+				grid-row: 1 / span 2;
+				grid-column: 3;
+		}
+		.custom-grid ul { height: 310px; }
+		.comments-grid ul { height: 280px; }
+		.i-sm { font-size: 20px; }
+		#quick-actions {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				min-height: 25px;
+		}
+		#quick-actions button { border-radius: 0px; }
+		#quick-actions span {
+				font-size: 10px;
+				overflow: hidden;
+				text-overflow: ellipsis;
+		}
+		.quick-note {
+				display: flex;
+				align-items: center;
+				font-size: 11px;
+				font-weight: bold;
+				color: #427dc6;
+		}
+		.custom-modal-body {
+				display: grid;
+				grid-template-rows: repeat(7, 60px);
+				grid-gap: 10px;
+				overflow-y: scroll;
+				margin: auto;
+				margin-top: 5%;
+				padding: 30px;
+				height: 80%;
+				width: 75%;
+				border-radius: 10px;
+				background-color: #ffffffc7;
+		}
+		.custom-modal-options {
+				display: grid;
+				grid-template-columns: repeat(5, 1fr);
+				align-items: center;
+				justify-content: center;
+		}
+		.custom-modal-options * { margin: 0 5px; }
+		.custom-modal-options .btn-close-modal { grid-column-start: 5; }
+		.large-checkbox {
+				display: flex;
+				align-items: center;
+				user-select: none;
+				margin: 10px;
+		}
 		.large-checkbox input {
-            margin: 0;
-            height: 20px;
-            width: 30px;
-        }
+				margin: 0;
+				height: 20px;
+				width: 30px;
+		}
 		.large-checkbox label {
-            line-height: 20px;
-            margin: 0;
-        }
-        .custom-modal-fields {
-            display: grid;
-            grid-template-columns: 3fr 2fr 2fr 2fr 2fr;
-            grid-template-rows: 40px 20px;
-            align-items: center;
-            justify-items: center;
-            height: 60px;
-        }
-        .custom-modal-fields input ~ i {
-            color: #ff4242;
-            font-size: 40px;
-        }
-        .custom-modal-fields input:checked ~ i {
-            color: #5cb85c;
-            font-size: 40px;
-        }
-        .custom-modal-fields label {
-            user-select: none;
-            cursor: pointer;
-            margin-bottom: 0;
-        }
-        .context-menu {
-            position: absolute;
-            display: grid;
-            row-gap: 5px;
-            cursor: pointer;
-            font-size: 12px;
-            padding: 5px;
-            margin: 0px;
-            border-radius: 5px;
-            border: 1px solid #427dc6;
-            background-color: white;
-            z-index: ${higherIndex + 3}
-        }
-        input[type=checkbox], label[for] { cursor: pointer; }
-        .context-menu > span { padding: 5px }
-        .context-menu > span:hover {
-            background-color: #427dc6;
-            color: white;
-        }
-    `;
+				line-height: 20px;
+				margin: 0;
+		}
+		.custom-modal-fields {
+				display: grid;
+				grid-template-columns: 3fr 2fr 2fr 2fr 2fr;
+				grid-template-rows: 40px 20px;
+				align-items: center;
+				justify-items: center;
+				height: 60px;
+		}
+		.custom-modal-fields input ~ i {
+				color: #ff4242;
+				font-size: 40px;
+		}
+		.custom-modal-fields input:checked ~ i {
+				color: #5cb85c;
+				font-size: 40px;
+		}
+		.custom-modal-fields label {
+				user-select: none;
+				cursor: pointer;
+				margin-bottom: 0;
+		}
+		.context-menu {
+				position: absolute;
+				display: grid;
+				row-gap: 5px;
+				cursor: pointer;
+				font-size: 12px;
+				padding: 5px;
+				margin: 0px;
+				border-radius: 5px;
+				border: 1px solid #427dc6;
+				background-color: white;
+				z-index: ${higherIndex + 3}
+		}
+		input[type=checkbox], label[for] { cursor: pointer; }
+		.context-menu > span { padding: 5px }
+		.context-menu > span:hover {
+				background-color: #427dc6;
+				color: white;
+		}
+	`;
 	document.body.appendChild(style);
 }
 function createCustomOptions() {
@@ -648,29 +648,29 @@ function createCustomFocusFields() {
 		label.style.color = target.checked ? '#5cb85c' : '#ff4242';
 	};
 	return hydrate(`
-        <div class="custom-modal-fields">
-            <div class="input-group custom-focus-name">
-                <input type="text" class="form-control" name="role" placeholder="Participante ou Função" />
-                <span class="input-group-btn">
-                    <button hydrate="btn1" name="check-text" class="btn btn-primary">Validar texto</button>
-                </span>
-            </div>
-            <label>
-                <input hydrate="check1" type="checkbox" style="display: none;" name="useVideo" id="useVideo-${suffix}">
-                <i class="i-sm material-icons-outlined" data-on="videocam" data-off="videocam_off">videocam_off</i>
-            </label>
-            <label>
-                <input hydrate="check2" type="checkbox" style="display: none;" name="useMike" id="useMike-${suffix}" checked>
-                <i class="i-sm material-icons-outlined" data-on="mic_none" data-off="mic_off">mic_none</i>
-            </label>
-            <label>
-                <input hydrate="check3" type="checkbox" style="display: none;" name="useSpotlight" id="useSpotlight-${suffix}">
-                <i class="i-sm material-icons-outlined" data-on="gps_fixed" data-off="gps_not_fixed">gps_not_fixed</i>
-            </label>
-            <label data-on="Solicitar Vídeo" data-off="Sem Vídeo" for="useVideo-${suffix}" style="color: #ff4242" grid-column-start: 3;">Sem Vídeo</label>
-            <label data-on="Solicitar Microfone" data-off="Sem Microfone" for="useMike-${suffix}" style="color: #5cb85c">Solicitar Microfone</label>
-            <label data-on="Com Spotlight" data-off="Sem Spotlight" for="useSpotlight-${suffix}" style="color: #ff4242">Sem Spotlight</label>
-        </div>`, {
+		<div class="custom-modal-fields">
+				<div class="input-group custom-focus-name">
+						<input type="text" class="form-control" name="role" placeholder="Participante ou Função" />
+						<span class="input-group-btn">
+								<button hydrate="btn1" name="check-text" class="btn btn-primary">Validar texto</button>
+						</span>
+				</div>
+				<label>
+						<input hydrate="check1" type="checkbox" style="display: none;" name="useVideo" id="useVideo-${suffix}">
+						<i class="i-sm material-icons-outlined" data-on="videocam" data-off="videocam_off">videocam_off</i>
+				</label>
+				<label>
+						<input hydrate="check2" type="checkbox" style="display: none;" name="useMike" id="useMike-${suffix}" checked>
+						<i class="i-sm material-icons-outlined" data-on="mic_none" data-off="mic_off">mic_none</i>
+				</label>
+				<label>
+						<input hydrate="check3" type="checkbox" style="display: none;" name="useSpotlight" id="useSpotlight-${suffix}">
+						<i class="i-sm material-icons-outlined" data-on="gps_fixed" data-off="gps_not_fixed">gps_not_fixed</i>
+				</label>
+				<label data-on="Solicitar Vídeo" data-off="Sem Vídeo" for="useVideo-${suffix}" style="color: #ff4242" grid-column-start: 3;">Sem Vídeo</label>
+				<label data-on="Solicitar Microfone" data-off="Sem Microfone" for="useMike-${suffix}" style="color: #5cb85c">Solicitar Microfone</label>
+				<label data-on="Com Spotlight" data-off="Sem Spotlight" for="useSpotlight-${suffix}" style="color: #ff4242">Sem Spotlight</label>
+		</div>`, {
 		btn1: { onclick: validateCustomFocusTarget },
 		check1: { onchange },
 		check2: { onchange },
@@ -680,16 +680,16 @@ function createCustomFocusFields() {
 function createRenameRoleField(role, label) {
 	const name = getCleanText(role);
 	return hydrate(`
-        <div style="display: flex;">
-            <div class="input-group" style="flex: 3; margin: 5px 0 0 0;">
-                <span class="input-group-addon" style="min-width: 120px; font-weight: 600;">${label}:</span>
-                <input hydrate="input1" id="rename-${roles[name]}" value="${roles[name]}" type="text" class="form-control">
-                <span class="input-group-btn">
-                    <button hydrate="btn1" class="btn btn-primary">Salvar</button>
-                </span>
-            </div>
-            <span style="flex: 2; align-self: center; margin-left: 10px;" class="text-primary">${getMemberName(getMember(roles[name]))}</span>
-        </div>`, {
+	<div style="display: flex;">
+			<div class="input-group" style="flex: 3; margin: 5px 0 0 0;">
+					<span class="input-group-addon" style="min-width: 120px; font-weight: 600;">${label}:</span>
+					<input hydrate="input1" id="rename-${roles[name]}" value="${roles[name]}" type="text" class="form-control">
+					<span class="input-group-btn">
+							<button hydrate="btn1" class="btn btn-primary">Salvar</button>
+					</span>
+			</div>
+			<span style="flex: 2; align-self: center; margin-left: 10px;" class="text-primary">${getMemberName(getMember(roles[name]))}</span>
+	</div>`, {
 		input1: {
 			onkeyup: ({ target, key, code }) => {
 				clearTimeout(config.lastValidation);
@@ -821,12 +821,12 @@ function refreshRaisedHands() {
 		}
 		const name = getMemberName(member);
 		list.appendChild(hydrate(`
-            <li>
-                <button hydrate="btn1" data-member="${name}" class="btn-xs btn-commenters">
-                    <i data-member="${name}" class="material-icons-outlined">mic_none</i>
-                    <span data-member="${name}">${name}</span>
-                </button>
-            </li>`, {
+			<li>
+					<button hydrate="btn1" data-member="${name}" class="btn-xs btn-commenters">
+							<i data-member="${name}" class="material-icons-outlined">mic_none</i>
+							<span data-member="${name}">${name}</span>
+					</button>
+			</li>`, {
 			btn1: { onclick: () => callCommenter(name) }
 		}));
 	});
@@ -845,10 +845,10 @@ function refreshContinuousAttempts() {
 	ul.querySelectorAll('li').forEach(li => li.remove());
 	routineWarnings.continuousAttempts.forEach(attempt => {
 		ul.appendChild(hydrate(`
-            <li class="checkbox">
-                <label for="${getCleanText(attempt)}">${attempt}</label>
-                <input hydrate="input1" id="${getCleanText(attempt)}" type="checkbox" value="${attempt}"/>
-            </li>`, {
+			<li class="checkbox">
+					<label for="${getCleanText(attempt)}">${attempt}</label>
+					<input hydrate="input1" id="${getCleanText(attempt)}" type="checkbox" value="${attempt}"/>
+			</li>`, {
 			input1: {
 				onclick({ target }) {
 					routineWarnings.continuousAttempts = routineWarnings.continuousAttempts.filter(id => id !== target.value);
@@ -865,10 +865,10 @@ function refreshCustomFocusButtons() {
 	routineWarnings.customFocus.forEach(({ id, name, validate, click }) => {
 		const isValid = validate();
 		ul.appendChild(hydrate(`
-            <li class="btn-custom-focus">
-                <button hydrate="btn1" ${!isValid && 'disabled'} class="btn-sm">${isValid ? name : 'Não encontrado!'}</button>
-                <i hydrate="icon1" class="i-sm material-icons-outlined" style="font-size: 22px; cursor: pointer">cancel</i>
-            </li>`, {
+			<li class="btn-custom-focus">
+					<button hydrate="btn1" ${!isValid && 'disabled'} class="btn-sm">${isValid ? name : 'Não encontrado!'}</button>
+					<i hydrate="icon1" class="i-sm material-icons-outlined" style="font-size: 22px; cursor: pointer">cancel</i>
+			</li>`, {
 			btn1: { onclick: e => !e.target.attributes.disabled && click() },
 			icon1: {
 				onclick: () => {
@@ -921,21 +921,21 @@ function renderModal() {
 }
 function renderCustomFocusModal() {
 	const body = hydrate(`
-        <div class="custom-modal-body">
-            <div class="alert alert-danger" id="error-alert-modal" style="display: none; font-size: 18px; margin: auto 0;">
-                <span class="glyphicon glyphicon-exclamation-sign"></span>
-                <span name="error-placeholder"></span>
-            </div>
-            <div class="custom-modal-options">
-                <button hydrate="add" class="btn btn-success">Novo participante</button>
-                <button hydrate="save" class="btn btn-primary">Salvar</button>
-                <button hydrate="cancel" class="btn btn-primary-outline btn-close-modal">Cancelar</button>
-            </div>
-            <div class="input-group" style="margin: auto 5px;">
-                <span class="input-group-addon">Informe o nome do botão:</span>
-                <input name="custom-focus-name" type="text" class="form-control" placeholder="Primeira Visita">
-            </div>
-        </div>`, {
+		<div class="custom-modal-body">
+				<div class="alert alert-danger" id="error-alert-modal" style="display: none; font-size: 18px; margin: auto 0;">
+						<span class="glyphicon glyphicon-exclamation-sign"></span>
+						<span name="error-placeholder"></span>
+				</div>
+				<div class="custom-modal-options">
+						<button hydrate="add" class="btn btn-success">Novo participante</button>
+						<button hydrate="save" class="btn btn-primary">Salvar</button>
+						<button hydrate="cancel" class="btn btn-primary-outline btn-close-modal">Cancelar</button>
+				</div>
+				<div class="input-group" style="margin: auto 5px;">
+						<span class="input-group-addon">Informe o nome do botão:</span>
+						<input name="custom-focus-name" type="text" class="form-control" placeholder="Primeira Visita">
+				</div>
+		</div>`, {
 		add: { onclick: () => query('.custom-modal-body').appendChild(createCustomFocusFields()) },
 		cancel: { onclick: closeCustomModal },
 		save: {
@@ -955,19 +955,19 @@ function renderCustomFocusModal() {
 }
 function renderSeeMoreModal() {
 	const modal = hydrate(`
-        <div class="custom-modal-body" style="display: block">
-            <div style="display: flex; justify-content: space-between; align-items: center">
-                <div class="large-checkbox h5">
-                    <input hydrate="input1" id="open-waiting-room" type="checkbox" ${isPublicRoom() && 'checked'}/>
-                    <label for="open-waiting-room">Liberar sala de espera para todos</label>
-                </div>
-                <button hydrate="close" class="btn btn-primary-outline btn-close-modal">Fechar</button>
-            </div>
-            <div class="large-checkbox h5">
-                <input hydrate="input2" id="auto-spotlight" type="checkbox" ${isAutoSpotlight() && 'checked'}/>
-                <label for="auto-spotlight">Ativar foco automático (remove automaticamente o spotlight)</label>
-            </div>
-        </div>`, {
+		<div class="custom-modal-body" style="display: block">
+				<div style="display: flex; justify-content: space-between; align-items: center">
+						<div class="large-checkbox h5">
+								<input hydrate="input1" id="open-waiting-room" type="checkbox" ${isPublicRoom() && 'checked'}/>
+								<label for="open-waiting-room">Liberar sala de espera para todos</label>
+						</div>
+						<button hydrate="close" class="btn btn-primary-outline btn-close-modal">Fechar</button>
+				</div>
+				<div class="large-checkbox h5">
+						<input hydrate="input2" id="auto-spotlight" type="checkbox" ${isAutoSpotlight() && 'checked'}/>
+						<label for="auto-spotlight">Ativar foco automático (remove automaticamente o spotlight)</label>
+				</div>
+		</div>`, {
 		close: { onclick: closeCustomModal },
 		input1: { onchange() { toggleObserved(constants.PUBLIC_ROOM_KEY); refreshWaitingRoom(); } },
 		input2: { onchange() { toggleObserved(constants.AUTO_SPOTLIGHT_KEY); refreshVideosOn(); } },
@@ -985,46 +985,46 @@ function renderButtonsFrame() {
 		}
 	};
 	const buttonsFrame = hydrate(`
-        <div class="buttons-frame">
-            <div class="exit-frame">
-                <span class="buttons-title">Chamar</span>
-                <span class="buttons-title">Focar</span>
-                <span class="buttons-title close-feature-frame">
-                    <span style="grid-column-start: 2">Ações</span>
-                    <i hydrate="icon1" id="btn-close-modal" class="i-sm material-icons-outlined btn-close">cancel</i>
-                </span>
-            </div>
-            <div class="call-member-frame">
-              <button hydrate="call4" data-role="speaker" class="btn btn-success btn-feature">
-                PALCO
-              </button>
-            </div>
-            <div class="focus-on-frame">
-              <button hydrate="focus4" data-role="speaker" class="btn btn-primary btn-feature">
-                PALCO <i class="i-sm material-icons-outlined">record_voice_over</i>
-              </button>
-            </div>
-            <div class="feature-frame">
-                <button hydrate="btn1" class="btn btn-danger btn-feature" data-q="Digite: 'TUDO' para confirmar" data-a="TUDO"> Ligar tudo <div> <i class="i-sm material-icons-outlined">videocam</i> <i class="i-sm material-icons-outlined">mic_off</i> </div> </button>
-                <button hydrate="btn2" class="btn btn-danger btn-feature" data-q="Digite: 'FIM' para confirmar" data-a="FIM"> Finalizar discurso <i class="i-sm material-icons-outlined">voice_over_off</i> </button>
-                <button hydrate="btn3" class="btn btn-success btn-feature"> Criar foco <i class="i-sm material-icons-outlined">person_add</i> </button>
-                <button hydrate="btn4" class="btn btn-success btn-feature"> Mais opções <i class="i-sm material-icons-outlined">add_circle_outline</i> </button>
-                <button hydrate="btn5" class="btn btn-danger btn-feature" data-q="Digite: 'NADA' para confirmar" data-a="NADA"> Desligar tudo <div> <i class="i-sm material-icons-outlined">videocam_off</i> <i class="i-sm material-icons-outlined">mic_off</i> </div> </button>
-                <button hydrate="btn6" class="btn btn-danger btn-applause btn-feature" data-q="Digite: 'OVAR' para confirmar" data-a="OVAR"> Palmas (${config.applauseDuration / 1000}s) <i class="i-sm material-icons-outlined">dry</i> </button>
-                <div hydrate="div1" class="configuration" style="cursor: pointer">
-                    <i style="color: #5cb85c" class="i-sm material-icons-outlined">airline_seat_recline_normal</i>
-                    <span id="${generalIDs.counted}">${counted} identificado(s)</span>
-                </div>
-                <div class="configuration">
-                    <i style="color: #ff4242" class="i-sm material-icons-outlined">airline_seat_recline_extra</i>
-                    <span id="${generalIDs.notCounted}">${notCounted} não identificado(s)</span>
-                </div>
-                <div class="config-item">
-                    <input hydrate="check1" id="transparent-mode" type="checkbox"/>
-                    <label for="transparent-mode">Modo transparente (exibe vídeo em destaque)</label>
-                </div>
-            </div>
-        </div>`, {
+		<div class="buttons-frame">
+				<div class="exit-frame">
+						<span class="buttons-title">Chamar</span>
+						<span class="buttons-title">Focar</span>
+						<span class="buttons-title close-feature-frame">
+								<span style="grid-column-start: 2">Ações</span>
+								<i hydrate="icon1" id="btn-close-modal" class="i-sm material-icons-outlined btn-close">cancel</i>
+						</span>
+				</div>
+				<div class="call-member-frame">
+					<button hydrate="call4" data-role="speaker" class="btn btn-success btn-feature">
+						PALCO
+					</button>
+				</div>
+				<div class="focus-on-frame">
+					<button hydrate="focus4" data-role="speaker" class="btn btn-primary btn-feature">
+						PALCO <i class="i-sm material-icons-outlined">record_voice_over</i>
+					</button>
+				</div>
+				<div class="feature-frame">
+						<button hydrate="btn1" class="btn btn-danger btn-feature" data-q="Digite: 'TUDO' para confirmar" data-a="TUDO"> Ligar tudo <div> <i class="i-sm material-icons-outlined">videocam</i> <i class="i-sm material-icons-outlined">mic_off</i> </div> </button>
+						<button hydrate="btn2" class="btn btn-danger btn-feature" data-q="Digite: 'FIM' para confirmar" data-a="FIM"> Finalizar discurso <i class="i-sm material-icons-outlined">voice_over_off</i> </button>
+						<button hydrate="btn3" class="btn btn-success btn-feature"> Criar foco <i class="i-sm material-icons-outlined">person_add</i> </button>
+						<button hydrate="btn4" class="btn btn-success btn-feature"> Mais opções <i class="i-sm material-icons-outlined">add_circle_outline</i> </button>
+						<button hydrate="btn5" class="btn btn-danger btn-feature" data-q="Digite: 'NADA' para confirmar" data-a="NADA"> Desligar tudo <div> <i class="i-sm material-icons-outlined">videocam_off</i> <i class="i-sm material-icons-outlined">mic_off</i> </div> </button>
+						<button hydrate="btn6" class="btn btn-danger btn-applause btn-feature" data-q="Digite: 'OVAR' para confirmar" data-a="OVAR"> Palmas (${config.applauseDuration / 1000}s) <i class="i-sm material-icons-outlined">dry</i> </button>
+						<div hydrate="div1" class="configuration" style="cursor: pointer">
+								<i style="color: #5cb85c" class="i-sm material-icons-outlined">airline_seat_recline_normal</i>
+								<span id="${generalIDs.counted}">${counted} identificado(s)</span>
+						</div>
+						<div class="configuration">
+								<i style="color: #ff4242" class="i-sm material-icons-outlined">airline_seat_recline_extra</i>
+								<span id="${generalIDs.notCounted}">${notCounted} não identificado(s)</span>
+						</div>
+						<div class="config-item">
+								<input hydrate="check1" id="transparent-mode" type="checkbox"/>
+								<label for="transparent-mode">Modo transparente (exibe vídeo em destaque)</label>
+						</div>
+				</div>
+		</div>`, {
 		icon1: { onclick: closeModal },
 		focus1: { onclick: focusOnConductor },
 		focus2: { onclick: focusOnReader },
@@ -1066,36 +1066,36 @@ function renderButtonsFrame() {
 function renderServicesFrame() {
 	refreshScreen();
 	return hydrate(`
-        <div class="routines-frame">
-            <div class="routine-div">
-                <p>Rodando (marque para abortar)</p>
-                <ul id="${generateId('continuousAttempts')}"></ul>
-            </div>
-            <div class="routine-div">
-                <p>Nomes inválidos</p>
-                <ul id="${generateId('invalidNames')}"></ul>
-            </div>
-            <div class="routine-div">
-                <p>Vídeos ligados</p>
-                <ul id="${generateId('videosOn')}"></ul>
-            </div>
-            <div class="routine-div">
-                <p>Microfones ligados</p>
-                <ul id="${generateId('mikesOn')}"></ul>
-            </div>
-            <div class="routine-div custom-grid">
-                <p>Foco customizado</p>
-                <ul id="${generateId('customFocus')}"></ul>
-            </div>
-            <div class="routine-div comments-grid">
-                <p>Comentários</p>
-                <div id="quick-actions">
-                    <button hydrate="btn1" class="btn btn-xs btn-primary">Silenciar todos</button>
-                    <button hydrate="btn2" class="btn btn-xs btn-success">Abaixar mãos</button>
-                </div>
-                <ul id="raised-hands"></ul>
-            </div>
-        </div>`, {
+		<div class="routines-frame">
+				<div class="routine-div">
+						<p>Rodando (marque para abortar)</p>
+						<ul id="${generateId('continuousAttempts')}"></ul>
+				</div>
+				<div class="routine-div">
+						<p>Nomes inválidos</p>
+						<ul id="${generateId('invalidNames')}"></ul>
+				</div>
+				<div class="routine-div">
+						<p>Vídeos ligados</p>
+						<ul id="${generateId('videosOn')}"></ul>
+				</div>
+				<div class="routine-div">
+						<p>Microfones ligados</p>
+						<ul id="${generateId('mikesOn')}"></ul>
+				</div>
+				<div class="routine-div custom-grid">
+						<p>Foco customizado</p>
+						<ul id="${generateId('customFocus')}"></ul>
+				</div>
+				<div class="routine-div comments-grid">
+						<p>Comentários</p>
+						<div id="quick-actions">
+								<button hydrate="btn1" class="btn btn-xs btn-primary">Silenciar todos</button>
+								<button hydrate="btn2" class="btn btn-xs btn-success">Abaixar mãos</button>
+						</div>
+						<ul id="raised-hands"></ul>
+				</div>
+		</div>`, {
 		btn1: { onclick: muteCommenters },
 		btn2: { onclick: lowerAllHands }
 	});
