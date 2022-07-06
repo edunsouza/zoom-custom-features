@@ -1,6 +1,5 @@
 const sgMail = require('@sendgrid/mail');
 const moment = require('moment');
-const axios = require('axios');
 require('moment/locale/pt-br');
 
 const { allowCors } = require('../helpers');
@@ -32,19 +31,6 @@ const sendEmail = async (req, res) => {
 		if (!attendance || attendance < 1) {
 			return res.status(500).json({ success: false, message: 'Assistência não informada!' });
 		}
-
-		// log metrics
-		axios({
-			method: 'post',
-			url: process.env.METRICS_ENDPOINT || 'http://assignments.cloudno.de/api/v1/attendance',
-			headers: {
-				'Accept': 'application/json',
-				'Content-Type': 'application/json'
-			},
-			data: { id, attendance }
-		}).catch(error => {
-			console.log(error);
-		});
 
 		sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
