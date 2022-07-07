@@ -101,7 +101,7 @@ function startUserVideo(id) {
 }
 function stopUserVideo(id) {
 	// disabled
-	// sendToWebSocket(zoomActions.VIDEO, { id, bOn: true });
+	// sendToWebSocket(jw_zoomActions.VIDEO, { id, bOn: true });
 }
 function startUserSpotlight(id) {
 	sendToWebSocket(jw_zoomActions.SPOTLIGHT, { id, bReplace: true, bSpotlight: true });
@@ -789,12 +789,12 @@ function renderButtonsFrame() {
 				</span>
 			</div>
 			<div class="call-member-frame">
-				<button hydrate="call4" data-role="speaker" class="btn btn-success btn-feature">
+				<button hydrate="call1" data-role="speaker" class="btn btn-success btn-feature">
 					PALCO
 				</button>
 			</div>
 			<div class="focus-on-frame">
-				<button hydrate="focus4" data-role="speaker" class="btn btn-primary btn-feature">
+				<button hydrate="focus1" data-role="speaker" class="btn btn-primary btn-feature">
 					PALCO
 					<i class="i-sm material-icons-outlined">record_voice_over</i>
 				</button>
@@ -821,24 +821,8 @@ function renderButtonsFrame() {
 			</div>
 		</div>`, {
 		icon1: { onclick: closeModal },
-		focus1: { onclick() { focusOn(jw_roles.conductor) } },
-		focus2: { onclick() { focusOn(jw_roles.reader) } },
-		focus3: { onclick() { focusOn(jw_roles.president) } },
-		focus4: { onclick() { focusOn(jw_roles.speaker) } },
-		focus5: { onclick() { focusOn(jw_roles.treasures) } },
-		focus6: { onclick() { focusOn(jw_roles.gems) } },
-		focus7: { onclick() { focusOn(jw_roles.bible) } },
-		focus8: { onclick() { focusOn(jw_roles.living1) } },
-		focus9: { onclick() { focusOn(jw_roles.living2) } },
-		call1: { onclick() { callMember(jw_roles.conductor) } },
-		call2: { onclick() { callMember(jw_roles.reader) } },
-		call3: { onclick() { callMember(jw_roles.president) } },
-		call4: { onclick() { callMember(jw_roles.speaker) } },
-		call5: { onclick() { callMember(jw_roles.treasures) } },
-		call6: { onclick() { callMember(jw_roles.gems) } },
-		call7: { onclick() { callMember(jw_roles.bible) } },
-		call8: { onclick() { callMember(jw_roles.living1) } },
-		call9: { onclick() { callMember(jw_roles.living2) } },
+		focus1: { onclick() { focusOn(jw_roles.speaker) } },
+		call1: { onclick() { callMember(jw_roles.speaker) } },
 		btn1: { onclick: confirmAction(unrestrictedMode) },
 		btn2: { onclick: autoRename },
 		btn3: { onclick: openCustomFocusModal },
