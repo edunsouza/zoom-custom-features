@@ -29,6 +29,10 @@
 	"rewrites": [
 		{
 			"source": "/",
+			"destination": "/public/socket-and-redux.js"
+		},
+		{
+			"source": "/hybrid",
 			"destination": "/public/script-hybrid.js"
 		},
 		{
