@@ -5,108 +5,133 @@ function startHacking() {
 	createCss();
 	renderModal();
 	createCustomOptions();
+	setupMeetingDefaults();
+	setupTopics();
 	toggleModal();
 }
 function hijackWebSocket() {
+	if (window.commandSocket) {
+		jw_zoomWebSocket = window.commandSocket;
+		return;
+	}
+
 	WebSocket.prototype.send = function (...args) {
-		if (zoomWebSocket !== this) {
-			zoomWebSocket = this;
+		if (jw_zoomWebSocket !== this) {
+			jw_zoomWebSocket = this;
 		}
-
-		// DELETE
-		if (JSON.parse(args[0]).evt !== 4167) { console.log(...args); }
-		// DELETE
-
-		return webSocketSend.call(this, ...args);
+		// for debugging purposes
+		// JSON.parse(args[0]).evt !== 4167 && console.log(args[0]);
+		return jw_webSocketSend.call(this, ...args);
 	};
 }
 function hijackRedux() {
 	const store = getReduxStore();
-	reduxState = Object.freeze(store.getState());
+	jw_reduxState = Object.freeze(store.getState());
 
-	if (reduxUnsubscribe) {
-		reduxUnsubscribe();
+	if (jw_reduxUnsubscribe) {
+		jw_reduxUnsubscribe();
 	}
 
-	reduxUnsubscribe = store.subscribe(() => {
+	jw_reduxUnsubscribe = store.subscribe(() => {
 		const newState = Object.freeze(store.getState());
-		if (reduxState !== newState) {
-			onAppStateChange(reduxState, newState);
-			reduxState = newState;
+		if (jw_reduxState !== newState) {
+			onAppStateChange(jw_reduxState, newState);
+			jw_reduxState = newState;
 		}
 	});
 }
 function sendToWebSocket(evt, body) {
-	zoomWebSocket.send(JSON.stringify({ evt, body }));
+	jw_zoomWebSocket.send(JSON.stringify({ evt, body }));
 }
 function sendToRedux(type, payload) {
 	getReduxStore().dispatch({ type, ...payload });
 }
 function getReduxStore() {
-	return document.querySelector('#root')._reactRootContainer._internalRoot.current.memoizedState.element.props.store;
+	return document.querySelector('#root')
+		._reactRootContainer
+		._internalRoot
+		.current
+		.memoizedState
+		.element
+		.props
+		.store;
 }
 // STORE SELECTORS
 function selectUsers() {
-	return reduxState?.attendeesList?.attendeesList || [];
+	return jw_reduxState?.attendeesList?.attendeesList || [];
 }
 function selectCurrentUser() {
-	return reduxState.meeting.currentUser;
+	return jw_reduxState.meeting.currentUser;
 }
-function selectMeetingInfo() {
-	return reduxState?.meetingUI || {};
+function selectRaisedHandUsers() {
+	return selectUsers().filter(({ bRaiseHand }) => bRaiseHand);
+}
+function selectJoinedUsers() {
+	return selectUsers().filter(({ bHold }) => !bHold);
+}
+function getUsersInWaitingRoom() {
+	return selectUsers().filter(({ bHold }) => bHold);
 }
 // ZOOM ACTIONS
+function allowUsersToUnmute(on) {
+	sendToWebSocket(jw_zoomActions.CONFIG_ALLOW_UNMUTE, { bOn: on });
+}
+function allowUsersToStartVideo(on) {
+	sendToWebSocket(jw_zoomActions.CONFIG_ALLOW_VIDEOS, { bOn: on });
+}
+function muteUsersOnEntry(on) {
+	sendToWebSocket(jw_zoomActions.CONFIG_MUTE_ON_ENTRY, { bOn: on });
+}
 function startUserAudio(id) {
-	sendToWebSocket(zoomActions.AUDIO, { id, bMute: false });
+	sendToWebSocket(jw_zoomActions.AUDIO, { id, bMute: false });
 }
 function stopUserAudio(id) {
-	sendToWebSocket(zoomActions.AUDIO, { id, bMute: true });
+	sendToWebSocket(jw_zoomActions.AUDIO, { id, bMute: true });
 }
 function startEveryUserAudio() {
-	sendToWebSocket(zoomActions.MUTE_ALL, { bMute: false });
+	sendToWebSocket(jw_zoomActions.MUTE_ALL, { bMute: false });
 	startUserAudio(selectCurrentUser().userId);
 }
 function stopEveryUserAudio() {
-	sendToWebSocket(zoomActions.MUTE_ALL, { bMute: true });
+	sendToWebSocket(jw_zoomActions.MUTE_ALL, { bMute: true });
 	stopUserAudio(selectCurrentUser().userId);
 }
 function startUserVideo(id) {
-	sendToWebSocket(zoomActions.VIDEO, { id, bOn: false });
+	sendToWebSocket(jw_zoomActions.VIDEO, { id, bOn: false });
 }
 function stopUserVideo(id) {
 	// disabled
 	// sendToWebSocket(zoomActions.VIDEO, { id, bOn: true });
 }
-function acceptEveryUserInWaitingRoom() {
-	sendToWebSocket(zoomActions.WAITING_ROOM);
-}
-function acceptUserInWaitingRoom(id) {
-	sendToWebSocket(zoomActions.WAITING, { id, bHold: false });
-}
-function moveUserToWaitingRoom(id) {
-	sendToWebSocket(zoomActions.WAITING, { id, bHold: true });
-}
-function lowerUserHand(id) {
-	sendToWebSocket(zoomActions.HAND, { id, bOn: false });
-}
-function lowerEveryUserHand() {
-	sendToWebSocket(zoomActions.LOWER_ALL);
-}
 function startUserSpotlight(id) {
-	sendToWebSocket(zoomActions.SPOTLIGHT, { id, bReplace: true, bSpotlight: true, bUnSpotlightAll: true });
-	// stopEveryUserSpotlight();
-}
-function stopUserSpotlight(id) {
-	sendToWebSocket(zoomActions.SPOTLIGHT, { id, bReplace: false, bSpotlight: false, bUnSpotlightAll: false });
+	sendToWebSocket(jw_zoomActions.SPOTLIGHT, { id, bReplace: true, bSpotlight: true });
 }
 function addUserSpotlight(id) {
-	sendToWebSocket(zoomActions.SPOTLIGHT, { id, bReplace: false, bSpotlight: true, bUnSpotlightAll: false });
+	sendToWebSocket(jw_zoomActions.SPOTLIGHT, { id, bReplace: false, bSpotlight: true });
+}
+function stopUserSpotlight(id) {
+	sendToWebSocket(jw_zoomActions.SPOTLIGHT, { id, bReplace: false, bSpotlight: false });
 }
 function stopEveryUserSpotlight() {
-	// sendToWebSocket(zoomActions.SPOTLIGHT, { id, bReplace: false, bSpotlight: true, bUnSpotlightAll: false });
+	sendToWebSocket(jw_zoomActions.SPOTLIGHT, { bUnSpotlightAll: true });
+}
+function acceptEveryUserInWaitingRoom() {
+	sendToWebSocket(jw_zoomActions.WAITING_ROOM);
+}
+function acceptUserInWaitingRoom(id) {
+	sendToWebSocket(jw_zoomActions.WAITING, { id, bHold: false });
+}
+function moveUserToWaitingRoom(id) {
+	sendToWebSocket(jw_zoomActions.WAITING, { id, bHold: true });
+}
+function lowerUserHand(id) {
+	sendToWebSocket(jw_zoomActions.HAND, { id, bOn: false });
+}
+function lowerEveryUserHand() {
+	sendToWebSocket(jw_zoomActions.LOWER_ALL);
 }
 function renameUser({ id, name }) {
-	sendToWebSocket(zoomActions.RENAME, {
+	sendToWebSocket(jw_zoomActions.RENAME, {
 		id,
 		dn2: btoa(name),
 		olddn2: btoa(getUserById(id).displayName)
@@ -122,9 +147,6 @@ function getUserByText(search, absolute = false) {
 function getUserById(id) {
 	return selectUsers().find(user => user.userId === id);
 }
-function getUsersInWaitingRoom() {
-	return selectUsers().filter(user => user.bHold);
-}
 // UI UTILS
 function createElement(text, events) {
 	const dom = new DOMParser().parseFromString(text.replace(/\s+/g, ' '), 'text/html');
@@ -132,8 +154,8 @@ function createElement(text, events) {
 	events && Object.keys(events).forEach(k => element[k] = events[k]);
 	return element;
 }
-function removeChildren(element) {
-	element?.querySelectorAll?.('*').forEach(child => child.remove());
+function removeChildren(element, byTag) {
+	element?.querySelectorAll?.(byTag ?? '*').forEach(child => child.remove());
 }
 function dispatchMouseOver(element) {
 	const bogusEvent = new MouseEvent('mouseover', { bubbles: true });
@@ -160,6 +182,32 @@ function queryAll(selector) {
 }
 function byId(selector) {
 	return document.getElementById(selector);
+}
+// GENERIC UTILS
+function generateId(text) {
+	return btoa(encodeURI(text)).replace(/=/g, '');
+}
+function getCleanText(text) {
+	return !text ? '' : text
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.toLowerCase()
+		.trim()
+		.replace(/\s+/g, ' ');
+}
+function isNameValid(name) {
+	/* ACCEPTED FORMATS: (#) names / [#] names / {#} names */
+	if (/^\s*[\(\[\{]\s*[0-9]/i.test(name)) {
+		const brands = 'samsung_apple_motorola_nokia_lg_lenovo_huawei_xiaomi_galaxy_note_ipad_iphone_moto_oppo_vivo_tecno'.split('_');
+		return name.toLowerCase().split(/\b/).every(x => !brands.includes(x));
+	}
+	return false;
+}
+function delay(action, ms) {
+	return window._.debounce(action, ms);
+}
+function throttle(action, ms) {
+	return window._.throttle(action, ms);
 }
 // UI HANDLERS
 function createCss() {
@@ -500,7 +548,7 @@ function createCustomOptions() {
 	query('#wc-footer .footer__inner').appendChild(btnOptions);
 }
 function createCustomModal() {
-	const modalBackdrop = byId(generalIDs.customModal) || createElement(`<div id="${generalIDs.customModal}"></div>`);
+	const modalBackdrop = byId(jw_generalIDs.customModal) || createElement(`<div id="${jw_generalIDs.customModal}"></div>`);
 	modalBackdrop.style.display = 'none';
 	modalBackdrop.onclick = ({ target }) => {
 		if (target === modalBackdrop) {
@@ -514,9 +562,9 @@ function createCustomMenu(element, options) {
 	if (!element || !Array.isArray(options)) {
 		return;
 	}
-	let menu = byId(generalIDs.customMenu);
+	let menu = byId(jw_generalIDs.customMenu);
 	if (!menu) {
-		menu = createElement(`<div id="${generalIDs.customMenu}" class="context-menu"></div>`);
+		menu = createElement(`<div id="${jw_generalIDs.customMenu}" class="context-menu"></div>`);
 		document.body.appendChild(menu);
 	}
 	element.oncontextmenu = event => {
@@ -541,8 +589,7 @@ function createCustomFocus(details, name) {
 		click: () => {
 			const fields = details.map(({ role, useMike, useVideo, useSpotlight }) => {
 				const list = [useMike && 'mic', useVideo && 'vídeo', useSpotlight && 'spot'].filter(Boolean);
-				const userName = getUserByText(role)?.userName;
-				return `${userName} - [${list}]\n`;
+				return `${getUserByText(role)?.displayName} - [${list}]\n`;
 			}).join('');
 			const action = prompt(`${name.toUpperCase()}\n${fields}\n"F" = focar\n"C" = chamar\n[Qualquer outra ação] = abortar`);
 			if (!action) {
@@ -561,13 +608,13 @@ function createCustomFocus(details, name) {
 				const userId = getUserByText(role)?.userId;
 				if (useMike) {
 					startUserAudio(userId);
-					subscribeStager(userId);
+					___subscribeStager(userId);
 				}
 				if (useVideo) {
 					startUserVideo(userId);
 					if (useSpotlight && isFocusing) {
 						addUserSpotlight(userId);
-						subscribeStager(userId);
+						___subscribeStager(userId);
 					}
 				}
 			});
@@ -614,10 +661,10 @@ function createCustomFocusFields() {
 	});
 }
 function closeModal() {
-	byId(generalIDs.modal).style.display = 'none';
+	byId(jw_generalIDs.modal).style.display = 'none';
 }
 function closeCustomModal() {
-	const modal = byId(generalIDs.customModal);
+	const modal = byId(jw_generalIDs.customModal);
 	removeChildren(modal);
 	modal.style.display = 'none';
 }
@@ -627,34 +674,32 @@ function createRenameRoleField(role, label) {
 		<div style="display: flex;">
 			<div class="input-group" style="flex: 3; margin: 5px 0 0 0;">
 				<span class="input-group-addon" style="min-width: 120px; font-weight: 600;">${label}:</span>
-				<input hydrate="input1" id="rename-${roles[name]}" value="${roles[name]}" type="text" class="form-control">
+				<input hydrate="input1" id="rename-${jw_roles[name]}" value="${jw_roles[name]}" type="text" class="form-control">
 				<span class="input-group-btn">
 					<button hydrate="btn1" class="btn btn-primary">Salvar</button>
 				</span>
 			</div>
-			<span style="flex: 2; align-self: center; margin-left: 10px;" class="text-primary">${getUserByText(roles[name])?.displayName}</span>
+			<span style="flex: 2; align-self: center; margin-left: 10px;" class="text-primary">${getUserByText(jw_roles[name])?.displayName}</span>
 		</div>`, {
 		input1: {
-			onkeyup: ({ target, key, code }) => {
-				clearTimeout(config.lastValidation);
-				config.lastValidation = setTimeout(() => {
-					if ([code, key].includes('Enter')) {
-						target.parentElement.querySelector('button').click();
-					} else {
-						target.parentElement.nextElementSibling.innerText = getUserByText(target.value).displayName;
-					}
-				}, 400);
+			onkeyup: delay(({ target }) => {
+				target.parentElement.nextElementSibling.innerText = getUserByText(target.value)?.displayName || '';
+			}, 300),
+			onkeydown: ({ target, key, code }) => {
+				if ([code, key].includes('Enter')) {
+					target.parentElement.querySelector('button').click();
+				}
 			}
 		},
 		btn1: {
 			onclick: ({ target }) => {
 				const newRole = getCleanText(target.parentElement.parentElement.querySelector('input').value);
 				if (!newRole) {
-					alert('É necessário informar um indentificador');
-				} else if (newRole !== roles[name]) {
-					roles[name] = newRole;
-					alert(`${roles[name]} mudou para: ${newRole}`);
-					refreshDefaultButtons();
+					return alert('É necessário informar um indentificador');
+				}
+				if (newRole !== jw_roles[name]) {
+					alert(`${jw_roles[name]} mudou para: ${newRole}`);
+					pub(jw_topics.ROLES, { role: name, value: newRole });
 				}
 			}
 		}
@@ -662,9 +707,9 @@ function createRenameRoleField(role, label) {
 }
 function renderModal() {
 	importIcons();
-	const modal = byId(generalIDs.modal);
+	const modal = byId(jw_generalIDs.modal);
 	modal?.remove();
-	const optionsModal = createElement(`<div style="display: none" class="main-modal" id="${generalIDs.modal}"></div>`);
+	const optionsModal = createElement(`<div style="display: none" class="main-modal" id="${jw_generalIDs.modal}"></div>`);
 	optionsModal.appendChild(renderButtonsFrame());
 	optionsModal.appendChild(renderServicesFrame());
 	optionsModal.appendChild(renderCustomFocusModal());
@@ -691,11 +736,10 @@ function renderCustomFocusModal() {
 		cancel: { onclick: closeCustomModal },
 		save: {
 			onclick() {
-				const validFields = validateCustomFocusFields();
-				if (validFields) {
-					const btn = createCustomFocus(validFields.members, getCleanText(validFields.buttonName));
-					routineWarnings.customFocus = [...routineWarnings.customFocus.filter(({ id }) => id !== btn.id), btn];
-					refreshCustomFocusButtons();
+				const fields = validateCustomFocusFields();
+				if (fields) {
+					const btn = createCustomFocus(fields.members, getCleanText(fields.buttonName));
+					pub(jw_topics.CUSTOM_FOCUS, { including: btn });
 					closeCustomModal();
 				}
 			}
@@ -709,19 +753,18 @@ function renderSeeMoreModal() {
 		<div class="custom-modal-body" style="display: block">
 			<div style="display: flex; justify-content: space-between; align-items: center">
 				<div class="large-checkbox h5">
-					<input hydrate="input1" id="open-waiting-room" type="checkbox" ${isPublicRoom() && 'checked'}/>
+					<input hydrate="input1" id="open-waiting-room" type="checkbox" ${jw_config.publicRoom && 'checked'}/>
 					<label for="open-waiting-room">Liberar sala de espera para todos</label>
 				</div>
 				<button hydrate="close" class="btn btn-primary-outline btn-close-modal">Fechar</button>
 			</div>
 			<div class="large-checkbox h5">
-				<input hydrate="input2" id="auto-spotlight" type="checkbox" ${isAutoSpotlight() && 'checked'}/>
+				<input id="auto-spotlight" type="checkbox" disabled />
 				<label for="auto-spotlight">Ativar foco automático (remove automaticamente o spotlight)</label>
 			</div>
 		</div>`, {
 		close: { onclick: closeCustomModal },
-		input1: { onchange() { toggleObserved(constants.PUBLIC_ROOM_KEY); refreshWaitingRoom(); } },
-		input2: { onchange() { toggleObserved(constants.AUTO_SPOTLIGHT_KEY); refreshVideosOn(); } },
+		input1: { onchange: ({ target }) => pub(jw_topics.MEETING_CONFIG, { public: target.checked }) },
 	});
 	queryAll('.call-member-frame button:not(.hidden)').forEach(btn => modal.appendChild(createRenameRoleField(btn.dataset.role, btn.innerText)));
 	return createCustomModal().appendChild(modal);
@@ -757,19 +800,19 @@ function renderButtonsFrame() {
 				</button>
 			</div>
 			<div class="feature-frame">
-				<button hydrate="btn1" class="btn btn-danger btn-feature" data-q="Digite: 'TUDO' para confirmar" data-a="TUDO"> Ligar tudo <div> <i class="i-sm material-icons-outlined">videocam</i> <i class="i-sm material-icons-outlined">mic_off</i> </div> </button>
-				<button hydrate="btn2" class="btn btn-danger btn-feature" data-q="Digite: 'FIM' para confirmar" data-a="FIM"> Finalizar discurso <i class="i-sm material-icons-outlined">voice_over_off</i> </button>
-				<button hydrate="btn3" class="btn btn-success btn-feature"> Criar foco <i class="i-sm material-icons-outlined">person_add</i> </button>
-				<button hydrate="btn4" class="btn btn-success btn-feature"> Mais opções <i class="i-sm material-icons-outlined">add_circle_outline</i> </button>
-				<button hydrate="btn5" class="btn btn-danger btn-feature" data-q="Digite: 'NADA' para confirmar" data-a="NADA"> Desligar tudo <div> <i class="i-sm material-icons-outlined">videocam_off</i> <i class="i-sm material-icons-outlined">mic_off</i> </div> </button>
-				<button hydrate="btn6" class="btn btn-danger btn-applause btn-feature" data-q="Digite: 'OVAR' para confirmar" data-a="OVAR"> Palmas (${config.applauseDuration / 1000}s) <i class="i-sm material-icons-outlined">dry</i> </button>
+				<button hydrate="btn1" class="btn btn-danger btn-feature" data-q="Digite: 'TUDO' para confirmar" data-a="TUDO">Ligar tudo<div> <i class="i-sm material-icons-outlined">videocam</i> <i class="i-sm material-icons-outlined">mic_off</i> </div> </button>
+				<button hydrate="btn2" class="btn btn-primary btn-feature">Auto-renomear<i class="i-sm material-icons-outlined">sort_by_alpha</i> </button>
+				<button hydrate="btn3" class="btn btn-success btn-feature">Criar foco<i class="i-sm material-icons-outlined">person_add</i> </button>
+				<button hydrate="btn4" class="btn btn-success btn-feature">Mais opções<i class="i-sm material-icons-outlined">add_circle_outline</i> </button>
+				<button hydrate="btn5" class="btn btn-danger btn-feature" data-q="Digite: 'NADA' para confirmar" data-a="NADA">Desligar microfones<div> <i class="i-sm material-icons-outlined">mic_off</i> </div> </button>
+				<button hydrate="btn6" class="btn btn-danger btn-applause btn-feature" data-q="Digite: 'OVAR' para confirmar" data-a="OVAR"> Palmas (${jw_config.applauseDuration / 1000}s) <i class="i-sm material-icons-outlined">dry</i> </button>
 				<div hydrate="div1" class="configuration" style="cursor: pointer">
 					<i style="color: #5cb85c" class="i-sm material-icons-outlined">airline_seat_recline_normal</i>
-					<span id="${generalIDs.counted}">${counted} identificado(s)</span>
+					<span id="${jw_generalIDs.counted}">${counted} identificado(s)</span>
 				</div>
 				<div class="configuration">
 					<i style="color: #ff4242" class="i-sm material-icons-outlined">airline_seat_recline_extra</i>
-					<span id="${generalIDs.notCounted}">${notCounted} não identificado(s)</span>
+					<span id="${jw_generalIDs.notCounted}">${notCounted} não identificado(s)</span>
 				</div>
 				<div class="config-item">
 					<input hydrate="check1" id="transparent-mode" type="checkbox"/>
@@ -778,31 +821,31 @@ function renderButtonsFrame() {
 			</div>
 		</div>`, {
 		icon1: { onclick: closeModal },
-		focus1: { onclick() { focusOn(roles.conductor) } },
-		focus2: { onclick() { focusOn(roles.reader) } },
-		focus3: { onclick() { focusOn(roles.president) } },
-		focus4: { onclick() { focusOn(roles.speaker) } },
-		focus5: { onclick() { focusOn(roles.treasures) } },
-		focus6: { onclick() { focusOn(roles.gems) } },
-		focus7: { onclick() { focusOn(roles.bible) } },
-		focus8: { onclick() { focusOn(roles.living1) } },
-		focus9: { onclick() { focusOn(roles.living2) } },
-		call1: { onclick() { callMember(roles.conductor) } },
-		call2: { onclick() { callMember(roles.reader) } },
-		call3: { onclick() { callMember(roles.president) } },
-		call4: { onclick() { callMember(roles.speaker) } },
-		call5: { onclick() { callMember(roles.treasures) } },
-		call6: { onclick() { callMember(roles.gems) } },
-		call7: { onclick() { callMember(roles.bible) } },
-		call8: { onclick() { callMember(roles.living1) } },
-		call9: { onclick() { callMember(roles.living2) } },
-		btn1: { onclick: confirmAction(texasMode) },
-		btn2: { onclick: confirmAction(finishSpeech) },
+		focus1: { onclick() { focusOn(jw_roles.conductor) } },
+		focus2: { onclick() { focusOn(jw_roles.reader) } },
+		focus3: { onclick() { focusOn(jw_roles.president) } },
+		focus4: { onclick() { focusOn(jw_roles.speaker) } },
+		focus5: { onclick() { focusOn(jw_roles.treasures) } },
+		focus6: { onclick() { focusOn(jw_roles.gems) } },
+		focus7: { onclick() { focusOn(jw_roles.bible) } },
+		focus8: { onclick() { focusOn(jw_roles.living1) } },
+		focus9: { onclick() { focusOn(jw_roles.living2) } },
+		call1: { onclick() { callMember(jw_roles.conductor) } },
+		call2: { onclick() { callMember(jw_roles.reader) } },
+		call3: { onclick() { callMember(jw_roles.president) } },
+		call4: { onclick() { callMember(jw_roles.speaker) } },
+		call5: { onclick() { callMember(jw_roles.treasures) } },
+		call6: { onclick() { callMember(jw_roles.gems) } },
+		call7: { onclick() { callMember(jw_roles.bible) } },
+		call8: { onclick() { callMember(jw_roles.living1) } },
+		call9: { onclick() { callMember(jw_roles.living2) } },
+		btn1: { onclick: confirmAction(unrestrictedMode) },
+		btn2: { onclick: autoRename },
 		btn3: { onclick: openCustomFocusModal },
 		btn4: { onclick: openSeeMoreModal },
-		btn5: { onclick: confirmAction(northKoreaMode) },
+		btn5: { onclick: confirmAction(restrictedMode) },
 		btn6: { onclick: confirmAction(requestApplause) },
-		check1: { onchange: () => byId(generalIDs.modal).classList.toggle('transparent-modal') },
+		check1: { onchange: () => byId(jw_generalIDs.modal).classList.toggle('transparent-modal') },
 		div1: {
 			onclick() {
 				const { counted } = countAttendance();
@@ -820,7 +863,7 @@ function renderServicesFrame() {
 		<div class="routines-frame">
 			<div class="routine-div">
 				<p>Rodando (marque para abortar)</p>
-				<ul id="${generateId('continuousAttempts')}"></ul>
+				<ul id="${generateId('retries')}"></ul>
 			</div>
 			<div class="routine-div">
 				<p>Nomes inválidos</p>
@@ -848,16 +891,15 @@ function renderServicesFrame() {
 			</div>
 		</div>`, {
 		btn1: { onclick: muteCommenters },
-		btn2: { onclick: lowerHands }
+		btn2: { onclick: lowerAllHands }
 	});
 }
 function showParticipantsList() {
 	sendToRedux('SHOW_PARTICIPANTS_LIST', { showParticipants: true });
 	sendToRedux('SHOW_RIGHT_CONTAINER', { data: true });
 }
-function getMoreDropdownOptions(optionLabels) {
-	const moreOptions = Array.from(queryAll('#wc-container-right .window-content-bottom ul li a'));
-	return moreOptions.find(option => optionLabels.includes(option.innerText));
+function showRenameDialog({ userId, displayName: userName }) {
+	sendToRedux('SET_RENAME_DIALOG_VISIBLE', { payload: { userId, userName, visible: true } });
 }
 function openCustomFocusModal() {
 	renderCustomFocusModal();
@@ -868,272 +910,227 @@ function openSeeMoreModal() {
 	openCustomModal();
 }
 function openCustomModal() {
-	byId(generalIDs.customModal).style.display = 'block';
-}
-// STRING UTILS
-function generateId(text) {
-	return btoa(encodeURI(text)).replace(/=/g, '');
-}
-function getCleanText(text) {
-	return !text ? '' : text
-		.normalize('NFD')
-		.replace(/[\u0300-\u036f]/g, '')
-		.toLowerCase()
-		.trim()
-		.replace(/\s+/g, ' ');
-}
-function isNameValid(name = '') {
-	/* ACCEPTED FORMAT: (number) members names */
-	if (/^\s*[\(\[\{]\s*[0-9]/i.test(name)) {
-		const brands = 'samsung_apple_motorola_nokia_lg_lenovo_huawei_xiaomi_galaxy_note_ipad_iphone_moto_oppo_vivo_tecno'.split('_');
-		return name.toLowerCase().split(/\b/).every(x => !brands.includes(x));
-	}
-	return false;
+	byId(jw_generalIDs.customModal).style.display = 'block';
 }
 // LIFECYCLE
 function onAppStateChange(oldState, newState) {
 	if (oldState.meeting !== newState.meeting || oldState.attendeesList !== newState.attendeesList) {
-		refreshScreen();
+		// TODO: dig deep in changes and be more specific/performatic
+		pub(jw_topics.PARTICIPANTS_LIST);
 	}
 }
-function subscribe({ queue, userId }) {
-	if (!observed[queue]?.includes(userId)) {
-		observed[queue] = [userId, ...observed[queue]];
+function setupMeetingDefaults() {
+	allowUsersToUnmute(false);
+	allowUsersToStartVideo(true);
+	muteUsersOnEntry(true);
+}
+function setupTopics() {
+	window.PubSub.clearAllSubscriptions();
+	sub(jw_topics.PARTICIPANTS_LIST, throttle(observeWaitingRoom, 5000));
+	sub(jw_topics.PARTICIPANTS_LIST, observeVideosOn);
+	sub(jw_topics.PARTICIPANTS_LIST, observeMikesOn);
+	sub(jw_topics.PARTICIPANTS_LIST, observeRaisedHands);
+	sub(jw_topics.PARTICIPANTS_LIST, observeAttendanceCount);
+	sub(jw_topics.PARTICIPANTS_LIST, observeCustomFocusButtons);
+	sub(jw_topics.PARTICIPANTS_LIST, observeDefaultButtons);
+	sub(jw_topics.PARTICIPANTS_LIST, observeInvalidNames);
+	sub(jw_topics.PARTICIPANTS_LIST, observeRetries);
+	sub(jw_topics.AUDIO, observeMikesOn);
+	sub(jw_topics.VIDEO, observeVideosOn);
+	sub(jw_topics.CUSTOM_FOCUS, observeCustomFocusButtons);
+	sub(jw_topics.ROLES, observeDefaultButtons);
+	sub(jw_topics.RETRIES, observeRetries);
+	sub(jw_topics.MEETING_CONFIG, observeMeetingConfigs);
+	sub(jw_topics.RENAME_LIST, renameMembers);
+	// init
+	pub(jw_topics.PARTICIPANTS_LIST);
+}
+function pub(topic, data) {
+	window.PubSub.publish(topic, data);
+}
+function sub(topic, observer) {
+	window.PubSub.subscribe(topic, observer);
+}
+// TODO: use pubsub
+function ___subscribeCommenter(userId) {
+	const queue = jw_constants.COMMENTING_QUEUE;
+	if (!jw_observed[queue]?.includes(userId)) {
+		jw_observed[queue] = [userId, ...jw_observed[queue]];
 	}
 }
-function unsubscribe({ queue, userId }) {
-	observed[queue] = observed[queue].filter(id => id !== userId);
+// TODO: use pubsub
+function ___subscribeStager(userId) {
+	const queue = jw_constants.ON_STAGE_QUEUE;
+	if (!jw_observed[queue]?.includes(userId)) {
+		jw_observed[queue] = [userId, ...jw_observed[queue]];
+	}
 }
-function subscribeCommenter(userId) {
-	subscribe({ userId, queue: constants.COMMENTING_QUEUE });
-}
-function unsubscribeCommenter(userId) {
-	unsubscribe({ userId, queue: constants.COMMENTING_QUEUE });
-}
-function subscribeStager(userId) {
-	subscribe({ userId, queue: constants.ON_STAGE_QUEUE });
-}
-function unsubscribeStager(userId) {
-	unsubscribe({ userId, queue: constants.ON_STAGE_QUEUE });
+function ___unsubscribeCommenter(userId) {
+	const queue = jw_constants.COMMENTING_QUEUE;
+	jw_observed[queue] = jw_observed[queue].filter(id => id !== userId);
 }
 function resetStage() {
-	clearQueue({ queue: constants.ON_STAGE_QUEUE });
+	clearQueue({ queue: jw_constants.ON_STAGE_QUEUE });
 }
 function clearQueue({ queue }) {
-	observed[queue] = [];
-}
-function setObserved(name, value) {
-	observed[name] = Boolean(value);
+	jw_observed[queue] = [];
 }
 function toggleObserved(name) {
-	observed[name] = !observed[name];
+	jw_observed[name] = !jw_observed[name];
 }
 function toggleModal() {
-	const modal = byId(generalIDs.modal);
-	if (modal.style.display === 'none') {
-		modal.removeAttribute('style');
-	} else {
-		closeModal();
-	}
+	const modal = byId(jw_generalIDs.modal);
+	modal.style.display === 'none' ? modal.removeAttribute('style') : closeModal();
 }
 function getCommenters() {
-	return observed[constants.COMMENTING_QUEUE];
+	return jw_observed[jw_constants.COMMENTING_QUEUE];
 }
 function isOnStage(id) {
-	return observed.onStage.includes(id);
+	return jw_observed.onStage.includes(id);
 }
 function isCommenting(id) {
-	return observed.commenting.includes(id);
+	return jw_observed.commenting.includes(id);
 }
-function isAutoSpotlight() {
-	return Boolean(observed.autoSpotlight);
-}
-function isPublicRoom() {
-	return Boolean(observed.publicRoom);
-}
-function refreshScreen() {
-	clearTimeout(config.lastChange);
-	config.lastChange = setTimeout(() => {
-		refreshInvalidNames();
-		refreshVideosOn();
-		refreshMikesOn();
-		refreshDefaultButtons();
-		refreshRaisedHands();
-		refreshAttendanceCount();
-		refreshWaitingRoom();
-		refreshWarnings();
-		refreshRoutines();
-	}, 200);
-}
-function refreshWarnings() {
-	Object.keys(routineWarnings).forEach(routine => {
-		if (routine !== 'continuousAttempts' && routineWarnings[routine].length > 10) {
-			routineWarnings[routine] = [...new Set(routineWarnings[routine])].slice(-10);
-		}
-	});
-}
-function refreshInvalidNames() {
-	routineWarnings.invalidNames = selectUsers().reduce((list, { displayName }) => (
+function observeInvalidNames() {
+	const listId = 'invalidNames';
+	jw_lists[listId] = selectJoinedUsers().reduce((list, { displayName }) => (
 		isNameValid(displayName) ? list : [...list, displayName]
 	), []);
-}
-function refreshWaitingRoom() {
-	const waitingRoom = getUsersInWaitingRoom();
-	if (!waitingRoom.length) {
-		return;
-	}
 
-	const [first] = waitingRoom;
-	const audioLoaded = 1;
-	if (isPublicRoom() && first?.audioConnectionStatus !== audioLoaded) {
-		return acceptEveryUserInWaitingRoom();
-	}
-
-	getUsersInWaitingRoom().forEach(({ displayName, userId }) => {
-		if (isNameValid(displayName)) {
-			acceptUserInWaitingRoom(userId);
-		}
-	});
+	const ul = byId(generateId(listId));
+	removeChildren(ul);
+	updateContextMenu(ul, listId, [
+		{ text: 'Renomear', click: name => showRenameDialog(getUserByText(name, true)) },
+		{ text: 'Mover para sala de espera', click: name => moveUserToWaitingRoom(getUserByText(name, true).userId) }
+	]);
 }
-function refreshVideosOn() {
-	routineWarnings.videosOn = selectUsers().reduce((list, user) => (
-		user.bVideoOn ? [...list, user.displayName] : list
+function observeMeetingConfigs(_topic, config) {
+	const { public } = config || {};
+	jw_config.publicRoom = public ?? !!jw_config.publicRoom;
+}
+function observeWaitingRoom() {
+	!jw_config.publicRoom ? acceptParticipantsWithValidNames() : acceptEveryUserInWaitingRoom();
+}
+function acceptParticipantsWithValidNames() {
+	getUsersInWaitingRoom().forEach(({ displayName, userId }) => (
+		isNameValid(displayName) && acceptUserInWaitingRoom(userId)
+	));
+}
+function observeVideosOn() {
+	const listId = 'videosOn';
+	jw_lists[listId] = selectJoinedUsers().reduce((list, { bVideoOn, displayName }) => (
+		bVideoOn ? [...list, displayName] : list
 	), []);
-}
-function refreshMikesOn() {
-	routineWarnings.mikesOn = selectUsers().reduce((list, user) => (
-		user.muted ? list : [...list, user.displayName]
-	), []);
-}
-function refreshRoutines() {
-	Object.keys(routineWarnings).forEach(routine => {
-		const ulRoutine = byId(generateId(routine));
-		removeChildren(ulRoutine);
-		const method = {
-			continuousAttempts: () => refreshContinuousAttempts(),
-			customFocus: () => refreshCustomFocusButtons(),
-			invalidNames: () => updateInvalidNames(ulRoutine),
-			mikesOn: () => updateMikesOn(ulRoutine),
-			videosOn: () => updateVideosOn(ulRoutine)
-		}[routine];
-		if (method) {
-			return method();
-		}
-		routineWarnings[routine].forEach(msg => {
-			const li = createElement(`<li class="striped">${msg}</li>`);
-			ulRoutine.appendChild(li);
-		});
-	});
-}
-function refreshDefaultButtons() {
-	const toCall = queryAll('.call-member-frame > button') || [];
-	const toFocus = queryAll('.focus-on-frame > button') || [];
-	const statusClass = 'invalid-focus';
-	toCall.forEach((btnCall, i) => {
-		const btnFocus = toFocus[i];
-		if (!getUserByText(roles[btnCall.dataset.role])) {
-			btnCall.classList.add(statusClass);
-			btnFocus.classList.add(statusClass);
-		} else {
-			btnCall.classList.remove(statusClass);
-			btnFocus.classList.remove(statusClass);
-		}
-	});
-}
-function refreshRaisedHands() {
-	const list = query('#raised-hands');
-	removeChildren(list);
 
+	const ul = byId(generateId(listId));
+	removeChildren(ul);
+	updateContextMenu(ul, listId, [{
+		text: 'Desligar vídeo (desativado)',
+		click: name => stopUserVideo(getUserByText(name, true).userId)
+	}]);
+}
+function observeMikesOn() {
+	const listId = 'mikesOn';
+	jw_lists[listId] = selectUsers().reduce((list, { muted, displayName }) => (
+		muted ? list : [...list, displayName]
+	), []);
+
+	const ul = byId(generateId(listId));
+	removeChildren(ul);
+	updateContextMenu(ul, listId, [{
+		text: 'Silenciar',
+		click: name => stopUserAudio(getUserByText(name, true).userId)
+	}]);
+}
+function observeRaisedHands() {
 	const [commenterId] = getCommenters();
-	const foundUser = getUserById(commenterId);
-	if (!foundUser?.muted && foundUser?.bRaiseHand) {
+	const { muted, bRaiseHand } = getUserById(commenterId) || {};
+	if (bRaiseHand && !muted) {
 		lowerUserHand(commenterId);
 	}
-	selectUsers().forEach(user => {
-		if (!user.bRaiseHand) {
-			return;
-		}
-		list.appendChild(hydrate(`
+
+	const ul = query('#raised-hands');
+	removeChildren(ul);
+	selectRaisedHandUsers().forEach(({ userId, displayName }) => {
+		ul.appendChild(hydrate(`
 			<li>
-				<button hydrate="btn1" data-member="${user.displayName}" class="btn-xs btn-commenters">
-					<i data-member="${user.displayName}" class="material-icons-outlined">mic_none</i>
-					<span data-member="${user.displayName}">${user.displayName}</span>
+				<button hydrate="btn1" class="btn-xs btn-commenters">
+					<i class="material-icons-outlined">mic_none</i>
+					<span>${displayName}</span>
 				</button>
 			</li>`, {
-			btn1: { onclick: () => callCommenter(user.userId) }
+			btn1: { onclick() { callCommenter(userId) } }
 		}));
 	});
 }
-function refreshAttendanceCount() {
+function observeAttendanceCount() {
 	const { counted, notCounted } = countAttendance();
-	byId(generalIDs.counted).innerText = `${counted} identificado(s)`;
-	byId(generalIDs.notCounted).innerText = `${notCounted} não identificado(s)`;
+	byId(jw_generalIDs.counted).innerText = `${counted} identificado(s)`;
+	byId(jw_generalIDs.notCounted).innerText = `${notCounted} não identificado(s)`;
 }
-function refreshContinuousAttempts() {
-	const ul = byId(generateId('continuousAttempts'));
-	ul.querySelectorAll('li').forEach(li => li.remove());
-	routineWarnings.continuousAttempts.forEach(attempt => {
-		ul.appendChild(hydrate(`
-			<li class="checkbox">
-				<label for="${getCleanText(attempt)}">${attempt}</label>
-				<input hydrate="input1" id="${getCleanText(attempt)}" type="checkbox" value="${attempt}"/>
-			</li>`, {
-			input1: {
-				onclick({ target }) {
-					routineWarnings.continuousAttempts = routineWarnings.continuousAttempts.filter(id => id !== target.value);
-					refreshContinuousAttempts();
-				}
-			}
-		}));
-	});
-}
-function refreshCustomFocusButtons() {
-	const ul = byId(generateId('customFocus'));
-	ul.querySelectorAll('li').forEach(li => li.remove());
-	routineWarnings.customFocus.forEach(({ id, name, validate, click }) => {
+function observeCustomFocusButtons(topic, data) {
+	const listId = 'customFocus';
+	if (topic === jw_topics.CUSTOM_FOCUS) {
+		const { including, excluding } = data || {};
+		jw_lists[listId] = [
+			...jw_lists[listId].filter(({ id }) => ![excluding, including?.id].includes(id)),
+			including
+		].filter(Boolean);
+	}
+
+	const ul = byId(generateId(listId));
+	removeChildren(ul, 'li');
+	jw_lists[listId].forEach(({ id, name, validate, click }) => {
 		const isValid = validate();
 		ul.appendChild(hydrate(`
 			<li class="btn-custom-focus">
 				<button hydrate="btn1" ${!isValid && 'disabled'} class="btn-sm">${isValid ? name : 'Não encontrado!'}</button>
 				<i hydrate="icon1" class="i-sm material-icons-outlined" style="font-size: 22px; cursor: pointer">cancel</i>
 			</li>`, {
-			btn1: { onclick: e => !e.target.attributes.disabled && click() },
-			icon1: {
-				onclick: () => {
-					if (id) {
-						routineWarnings.customFocus = routineWarnings.customFocus.filter(cf => cf.id !== id);
-						refreshCustomFocusButtons();
-					}
-				}
-			}
+			btn1: { onclick: () => isValid && click() },
+			icon1: { onclick: () => pub(jw_topics.CUSTOM_FOCUS, { excluding: id }) }
+		}));
+	});
+}
+function observeDefaultButtons(topic, data) {
+	if (topic === jw_topics.ROLES && data?.value) {
+		jw_roles[data.role] = data.value;
+	}
+
+	const toCall = queryAll('.call-member-frame > button') || [];
+	const toFocus = queryAll('.focus-on-frame > button') || [];
+	const statusClass = 'invalid-focus';
+	toCall.forEach((btnCall, i) => {
+		const btnFocus = toFocus[i];
+		const fn = getUserByText(jw_roles[btnCall.dataset.role]) ? 'remove' : 'add';
+		btnCall.classList[fn](statusClass);
+		btnFocus.classList[fn](statusClass);
+	});
+}
+function observeRetries(topic, retryId) {
+	if (topic === jw_topics.RETRIES) {
+		jw_lists.retries = jw_lists.retries.filter(id => id !== retryId);
+	}
+
+	const ul = byId(generateId('retries'));
+	removeChildren(ul, 'li');
+	jw_lists.retries.forEach(attempt => {
+		ul.appendChild(hydrate(`
+			<li class="checkbox">
+				<label for="${getCleanText(attempt)}">${attempt}</label>
+				<input hydrate="input1" id="${getCleanText(attempt)}" type="checkbox" value="${attempt}"/>
+			</li>`, {
+			input1: { onclick: ({ target }) => pub(jw_topics.RETRIES, target.value) }
 		}));
 	});
 }
 function updateContextMenu(ul, id, contextMenu) {
-	routineWarnings[id].forEach(value => {
+	jw_lists[id].forEach(value => {
 		const element = createElement(`<li class="striped">${value}</li>`);
-		const menu = contextMenu.map(li => ({ ...li, onclick: () => li.onclick(value) }));
+		const menu = contextMenu.map(li => ({ ...li, onclick: () => li.click(value) }));
 		createCustomMenu(element, menu);
 		ul.appendChild(element);
 	});
-}
-function updateInvalidNames(ul) {
-	updateContextMenu(ul, 'invalidNames', [
-		{ text: 'Renomear', onclick: name => openRenamePopup(getUserByText(name, true)) },
-		{ text: 'Mover para sala de espera', onclick: name => moveUserToWaitingRoom(getUserByText(name, true).userId) }
-	]);
-}
-function updateMikesOn(ul) {
-	updateContextMenu(ul, 'mikesOn', [{
-		text: 'Silenciar',
-		onclick: name => stopUserAudio(getUserByText(name).userId)
-	}]);
-}
-function updateVideosOn(ul) {
-	updateContextMenu(ul, 'videosOn', [{
-		text: 'Desligar vídeo (desativado)',
-		onclick: name => stopUserVideo(getUserByText(name).userId)
-	}]);
 }
 function validateCustomFocusTarget({ target }) {
 	const { value, classList } = target.parentElement.previousElementSibling;
@@ -1150,7 +1147,7 @@ function validateCustomFocusFields() {
 	let hasError = false;
 	const errorSpan = query('#error-alert-modal span[name="error-placeholder"]');
 	const errorStyle = 'alert-danger';
-	const focusNameInput = query(`#${generalIDs.customModal} input[name="custom-focus-name"]`);
+	const focusNameInput = query(`#${jw_generalIDs.customModal} input[name="custom-focus-name"]`);
 	const members = [];
 	if (!focusNameInput.value) {
 		focusNameInput.classList.add(errorStyle);
@@ -1158,7 +1155,7 @@ function validateCustomFocusFields() {
 		errorSpan.parentElement.style.display = 'block';
 		return;
 	}
-	queryAll(`#${generalIDs.customModal} .custom-modal-fields`).forEach(fields => {
+	queryAll(`#${jw_generalIDs.customModal} .custom-modal-fields`).forEach(fields => {
 		const customFocus = {};
 		fields.querySelectorAll('input[type="checkbox"]').forEach(({ name, checked }) => customFocus[name] = checked);
 		fields.querySelectorAll('input[type="text"]').forEach(({ value, classList }) => {
@@ -1195,20 +1192,19 @@ function keepUserHandRaised(id) {
 		}
 	});
 }
-function texasMode() {
-	selectUsers().forEach(({ userId }) => {
-		startUserVideo(userId);
-		startUserAudio(userId);
-		stopUserSpotlight(userId);
-	});
-	enableAllowMikes(true);
-	enableMuteOnEntry(false);
-	setObserved(constants.PUBLIC_ROOM_KEY, true);
+function unrestrictedMode() {
+	allowUsersToUnmute(true);
+	muteUsersOnEntry(false);
+	allowUsersToStartVideo(true);
+	pub(jw_topics.MEETING_CONFIG, { public: true });
+	startEveryUserAudio();
+	stopEveryUserSpotlight();
+	selectJoinedUsers().forEach(({ userId }) => startUserVideo(userId));
 }
-function northKoreaMode() {
+function restrictedMode() {
 	stopEveryUserAudio();
-	enableAllowMikes(false);
-	enableMuteOnEntry(true);
+	allowUsersToUnmute(false);
+	muteUsersOnEntry(true);
 }
 function focusOn(role) {
 	const user = getUserByText(role);
@@ -1216,14 +1212,11 @@ function focusOn(role) {
 		return alert(`Participante: "${role}" não encontrado`);
 	}
 	resetStage();
-	setObserved(constants.AUTO_SPOTLIGHT_KEY, false)
-	if (!user.bVideoOn) {
-		startUserVideo(user.userId);
-	}
+	startUserVideo(user.userId);
 	startUserAudio(user.userId);
 	keepUserAudio(user.userId);
 	startUserSpotlight(user.userId);
-	subscribeStager(user.userId);
+	___subscribeStager(user.userId);
 }
 function callMember(role) {
 	const id = getUserByText(role)?.userId;
@@ -1235,61 +1228,52 @@ function callMember(role) {
 	startUserAudio(id);
 }
 function callCommenter(userId) {
-	if (!userId) {
-		return;
-	}
 	startUserAudio(userId);
 	keepUserHandRaised(userId);
-	subscribeCommenter(userId);
+	___subscribeCommenter(userId);
+
 	getCommenters().forEach(commenterId => {
 		if (userId !== commenterId) {
 			stopUserAudio(commenterId);
-			unsubscribeCommenter(commenterId);
+			___unsubscribeCommenter(commenterId);
 		}
 	});
 }
 function muteCommenters() {
 	getCommenters().forEach(commenterId => {
-		unsubscribeCommenter(commenterId);
+		___unsubscribeCommenter(commenterId);
 		stopUserAudio(commenterId);
 	});
 }
-function lowerHands() {
-	if (selectUsers().find(u => u.bRaiseHand)) {
+function lowerAllHands() {
+	if (selectRaisedHandUsers().length) {
 		lowerEveryUserHand();
 	}
 }
-function fetchRenamingList(id) {
-	fetch(`https://zoom.vercel.app/api/rename-list?id=${id}`, {
-		method: 'GET',
-		headers: {
-			'Accept': 'application/json',
-			'Content-Type': 'application/json'
+async function fetchRenamingList(id) {
+	try {
+		const response = await fetch(`${jw_config.api}/rename-list?id=${id}`, { method: 'GET', headers: jw_config.defaultHeaders });
+		const { success, list } = await response.json();
+		if (!success) {
+			return alert('Não foi possível obter nomes a renomear');
 		}
-	}).then(async data => {
-		const resp = await data.json();
-		if (!resp.success) {
-			return alert('<h4>Não foi possível obter nomes a renomear</h4>');
-		}
-		renameMembers(resp.list);
-		alert('Os participantes detectados foram renomeados');
-	}).catch(err => alert(err));
+		pub(jw_topics.RENAME_LIST, list || []);
+	} catch (error) {
+		alert(error);
+	}
 }
-function sendEmail() {
-	fetch('https://zoom.vercel.app/api/send-email', {
-		method: 'POST',
-		headers: {
-			'Accept': 'application/json',
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({
-			attendance: countAttendance().counted,
-			id: 'Nordeste'
-		})
-	}).then(async data => {
-		const resp = await data.json();
-		alert(resp.success ? resp.message : 'Não foi possível enviar e-mail');
-	}).catch(err => alert(err));
+async function sendEmail() {
+	try {
+		const response = await fetch(`${jw_config.api}/send-email`, {
+			method: 'POST',
+			headers: jw_config.defaultHeaders,
+			body: JSON.stringify({ attendance: countAttendance().counted, id: 'Nordeste' })
+		});
+		const { success, message } = await response.json();
+		alert(success ? message : 'Não foi possível enviar e-mail');
+	} catch (error) {
+		alert(err);
+	}
 }
 function importIcons() {
 	if (!query('#icons')) {
@@ -1297,14 +1281,20 @@ function importIcons() {
 		document.head.appendChild(link);
 	}
 }
-function openRenamePopup() {
-	alert('NOT IMPLEMENTED');
-}
-function renameMembers(namesMapList) {
-	alert('NOT IMPLEMENTED');
-	// TODO: use socket
+function renameMembers(_topic, namesList) {
+	jw_config.renameList = namesList;
+	namesList?.forEach(([currentName, newName]) => {
+		const user = getUserByText(currentName, true);
+		if (user) {
+			renameUser({ id: user.userId, name: newName });
+		}
+	});
+	alert('Os participantes detectados foram renomeados');
 }
 function autoRename() {
+	if (jw_config.renameList?.length) {
+		return pub(jw_topics.RENAME_LIST, jw_config.renameList);
+	}
 	const password = prompt('Informe a senha para obter a lista de renomeação');
 	if (password) {
 		fetchRenamingList(password);
@@ -1313,7 +1303,7 @@ function autoRename() {
 function countAttendance() {
 	let counted = 0;
 	let notCounted = 0;
-	selectUsers().forEach(({ displayName }) => {
+	selectJoinedUsers().forEach(({ displayName }) => {
 		if (!isNameValid(displayName)) {
 			return notCounted++;
 		}
@@ -1324,51 +1314,17 @@ function countAttendance() {
 	});
 	return { counted, notCounted };
 }
-function enableMuteOnEntry(enable) {
-	const muteOnEntryOption = getMoreDropdownOptions(uiLabels.muteOnEntry);
-	if (!muteOnEntryOption) {
-		return;
-	}
-	const isActive = muteOnEntryOption.querySelector('.i-ok-margin');
-	if ((enable && !isActive) || (!enable && isActive)) {
-		muteOnEntryOption.click();
-		setTimeout(() => {
-			const allowMikesOption = query('.zm-modal-footer-default-checkbox');
-			if (allowMikesOption) {
-				if (allowMikesOption.querySelector('.zm-checkbox-checked')) {
-					allowMikesOption.querySelector('.zm-checkbox-message').click();
-				}
-				query('.zm-modal-footer-default-actions .zm-btn__outline--blue').click();
-			}
-		}, 100);
-	}
-}
-function enableAllowMikes(enable) {
-	const allowMikesOption = getMoreDropdownOptions(uiLabels.allowMikes);
-	if (!allowMikesOption) {
-		return;
-	}
-	const isActive = allowMikesOption.querySelector('.i-ok-margin');
-	if ((enable && !isActive) || (!enable && isActive)) {
-		allowMikesOption.click();
-	}
-}
-function requestApplause() {
-	alert('NOT IMPLEMENTED');
-}
-function finishSpeech() {
-	alert('NOT IMPLEMENTED');
-}
+function requestApplause() { alert('Função desativada'); }
 
 /* LITERALS */
-var generalIDs = {
+var jw_generalIDs = {
 	counted: 'counted-members',
 	notCounted: 'not-counted-members',
 	modal: 'meeting-options',
 	customModal: 'custom-modal',
 	customMenu: 'context-menu'
 };
-var roles = {
+var jw_roles = {
 	conductor: 'dirigente',
 	president: 'presidente',
 	reader: 'leitor',
@@ -1379,44 +1335,46 @@ var roles = {
 	living1: 'vida-1',
 	living2: 'vida-2'
 };
-var uiLabels = {
-	allowMikes: [langResource['apac.wc_allow_unmute']],
-	muteOnEntry: [langResource['apac.wc_mute_participants_on_entry']],
-};
-var constants = {
+var jw_constants = {
 	ON_STAGE_QUEUE: 'onStage',
 	COMMENTING_QUEUE: 'commenting',
-	PUBLIC_ROOM_KEY: 'publicRoom',
-	AUTO_SPOTLIGHT_KEY: 'autoSpotlight',
 };
 /* SETTINGS AND CONTROLS */
-var runningIntervals = runningIntervals || {};
-var observed = observed || {
+var jw_observed = jw_observed || {
 	onStage: [],
 	commenting: [],
-	publicRoom: false,
-	autoSpotlight: false
 };
-var routineWarnings = routineWarnings || {
-	continuousAttempts: [],
+var jw_lists = jw_lists || {
+	retries: [],
 	invalidNames: [],
 	videosOn: [],
 	mikesOn: [],
 	customFocus: [],
 };
-var config = config || {
-	// cache: {},
-	applauseDuration: 8000,
-	lastChange: null,
-	lastValidation: null
+var jw_config = jw_config || {
+	api: 'https://zoom.vercel.app/api',
+	defaultHeaders: { Accept: 'application/json', 'Content-Type': 'application/json' },
+	publicRoom: false,
+	renameList: null,
+	applauseDuration: 8000
 };
 
 /* HACK STUFF */
-var reduxUnsubscribe = reduxUnsubscribe || null;
-var reduxState = null;
-var webSocketSend = webSocketSend || WebSocket.prototype.send;
-var zoomWebSocket = zoomWebSocket || null;
-var zoomActions = {
+var jw_reduxUnsubscribe = jw_reduxUnsubscribe || null;
+var jw_reduxState = null;
+var jw_webSocketSend = jw_webSocketSend || WebSocket.prototype.send;
+var jw_zoomWebSocket = jw_zoomWebSocket || null;
+var jw_topics = {
+	AUDIO: 'AUDIO',
+	VIDEO: 'VIDEO',
+	PARTICIPANTS_LIST: 'PARTICIPANTS_LIST',
+	MEETING_CONFIG: 'MEETING_CONFIG',
+	CUSTOM_FOCUS: 'CUSTOM_FOCUS',
+	ROLES: 'ROLES',
+	RETRIES: 'RETRIES',
+	RENAME_LIST: 'RENAME_LIST'
+};
+var jw_zoomActions = {
 	AUDIO: 8193,
 	HAND: 4131,
 	LOWER_ALL: 4129,
@@ -1426,6 +1384,9 @@ var zoomActions = {
 	VIDEO: 12297,
 	WAITING_ROOM: 4199,
 	WAITING: 4113,
+	CONFIG_ALLOW_UNMUTE: 4149,
+	CONFIG_ALLOW_VIDEOS: 4147,
+	CONFIG_MUTE_ON_ENTRY: 4115,
 };
 
 /* INIT */
