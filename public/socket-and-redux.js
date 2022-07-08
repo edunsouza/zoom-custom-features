@@ -11,37 +11,37 @@ function startHacking() {
 }
 function hijackWebSocket() {
 	if (window.commandSocket) {
-		jw_zoomWebSocket = window.commandSocket;
+		jwSocket = window.commandSocket;
 		return;
 	}
 
 	WebSocket.prototype.send = function (...args) {
-		if (jw_zoomWebSocket !== this) {
-			jw_zoomWebSocket = this;
+		if (jwSocket !== this) {
+			jwSocket = this;
 		}
 		// for debugging purposes
 		// JSON.parse(args[0]).evt !== 4167 && console.log(args[0]);
-		return jw_webSocketSend.call(this, ...args);
+		return jwSocketSend.call(this, ...args);
 	};
 }
 function hijackRedux() {
 	const store = getReduxStore();
-	jw_reduxState = Object.freeze(store.getState());
+	jwReduxState = Object.freeze(store.getState());
 
-	if (jw_reduxUnsubscribe) {
-		jw_reduxUnsubscribe();
+	if (jwUnsubscribe) {
+		jwUnsubscribe();
 	}
 
-	jw_reduxUnsubscribe = store.subscribe(() => {
+	jwUnsubscribe = store.subscribe(() => {
 		const newState = Object.freeze(store.getState());
-		if (jw_reduxState !== newState) {
-			onAppStateChange(jw_reduxState, newState);
-			jw_reduxState = newState;
+		if (jwReduxState !== newState) {
+			onAppStateChange(jwReduxState, newState);
+			jwReduxState = newState;
 		}
 	});
 }
 function sendToWebSocket(evt, body) {
-	jw_zoomWebSocket.send(JSON.stringify({ evt, body }));
+	jwSocket.send(JSON.stringify({ evt, body }));
 }
 function sendToRedux(type, payload) {
 	getReduxStore().dispatch({ type, ...payload });
@@ -58,10 +58,10 @@ function getReduxStore() {
 }
 // STORE SELECTORS
 function selectUsers() {
-	return jw_reduxState?.attendeesList?.attendeesList || [];
+	return jwReduxState?.attendeesList?.attendeesList || [];
 }
 function selectCurrentUser() {
-	return jw_reduxState.meeting.currentUser;
+	return jwReduxState.meeting.currentUser;
 }
 function selectRaisedHandUsers() {
 	return selectUsers().filter(({ bRaiseHand }) => bRaiseHand);
@@ -74,64 +74,64 @@ function getUsersInWaitingRoom() {
 }
 // ZOOM ACTIONS
 function allowUsersToUnmute(on) {
-	sendToWebSocket(jw_zoomActions.CONFIG_ALLOW_UNMUTE, { bOn: on });
+	sendToWebSocket(jwActions.CONFIG_ALLOW_UNMUTE, { bOn: on });
 }
 function allowUsersToStartVideo(on) {
-	sendToWebSocket(jw_zoomActions.CONFIG_ALLOW_VIDEOS, { bOn: on });
+	sendToWebSocket(jwActions.CONFIG_ALLOW_VIDEOS, { bOn: on });
 }
 function muteUsersOnEntry(on) {
-	sendToWebSocket(jw_zoomActions.CONFIG_MUTE_ON_ENTRY, { bOn: on });
+	sendToWebSocket(jwActions.CONFIG_MUTE_ON_ENTRY, { bOn: on });
 }
 function startUserAudio(id) {
-	sendToWebSocket(jw_zoomActions.AUDIO, { id, bMute: false });
+	sendToWebSocket(jwActions.AUDIO, { id, bMute: false });
 }
 function stopUserAudio(id) {
-	sendToWebSocket(jw_zoomActions.AUDIO, { id, bMute: true });
+	sendToWebSocket(jwActions.AUDIO, { id, bMute: true });
 }
 function startEveryUserAudio() {
-	sendToWebSocket(jw_zoomActions.MUTE_ALL, { bMute: false });
+	sendToWebSocket(jwActions.MUTE_ALL, { bMute: false });
 	startUserAudio(selectCurrentUser().userId);
 }
 function stopEveryUserAudio() {
-	sendToWebSocket(jw_zoomActions.MUTE_ALL, { bMute: true });
+	sendToWebSocket(jwActions.MUTE_ALL, { bMute: true });
 	stopUserAudio(selectCurrentUser().userId);
 }
 function startUserVideo(id) {
-	sendToWebSocket(jw_zoomActions.VIDEO, { id, bOn: false });
+	sendToWebSocket(jwActions.VIDEO, { id, bOn: false });
 }
 function stopUserVideo(id) {
 	// disabled
-	// sendToWebSocket(jw_zoomActions.VIDEO, { id, bOn: true });
+	// sendToWebSocket(jwActions.VIDEO, { id, bOn: true });
 }
 function startUserSpotlight(id) {
-	sendToWebSocket(jw_zoomActions.SPOTLIGHT, { id, bReplace: true, bSpotlight: true });
+	sendToWebSocket(jwActions.SPOTLIGHT, { id, bReplace: true, bSpotlight: true });
 }
 function addUserSpotlight(id) {
-	sendToWebSocket(jw_zoomActions.SPOTLIGHT, { id, bReplace: false, bSpotlight: true });
+	sendToWebSocket(jwActions.SPOTLIGHT, { id, bReplace: false, bSpotlight: true });
 }
 function stopUserSpotlight(id) {
-	sendToWebSocket(jw_zoomActions.SPOTLIGHT, { id, bReplace: false, bSpotlight: false });
+	sendToWebSocket(jwActions.SPOTLIGHT, { id, bReplace: false, bSpotlight: false });
 }
 function stopEveryUserSpotlight() {
-	sendToWebSocket(jw_zoomActions.SPOTLIGHT, { bUnSpotlightAll: true });
+	sendToWebSocket(jwActions.SPOTLIGHT, { bUnSpotlightAll: true });
 }
 function acceptEveryUserInWaitingRoom() {
-	sendToWebSocket(jw_zoomActions.WAITING_ROOM);
+	sendToWebSocket(jwActions.WAITING_ROOM);
 }
 function acceptUserInWaitingRoom(id) {
-	sendToWebSocket(jw_zoomActions.WAITING, { id, bHold: false });
+	sendToWebSocket(jwActions.WAITING, { id, bHold: false });
 }
 function moveUserToWaitingRoom(id) {
-	sendToWebSocket(jw_zoomActions.WAITING, { id, bHold: true });
+	sendToWebSocket(jwActions.WAITING, { id, bHold: true });
 }
 function lowerUserHand(id) {
-	sendToWebSocket(jw_zoomActions.HAND, { id, bOn: false });
+	sendToWebSocket(jwActions.HAND, { id, bOn: false });
 }
 function lowerEveryUserHand() {
-	sendToWebSocket(jw_zoomActions.LOWER_ALL);
+	sendToWebSocket(jwActions.LOWER_ALL);
 }
 function renameUser({ id, name }) {
-	sendToWebSocket(jw_zoomActions.RENAME, {
+	sendToWebSocket(jwActions.RENAME, {
 		id,
 		dn2: btoa(name),
 		olddn2: btoa(getUserById(id).displayName)
@@ -548,7 +548,7 @@ function createCustomOptions() {
 	query('#wc-footer .footer__inner').appendChild(btnOptions);
 }
 function createCustomModal() {
-	const modalBackdrop = byId(jw_generalIDs.customModal) || createElement(`<div id="${jw_generalIDs.customModal}"></div>`);
+	const modalBackdrop = byId(jwIds.customModal) || createElement(`<div id="${jwIds.customModal}"></div>`);
 	modalBackdrop.style.display = 'none';
 	modalBackdrop.onclick = ({ target }) => {
 		if (target === modalBackdrop) {
@@ -562,9 +562,9 @@ function createCustomMenu(element, options) {
 	if (!element || !Array.isArray(options)) {
 		return;
 	}
-	let menu = byId(jw_generalIDs.customMenu);
+	let menu = byId(jwIds.customMenu);
 	if (!menu) {
-		menu = createElement(`<div id="${jw_generalIDs.customMenu}" class="context-menu"></div>`);
+		menu = createElement(`<div id="${jwIds.customMenu}" class="context-menu"></div>`);
 		document.body.appendChild(menu);
 	}
 	element.oncontextmenu = event => {
@@ -602,7 +602,7 @@ function createCustomFocus(details, name) {
 				), []);
 				stopEveryUserAudio(exceptionList);
 				stopEveryUserSpotlight();
-				resetStage();
+				___resetStage();
 			}
 			details.forEach(({ role, useVideo, useMike, useSpotlight }) => {
 				const userId = getUserByText(role)?.userId;
@@ -661,10 +661,10 @@ function createCustomFocusFields() {
 	});
 }
 function closeModal() {
-	byId(jw_generalIDs.modal).style.display = 'none';
+	byId(jwIds.modal).style.display = 'none';
 }
 function closeCustomModal() {
-	const modal = byId(jw_generalIDs.customModal);
+	const modal = byId(jwIds.customModal);
 	removeChildren(modal);
 	modal.style.display = 'none';
 }
@@ -674,12 +674,12 @@ function createRenameRoleField(role, label) {
 		<div style="display: flex;">
 			<div class="input-group" style="flex: 3; margin: 5px 0 0 0;">
 				<span class="input-group-addon" style="min-width: 120px; font-weight: 600;">${label}:</span>
-				<input hydrate="input1" id="rename-${jw_roles[name]}" value="${jw_roles[name]}" type="text" class="form-control">
+				<input hydrate="input1" id="rename-${jwRoles[name]}" value="${jwRoles[name]}" type="text" class="form-control">
 				<span class="input-group-btn">
 					<button hydrate="btn1" class="btn btn-primary">Salvar</button>
 				</span>
 			</div>
-			<span style="flex: 2; align-self: center; margin-left: 10px;" class="text-primary">${getUserByText(jw_roles[name])?.displayName}</span>
+			<span style="flex: 2; align-self: center; margin-left: 10px;" class="text-primary">${getUserByText(jwRoles[name])?.displayName}</span>
 		</div>`, {
 		input1: {
 			onkeyup: delay(({ target }) => {
@@ -697,9 +697,9 @@ function createRenameRoleField(role, label) {
 				if (!newRole) {
 					return alert('É necessário informar um indentificador');
 				}
-				if (newRole !== jw_roles[name]) {
-					alert(`${jw_roles[name]} mudou para: ${newRole}`);
-					pub(jw_topics.ROLES, { role: name, value: newRole });
+				if (newRole !== jwRoles[name]) {
+					alert(`${jwRoles[name]} mudou para: ${newRole}`);
+					pub(jwTopics.ROLES, { role: name, value: newRole });
 				}
 			}
 		}
@@ -707,9 +707,9 @@ function createRenameRoleField(role, label) {
 }
 function renderModal() {
 	importIcons();
-	const modal = byId(jw_generalIDs.modal);
+	const modal = byId(jwIds.modal);
 	modal?.remove();
-	const optionsModal = createElement(`<div style="display: none" class="main-modal" id="${jw_generalIDs.modal}"></div>`);
+	const optionsModal = createElement(`<div style="display: none" class="main-modal" id="${jwIds.modal}"></div>`);
 	optionsModal.appendChild(renderButtonsFrame());
 	optionsModal.appendChild(renderServicesFrame());
 	optionsModal.appendChild(renderCustomFocusModal());
@@ -739,7 +739,7 @@ function renderCustomFocusModal() {
 				const fields = validateCustomFocusFields();
 				if (fields) {
 					const btn = createCustomFocus(fields.members, getCleanText(fields.buttonName));
-					pub(jw_topics.CUSTOM_FOCUS, { including: btn });
+					pub(jwTopics.CUSTOM_FOCUS, { including: btn });
 					closeCustomModal();
 				}
 			}
@@ -753,7 +753,7 @@ function renderSeeMoreModal() {
 		<div class="custom-modal-body" style="display: block">
 			<div style="display: flex; justify-content: space-between; align-items: center">
 				<div class="large-checkbox h5">
-					<input hydrate="input1" id="open-waiting-room" type="checkbox" ${jw_config.publicRoom && 'checked'}/>
+					<input hydrate="input1" id="open-waiting-room" type="checkbox" ${jw.publicRoom && 'checked'}/>
 					<label for="open-waiting-room">Liberar sala de espera para todos</label>
 				</div>
 				<button hydrate="close" class="btn btn-primary-outline btn-close-modal">Fechar</button>
@@ -764,7 +764,7 @@ function renderSeeMoreModal() {
 			</div>
 		</div>`, {
 		close: { onclick: closeCustomModal },
-		input1: { onchange: ({ target }) => pub(jw_topics.MEETING_CONFIG, { public: target.checked }) },
+		input1: { onchange: ({ target }) => pub(jwTopics.MEETING_CONFIG, { public: target.checked }) },
 	});
 	queryAll('.call-member-frame button:not(.hidden)').forEach(btn => modal.appendChild(createRenameRoleField(btn.dataset.role, btn.innerText)));
 	return createCustomModal().appendChild(modal);
@@ -805,14 +805,14 @@ function renderButtonsFrame() {
 				<button hydrate="btn3" class="btn btn-success btn-feature">Criar foco<i class="i-sm material-icons-outlined">person_add</i> </button>
 				<button hydrate="btn4" class="btn btn-success btn-feature">Mais opções<i class="i-sm material-icons-outlined">add_circle_outline</i> </button>
 				<button hydrate="btn5" class="btn btn-danger btn-feature" data-q="Digite: 'NADA' para confirmar" data-a="NADA">Desligar microfones<div> <i class="i-sm material-icons-outlined">mic_off</i> </div> </button>
-				<button hydrate="btn6" class="btn btn-danger btn-applause btn-feature" data-q="Digite: 'OVAR' para confirmar" data-a="OVAR"> Palmas (${jw_config.applauseDuration / 1000}s) <i class="i-sm material-icons-outlined">dry</i> </button>
+				<button hydrate="btn6" class="btn btn-danger btn-applause btn-feature" data-q="Digite: 'OVAR' para confirmar" data-a="OVAR"> Palmas <i class="i-sm material-icons-outlined">dry</i> </button>
 				<div hydrate="div1" class="configuration" style="cursor: pointer">
 					<i style="color: #5cb85c" class="i-sm material-icons-outlined">airline_seat_recline_normal</i>
-					<span id="${jw_generalIDs.counted}">${counted} identificado(s)</span>
+					<span id="${jwIds.counted}">${counted} identificado(s)</span>
 				</div>
 				<div class="configuration">
 					<i style="color: #ff4242" class="i-sm material-icons-outlined">airline_seat_recline_extra</i>
-					<span id="${jw_generalIDs.notCounted}">${notCounted} não identificado(s)</span>
+					<span id="${jwIds.notCounted}">${notCounted} não identificado(s)</span>
 				</div>
 				<div class="config-item">
 					<input hydrate="check1" id="transparent-mode" type="checkbox"/>
@@ -821,15 +821,15 @@ function renderButtonsFrame() {
 			</div>
 		</div>`, {
 		icon1: { onclick: closeModal },
-		focus1: { onclick() { focusOn(jw_roles.speaker) } },
-		call1: { onclick() { callMember(jw_roles.speaker) } },
+		focus1: { onclick() { focusOn(jwRoles.speaker) } },
+		call1: { onclick() { callMember(jwRoles.speaker) } },
 		btn1: { onclick: confirmAction(unrestrictedMode) },
 		btn2: { onclick: autoRename },
 		btn3: { onclick: openCustomFocusModal },
 		btn4: { onclick: openSeeMoreModal },
 		btn5: { onclick: confirmAction(restrictedMode) },
 		btn6: { onclick: confirmAction(requestApplause) },
-		check1: { onchange: () => byId(jw_generalIDs.modal).classList.toggle('transparent-modal') },
+		check1: { onchange: () => byId(jwIds.modal).classList.toggle('transparent-modal') },
 		div1: {
 			onclick() {
 				const { counted } = countAttendance();
@@ -874,7 +874,7 @@ function renderServicesFrame() {
 				<ul id="raised-hands"></ul>
 			</div>
 		</div>`, {
-		btn1: { onclick: muteCommenters },
+		btn1: { onclick: muteAllCommenters },
 		btn2: { onclick: lowerAllHands }
 	});
 }
@@ -894,13 +894,13 @@ function openSeeMoreModal() {
 	openCustomModal();
 }
 function openCustomModal() {
-	byId(jw_generalIDs.customModal).style.display = 'block';
+	byId(jwIds.customModal).style.display = 'block';
 }
 // LIFECYCLE
 function onAppStateChange(oldState, newState) {
 	if (oldState.meeting !== newState.meeting || oldState.attendeesList !== newState.attendeesList) {
 		// TODO: dig deep in changes and be more specific/performatic
-		pub(jw_topics.PARTICIPANTS_LIST);
+		pub(jwTopics.PARTICIPANTS_LIST);
 	}
 }
 function setupMeetingDefaults() {
@@ -910,24 +910,26 @@ function setupMeetingDefaults() {
 }
 function setupTopics() {
 	window.PubSub.clearAllSubscriptions();
-	sub(jw_topics.PARTICIPANTS_LIST, throttle(observeWaitingRoom, 5000));
-	sub(jw_topics.PARTICIPANTS_LIST, observeVideosOn);
-	sub(jw_topics.PARTICIPANTS_LIST, observeMikesOn);
-	sub(jw_topics.PARTICIPANTS_LIST, observeRaisedHands);
-	sub(jw_topics.PARTICIPANTS_LIST, observeAttendanceCount);
-	sub(jw_topics.PARTICIPANTS_LIST, observeCustomFocusButtons);
-	sub(jw_topics.PARTICIPANTS_LIST, observeDefaultButtons);
-	sub(jw_topics.PARTICIPANTS_LIST, observeInvalidNames);
-	sub(jw_topics.PARTICIPANTS_LIST, observeRetries);
-	sub(jw_topics.AUDIO, observeMikesOn);
-	sub(jw_topics.VIDEO, observeVideosOn);
-	sub(jw_topics.CUSTOM_FOCUS, observeCustomFocusButtons);
-	sub(jw_topics.ROLES, observeDefaultButtons);
-	sub(jw_topics.RETRIES, observeRetries);
-	sub(jw_topics.MEETING_CONFIG, observeMeetingConfigs);
-	sub(jw_topics.RENAME_LIST, renameMembers);
+	sub(jwTopics.AUDIO, handleMikesOn);
+	sub(jwTopics.VIDEO, handleVideosOn);
+	sub(jwTopics.PARTICIPANTS_LIST, handleMikesOn);
+	sub(jwTopics.PARTICIPANTS_LIST, handleVideosOn);
+	sub(jwTopics.PARTICIPANTS_LIST, throttle(handleWaitingRoom, 5000));
+	sub(jwTopics.PARTICIPANTS_LIST, handleRaisedHands);
+	sub(jwTopics.PARTICIPANTS_LIST, handleAttendanceCount);
+	sub(jwTopics.PARTICIPANTS_LIST, handleCustomFocusButtons);
+	sub(jwTopics.PARTICIPANTS_LIST, handleDefaultButtons);
+	sub(jwTopics.PARTICIPANTS_LIST, handleInvalidNames);
+	sub(jwTopics.PARTICIPANTS_LIST, handleRetries);
+	sub(jwTopics.CUSTOM_FOCUS, handleCustomFocusButtons);
+	sub(jwTopics.ROLES, handleDefaultButtons);
+	sub(jwTopics.RETRIES, handleRetries);
+	sub(jwTopics.MEETING_CONFIG, handleMeetingConfigs);
+	sub(jwTopics.COMMENTING, handleObservables);
+	sub(jwTopics.STAGING, handleObservables);
+	sub(jwTopics.RENAME_LIST, handleRenaming);
 	// init
-	pub(jw_topics.PARTICIPANTS_LIST);
+	pub(jwTopics.PARTICIPANTS_LIST);
 }
 function pub(topic, data) {
 	window.PubSub.publish(topic, data);
@@ -937,50 +939,41 @@ function sub(topic, observer) {
 }
 // TODO: use pubsub
 function ___subscribeCommenter(userId) {
-	const queue = jw_constants.COMMENTING_QUEUE;
-	if (!jw_observed[queue]?.includes(userId)) {
-		jw_observed[queue] = [userId, ...jw_observed[queue]];
-	}
+	jwObserved.commenters[userId] = true;
 }
 // TODO: use pubsub
 function ___subscribeStager(userId) {
-	const queue = jw_constants.ON_STAGE_QUEUE;
-	if (!jw_observed[queue]?.includes(userId)) {
-		jw_observed[queue] = [userId, ...jw_observed[queue]];
-	}
+	jwObserved.stage[userId] = true;
 }
-function ___unsubscribeCommenter(userId) {
-	const queue = jw_constants.COMMENTING_QUEUE;
-	jw_observed[queue] = jw_observed[queue].filter(id => id !== userId);
+function ___resetStage() {
+	jwObserved.stage = {};
+
 }
-function resetStage() {
-	clearQueue({ queue: jw_constants.ON_STAGE_QUEUE });
-}
-function clearQueue({ queue }) {
+function _____________________________clearQueue({ queue }) {
 	jw_observed[queue] = [];
 }
-function toggleObserved(name) {
+function _____________________________toggleObserved(name) {
 	jw_observed[name] = !jw_observed[name];
 }
 function toggleModal() {
-	const modal = byId(jw_generalIDs.modal);
+	const modal = byId(jwIds.modal);
 	modal.style.display === 'none' ? modal.removeAttribute('style') : closeModal();
 }
 function getCommenters() {
-	return jw_observed[jw_constants.COMMENTING_QUEUE];
+	return jwObserved.commenters;
 }
-function isOnStage(id) {
-	return jw_observed.onStage.includes(id);
+function handleObservables(topic, data) {
+	const observed = topic === jwTopics.COMMENTING ? 'commenters' : 'stage';
+	const { remove, add, clear } = data || {};
+	if (clear) { jwObserved[observed] = {}; }
+	if (remove) { delete jwObserved[observed][remove]; }
+	if (add) { jwObserved[observed][add] = add; }
 }
-function isCommenting(id) {
-	return jw_observed.commenting.includes(id);
-}
-function observeInvalidNames() {
-	const listId = 'invalidNames';
-	jw_lists[listId] = selectJoinedUsers().reduce((list, { displayName }) => (
-		isNameValid(displayName) ? list : [...list, displayName]
-	), []);
 
+// TODO: pass list to updateContextMenu and remove string/bracket access
+function handleInvalidNames() {
+	const listId = 'invalidNames';
+	jwLists[listId] = selectJoinedUsers().reduce((list, { displayName }) => isNameValid(displayName) ? list : [...list, displayName], []);
 	const ul = byId(generateId(listId));
 	removeChildren(ul);
 	updateContextMenu(ul, listId, [
@@ -988,21 +981,21 @@ function observeInvalidNames() {
 		{ text: 'Mover para sala de espera', click: name => moveUserToWaitingRoom(getUserByText(name, true).userId) }
 	]);
 }
-function observeMeetingConfigs(_topic, config) {
+function handleMeetingConfigs(_topic, config) {
 	const { public } = config || {};
-	jw_config.publicRoom = public ?? !!jw_config.publicRoom;
+	jw.publicRoom = public ?? !!jw.publicRoom;
 }
-function observeWaitingRoom() {
-	!jw_config.publicRoom ? acceptParticipantsWithValidNames() : acceptEveryUserInWaitingRoom();
-}
-function acceptParticipantsWithValidNames() {
-	getUsersInWaitingRoom().forEach(({ displayName, userId }) => (
-		isNameValid(displayName) && acceptUserInWaitingRoom(userId)
+function handleWaitingRoom() {
+	if (jw.publicRoom) {
+		return acceptEveryUserInWaitingRoom();
+	}
+	getUsersInWaitingRoom().forEach(user => (
+		isNameValid(user.displayName) && acceptUserInWaitingRoom(user.userId)
 	));
 }
-function observeVideosOn() {
+function handleVideosOn() {
 	const listId = 'videosOn';
-	jw_lists[listId] = selectJoinedUsers().reduce((list, { bVideoOn, displayName }) => (
+	jwLists[listId] = selectJoinedUsers().reduce((list, { bVideoOn, displayName }) => (
 		bVideoOn ? [...list, displayName] : list
 	), []);
 
@@ -1013,9 +1006,9 @@ function observeVideosOn() {
 		click: name => stopUserVideo(getUserByText(name, true).userId)
 	}]);
 }
-function observeMikesOn() {
+function handleMikesOn() {
 	const listId = 'mikesOn';
-	jw_lists[listId] = selectUsers().reduce((list, { muted, displayName }) => (
+	jwLists[listId] = selectUsers().reduce((list, { muted, displayName }) => (
 		muted ? list : [...list, displayName]
 	), []);
 
@@ -1026,13 +1019,12 @@ function observeMikesOn() {
 		click: name => stopUserAudio(getUserByText(name, true).userId)
 	}]);
 }
-function observeRaisedHands() {
+function handleRaisedHands() {
 	const [commenterId] = getCommenters();
 	const { muted, bRaiseHand } = getUserById(commenterId) || {};
 	if (bRaiseHand && !muted) {
 		lowerUserHand(commenterId);
 	}
-
 	const ul = query('#raised-hands');
 	removeChildren(ul);
 	selectRaisedHandUsers().forEach(({ userId, displayName }) => {
@@ -1047,24 +1039,23 @@ function observeRaisedHands() {
 		}));
 	});
 }
-function observeAttendanceCount() {
+function handleAttendanceCount() {
 	const { counted, notCounted } = countAttendance();
-	byId(jw_generalIDs.counted).innerText = `${counted} identificado(s)`;
-	byId(jw_generalIDs.notCounted).innerText = `${notCounted} não identificado(s)`;
+	byId(jwIds.counted).innerText = `${counted} identificado(s)`;
+	byId(jwIds.notCounted).innerText = `${notCounted} não identificado(s)`;
 }
-function observeCustomFocusButtons(topic, data) {
+function handleCustomFocusButtons(topic, data) {
 	const listId = 'customFocus';
-	if (topic === jw_topics.CUSTOM_FOCUS) {
+	if (topic === jwTopics.CUSTOM_FOCUS) {
 		const { including, excluding } = data || {};
-		jw_lists[listId] = [
-			...jw_lists[listId].filter(({ id }) => ![excluding, including?.id].includes(id)),
+		jwLists[listId] = [
+			...jwLists[listId].filter(({ id }) => ![excluding, including?.id].includes(id)),
 			including
 		].filter(Boolean);
 	}
-
 	const ul = byId(generateId(listId));
 	removeChildren(ul, 'li');
-	jw_lists[listId].forEach(({ id, name, validate, click }) => {
+	jwLists[listId].forEach(({ id, name, validate, click }) => {
 		const isValid = validate();
 		ul.appendChild(hydrate(`
 			<li class="btn-custom-focus">
@@ -1072,44 +1063,42 @@ function observeCustomFocusButtons(topic, data) {
 				<i hydrate="icon1" class="i-sm material-icons-outlined" style="font-size: 22px; cursor: pointer">cancel</i>
 			</li>`, {
 			btn1: { onclick: () => isValid && click() },
-			icon1: { onclick: () => pub(jw_topics.CUSTOM_FOCUS, { excluding: id }) }
+			icon1: { onclick: () => pub(jwTopics.CUSTOM_FOCUS, { excluding: id }) }
 		}));
 	});
 }
-function observeDefaultButtons(topic, data) {
-	if (topic === jw_topics.ROLES && data?.value) {
-		jw_roles[data.role] = data.value;
+function handleDefaultButtons(topic, data) {
+	if (topic === jwTopics.ROLES && data?.value) {
+		jwRoles[data.role] = data.value;
 	}
-
 	const toCall = queryAll('.call-member-frame > button') || [];
 	const toFocus = queryAll('.focus-on-frame > button') || [];
 	const statusClass = 'invalid-focus';
 	toCall.forEach((btnCall, i) => {
 		const btnFocus = toFocus[i];
-		const fn = getUserByText(jw_roles[btnCall.dataset.role]) ? 'remove' : 'add';
+		const fn = getUserByText(jwRoles[btnCall.dataset.role]) ? 'remove' : 'add';
 		btnCall.classList[fn](statusClass);
 		btnFocus.classList[fn](statusClass);
 	});
 }
-function observeRetries(topic, retryId) {
-	if (topic === jw_topics.RETRIES) {
-		jw_lists.retries = jw_lists.retries.filter(id => id !== retryId);
+function handleRetries(topic, retryId) {
+	if (topic === jwTopics.RETRIES) {
+		jwLists.retries = jwLists.retries.filter(id => id !== retryId);
 	}
-
 	const ul = byId(generateId('retries'));
 	removeChildren(ul, 'li');
-	jw_lists.retries.forEach(attempt => {
+	jwLists.retries.forEach(attempt => {
 		ul.appendChild(hydrate(`
 			<li class="checkbox">
 				<label for="${getCleanText(attempt)}">${attempt}</label>
 				<input hydrate="input1" id="${getCleanText(attempt)}" type="checkbox" value="${attempt}"/>
 			</li>`, {
-			input1: { onclick: ({ target }) => pub(jw_topics.RETRIES, target.value) }
+			input1: { onclick: ({ target }) => pub(jwTopics.RETRIES, target.value) }
 		}));
 	});
 }
 function updateContextMenu(ul, id, contextMenu) {
-	jw_lists[id].forEach(value => {
+	jwLists[id].forEach(value => {
 		const element = createElement(`<li class="striped">${value}</li>`);
 		const menu = contextMenu.map(li => ({ ...li, onclick: () => li.click(value) }));
 		createCustomMenu(element, menu);
@@ -1131,7 +1120,7 @@ function validateCustomFocusFields() {
 	let hasError = false;
 	const errorSpan = query('#error-alert-modal span[name="error-placeholder"]');
 	const errorStyle = 'alert-danger';
-	const focusNameInput = query(`#${jw_generalIDs.customModal} input[name="custom-focus-name"]`);
+	const focusNameInput = query(`#${jwIds.customModal} input[name="custom-focus-name"]`);
 	const members = [];
 	if (!focusNameInput.value) {
 		focusNameInput.classList.add(errorStyle);
@@ -1139,7 +1128,7 @@ function validateCustomFocusFields() {
 		errorSpan.parentElement.style.display = 'block';
 		return;
 	}
-	queryAll(`#${jw_generalIDs.customModal} .custom-modal-fields`).forEach(fields => {
+	queryAll(`#${jwIds.customModal} .custom-modal-fields`).forEach(fields => {
 		const customFocus = {};
 		fields.querySelectorAll('input[type="checkbox"]').forEach(({ name, checked }) => customFocus[name] = checked);
 		fields.querySelectorAll('input[type="text"]').forEach(({ value, classList }) => {
@@ -1180,7 +1169,7 @@ function unrestrictedMode() {
 	allowUsersToUnmute(true);
 	muteUsersOnEntry(false);
 	allowUsersToStartVideo(true);
-	pub(jw_topics.MEETING_CONFIG, { public: true });
+	pub(jwTopics.MEETING_CONFIG, { public: true });
 	startEveryUserAudio();
 	stopEveryUserSpotlight();
 	selectJoinedUsers().forEach(({ userId }) => startUserVideo(userId));
@@ -1195,7 +1184,7 @@ function focusOn(role) {
 	if (!user?.userId) {
 		return alert(`Participante: "${role}" não encontrado`);
 	}
-	resetStage();
+	___resetStage();
 	startUserVideo(user.userId);
 	startUserAudio(user.userId);
 	keepUserAudio(user.userId);
@@ -1219,15 +1208,12 @@ function callCommenter(userId) {
 	getCommenters().forEach(commenterId => {
 		if (userId !== commenterId) {
 			stopUserAudio(commenterId);
-			___unsubscribeCommenter(commenterId);
+			pub(jwTopics.COMMENTING, { remove: commenterId });
 		}
 	});
 }
-function muteCommenters() {
-	getCommenters().forEach(commenterId => {
-		___unsubscribeCommenter(commenterId);
-		stopUserAudio(commenterId);
-	});
+function muteAllCommenters() {
+	getCommenters().forEach(id => stopUserAudio(id));
 }
 function lowerAllHands() {
 	if (selectRaisedHandUsers().length) {
@@ -1236,21 +1222,21 @@ function lowerAllHands() {
 }
 async function fetchRenamingList(id) {
 	try {
-		const response = await fetch(`${jw_config.api}/rename-list?id=${id}`, { method: 'GET', headers: jw_config.defaultHeaders });
+		const response = await fetch(`${jw.api}/rename-list?id=${id}`, { method: 'GET', headers: jw.defaultHeaders });
 		const { success, list } = await response.json();
 		if (!success) {
 			return alert('Não foi possível obter nomes a renomear');
 		}
-		pub(jw_topics.RENAME_LIST, list || []);
+		pub(jwTopics.RENAME_LIST, list || []);
 	} catch (error) {
 		alert(error);
 	}
 }
 async function sendEmail() {
 	try {
-		const response = await fetch(`${jw_config.api}/send-email`, {
+		const response = await fetch(`${jw.api}/send-email`, {
 			method: 'POST',
-			headers: jw_config.defaultHeaders,
+			headers: jw.defaultHeaders,
 			body: JSON.stringify({ attendance: countAttendance().counted, id: 'Nordeste' })
 		});
 		const { success, message } = await response.json();
@@ -1265,8 +1251,8 @@ function importIcons() {
 		document.head.appendChild(link);
 	}
 }
-function renameMembers(_topic, namesList) {
-	jw_config.renameList = namesList;
+function handleRenaming(_topic, namesList) {
+	jw.renameList = namesList;
 	namesList?.forEach(([currentName, newName]) => {
 		const user = getUserByText(currentName, true);
 		if (user) {
@@ -1276,8 +1262,8 @@ function renameMembers(_topic, namesList) {
 	alert('Os participantes detectados foram renomeados');
 }
 function autoRename() {
-	if (jw_config.renameList?.length) {
-		return pub(jw_topics.RENAME_LIST, jw_config.renameList);
+	if (jw.renameList?.length) {
+		return pub(jwTopics.RENAME_LIST, jw.renameList);
 	}
 	const password = prompt('Informe a senha para obter a lista de renomeação');
 	if (password) {
@@ -1300,15 +1286,34 @@ function countAttendance() {
 }
 function requestApplause() { alert('Função desativada'); }
 
+/* SETTINGS AND CONTROLS */
+var jw = jw || {
+	api: 'https://zoom.vercel.app/api',
+	defaultHeaders: { Accept: 'application/json', 'Content-Type': 'application/json' },
+	publicRoom: false,
+	renameList: null,
+	applauseDuration: 8000
+};
+var jwLists = {
+	retries: [],
+	invalidNames: [],
+	videosOn: [],
+	mikesOn: [],
+	customFocus: [],
+};
+var jwObserved = {
+	stage: {},
+	commenters: {},
+};
 /* LITERALS */
-var jw_generalIDs = {
+var jwIds = {
 	counted: 'counted-members',
 	notCounted: 'not-counted-members',
 	modal: 'meeting-options',
 	customModal: 'custom-modal',
 	customMenu: 'context-menu'
 };
-var jw_roles = {
+var jwRoles = {
 	conductor: 'dirigente',
 	president: 'presidente',
 	reader: 'leitor',
@@ -1319,36 +1324,12 @@ var jw_roles = {
 	living1: 'vida-1',
 	living2: 'vida-2'
 };
-var jw_constants = {
-	ON_STAGE_QUEUE: 'onStage',
-	COMMENTING_QUEUE: 'commenting',
-};
-/* SETTINGS AND CONTROLS */
-var jw_observed = jw_observed || {
-	onStage: [],
-	commenting: [],
-};
-var jw_lists = jw_lists || {
-	retries: [],
-	invalidNames: [],
-	videosOn: [],
-	mikesOn: [],
-	customFocus: [],
-};
-var jw_config = jw_config || {
-	api: 'https://zoom.vercel.app/api',
-	defaultHeaders: { Accept: 'application/json', 'Content-Type': 'application/json' },
-	publicRoom: false,
-	renameList: null,
-	applauseDuration: 8000
-};
-
 /* HACK STUFF */
-var jw_reduxUnsubscribe = jw_reduxUnsubscribe || null;
-var jw_reduxState = null;
-var jw_webSocketSend = jw_webSocketSend || WebSocket.prototype.send;
-var jw_zoomWebSocket = jw_zoomWebSocket || null;
-var jw_topics = {
+var jwUnsubscribe = jwUnsubscribe || null;
+var jwReduxState = null;
+var jwSocketSend = jwSocketSend || WebSocket.prototype.send;
+var jwSocket = jwSocket || null;
+var jwTopics = {
 	AUDIO: 'AUDIO',
 	VIDEO: 'VIDEO',
 	PARTICIPANTS_LIST: 'PARTICIPANTS_LIST',
@@ -1356,9 +1337,11 @@ var jw_topics = {
 	CUSTOM_FOCUS: 'CUSTOM_FOCUS',
 	ROLES: 'ROLES',
 	RETRIES: 'RETRIES',
-	RENAME_LIST: 'RENAME_LIST'
+	RENAME_LIST: 'RENAME_LIST',
+	COMMENTING: 'COMMENTING',
+	STAGING: 'STAGING'
 };
-var jw_zoomActions = {
+var jwActions = {
 	AUDIO: 8193,
 	HAND: 4131,
 	LOWER_ALL: 4129,
