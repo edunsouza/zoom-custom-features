@@ -209,6 +209,12 @@ function delay(action, ms) {
 function throttle(action, ms) {
 	return window._.throttle(action, ms);
 }
+function pub(topic, data) {
+	window.PubSub.publish(topic, data);
+}
+function sub(topic, observer) {
+	window.PubSub.subscribe(topic, observer);
+}
 // UI HANDLERS
 function createCss() {
 	const membersPaneWidth = parseInt(query('#wc-container-right').style.width);
@@ -896,6 +902,14 @@ function openSeeMoreModal() {
 function openCustomModal() {
 	byId(jwIds.customModal).style.display = 'block';
 }
+function updateContextMenu(ul, id, contextMenu) {
+	jwLists[id].forEach(value => {
+		const element = createElement(`<li class="striped">${value}</li>`);
+		const menu = contextMenu.map(li => ({ ...li, onclick: () => li.click(value) }));
+		createCustomMenu(element, menu);
+		ul.appendChild(element);
+	});
+}
 // LIFECYCLE
 function onAppStateChange(oldState, newState) {
 	if (oldState.meeting !== newState.meeting || oldState.attendeesList !== newState.attendeesList) {
@@ -918,74 +932,31 @@ function setupTopics() {
 	sub(jwTopics.PARTICIPANTS_LIST, handleRaisedHands);
 	sub(jwTopics.PARTICIPANTS_LIST, handleAttendanceCount);
 	sub(jwTopics.PARTICIPANTS_LIST, handleCustomFocusButtons);
+	sub(jwTopics.CUSTOM_FOCUS, handleCustomFocusButtons);
 	sub(jwTopics.PARTICIPANTS_LIST, handleDefaultButtons);
+	sub(jwTopics.ROLES, handleDefaultButtons);
 	sub(jwTopics.PARTICIPANTS_LIST, handleInvalidNames);
 	sub(jwTopics.PARTICIPANTS_LIST, handleRetries);
-	sub(jwTopics.CUSTOM_FOCUS, handleCustomFocusButtons);
-	sub(jwTopics.ROLES, handleDefaultButtons);
 	sub(jwTopics.RETRIES, handleRetries);
 	sub(jwTopics.MEETING_CONFIG, handleMeetingConfigs);
+	sub(jwTopics.RENAME_LIST, handleRenaming);
 	sub(jwTopics.COMMENTING, handleObservables);
 	sub(jwTopics.STAGING, handleObservables);
-	sub(jwTopics.RENAME_LIST, handleRenaming);
 	// init
 	pub(jwTopics.PARTICIPANTS_LIST);
 }
-function pub(topic, data) {
-	window.PubSub.publish(topic, data);
-}
-function sub(topic, observer) {
-	window.PubSub.subscribe(topic, observer);
-}
-// TODO: use pubsub
-function ___subscribeCommenter(userId) {
-	jwObserved.commenters[userId] = true;
-}
-// TODO: use pubsub
-function ___subscribeStager(userId) {
-	jwObserved.stage[userId] = true;
-}
-function ___resetStage() {
-	jwObserved.stage = {};
+function handleMikesOn() {
+	const listId = 'mikesOn';
+	jwLists[listId] = selectUsers().reduce((list, { muted, displayName }) => (
+		muted ? list : [...list, displayName]
+	), []);
 
-}
-function toggleModal() {
-	const modal = byId(jwIds.modal);
-	modal.style.display === 'none' ? modal.removeAttribute('style') : closeModal();
-}
-function getCommenters() {
-	return jwObserved.commenters;
-}
-function handleObservables(topic, data) {
-	const observed = topic === jwTopics.COMMENTING ? 'commenters' : 'stage';
-	const { remove, add, clear } = data || {};
-	if (clear) { jwObserved[observed] = {}; }
-	if (remove) { delete jwObserved[observed][remove]; }
-	if (add) { jwObserved[observed][add] = add; }
-}
-
-// TODO: pass list to updateContextMenu and remove string/bracket access
-function handleInvalidNames() {
-	const listId = 'invalidNames';
-	jwLists[listId] = selectJoinedUsers().reduce((list, { displayName }) => isNameValid(displayName) ? list : [...list, displayName], []);
 	const ul = byId(generateId(listId));
 	removeChildren(ul);
-	updateContextMenu(ul, listId, [
-		{ text: 'Renomear', click: name => showRenameDialog(getUserByText(name, true)) },
-		{ text: 'Mover para sala de espera', click: name => moveUserToWaitingRoom(getUserByText(name, true).userId) }
-	]);
-}
-function handleMeetingConfigs(_topic, config) {
-	const { public } = config || {};
-	jw.publicRoom = public ?? !!jw.publicRoom;
-}
-function handleWaitingRoom() {
-	if (jw.publicRoom) {
-		return acceptEveryUserInWaitingRoom();
-	}
-	getUsersInWaitingRoom().forEach(user => (
-		isNameValid(user.displayName) && acceptUserInWaitingRoom(user.userId)
-	));
+	updateContextMenu(ul, listId, [{
+		text: 'Silenciar',
+		click: name => stopUserAudio(getUserByText(name, true).userId)
+	}]);
 }
 function handleVideosOn() {
 	const listId = 'videosOn';
@@ -1000,18 +971,13 @@ function handleVideosOn() {
 		click: name => stopUserVideo(getUserByText(name, true).userId)
 	}]);
 }
-function handleMikesOn() {
-	const listId = 'mikesOn';
-	jwLists[listId] = selectUsers().reduce((list, { muted, displayName }) => (
-		muted ? list : [...list, displayName]
-	), []);
-
-	const ul = byId(generateId(listId));
-	removeChildren(ul);
-	updateContextMenu(ul, listId, [{
-		text: 'Silenciar',
-		click: name => stopUserAudio(getUserByText(name, true).userId)
-	}]);
+function handleWaitingRoom() {
+	if (jw.publicRoom) {
+		return acceptEveryUserInWaitingRoom();
+	}
+	getUsersInWaitingRoom().forEach(user => (
+		isNameValid(user.displayName) && acceptUserInWaitingRoom(user.userId)
+	));
 }
 function handleRaisedHands() {
 	const [commenterId] = getCommenters();
@@ -1075,6 +1041,17 @@ function handleDefaultButtons(topic, data) {
 		btnFocus.classList[fn](statusClass);
 	});
 }
+// TODO: pass list to updateContextMenu and remove string/bracket access
+function handleInvalidNames() {
+	const listId = 'invalidNames';
+	jwLists[listId] = selectJoinedUsers().reduce((list, { displayName }) => isNameValid(displayName) ? list : [...list, displayName], []);
+	const ul = byId(generateId(listId));
+	removeChildren(ul);
+	updateContextMenu(ul, listId, [
+		{ text: 'Renomear', click: name => showRenameDialog(getUserByText(name, true)) },
+		{ text: 'Mover para sala de espera', click: name => moveUserToWaitingRoom(getUserByText(name, true).userId) }
+	]);
+}
 function handleRetries(topic, retryId) {
 	if (topic === jwTopics.RETRIES) {
 		jwLists.retries = jwLists.retries.filter(id => id !== retryId);
@@ -1091,14 +1068,53 @@ function handleRetries(topic, retryId) {
 		}));
 	});
 }
-function updateContextMenu(ul, id, contextMenu) {
-	jwLists[id].forEach(value => {
-		const element = createElement(`<li class="striped">${value}</li>`);
-		const menu = contextMenu.map(li => ({ ...li, onclick: () => li.click(value) }));
-		createCustomMenu(element, menu);
-		ul.appendChild(element);
-	});
+function handleMeetingConfigs(_topic, config) {
+	const { public } = config || {};
+	jw.publicRoom = public ?? !!jw.publicRoom;
 }
+function handleRenaming(_topic, namesList) {
+	jw.renameList = namesList;
+	namesList?.forEach(([currentName, newName]) => {
+		const user = getUserByText(currentName, true);
+		if (user) {
+			renameUser({ id: user.userId, name: newName });
+		}
+	});
+	alert('Os participantes detectados foram renomeados');
+}
+function handleObservables(topic, data) {
+	const observed = topic === jwTopics.COMMENTING ? 'commenters' : 'stage';
+	const { remove, add, clear } = data || {};
+	if (clear) { jwObserved[observed] = {}; }
+	if (remove) { delete jwObserved[observed][remove]; }
+	if (add) { jwObserved[observed][add] = add; }
+}
+
+
+// TODO: use pubsub
+function ___subscribeCommenter(userId) {
+	jwObserved.commenters[userId] = true;
+}
+// TODO: use pubsub
+function ___subscribeStager(userId) {
+	jwObserved.stage[userId] = true;
+}
+function ___resetStage() {
+	jwObserved.stage = {};
+
+}
+function toggleModal() {
+	const modal = byId(jwIds.modal);
+	modal.style.display === 'none' ? modal.removeAttribute('style') : closeModal();
+}
+function getCommenters() {
+	return jwObserved.commenters;
+}
+
+
+
+
+
 function validateCustomFocusTarget({ target }) {
 	const { value, classList } = target.parentElement.previousElementSibling;
 	const user = getUserByText(value);
@@ -1244,16 +1260,6 @@ function importIcons() {
 		const link = createElement('<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" id="icons"/>');
 		document.head.appendChild(link);
 	}
-}
-function handleRenaming(_topic, namesList) {
-	jw.renameList = namesList;
-	namesList?.forEach(([currentName, newName]) => {
-		const user = getUserByText(currentName, true);
-		if (user) {
-			renameUser({ id: user.userId, name: newName });
-		}
-	});
-	alert('Os participantes detectados foram renomeados');
 }
 function autoRename() {
 	if (jw.renameList?.length) {
