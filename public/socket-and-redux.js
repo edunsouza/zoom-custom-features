@@ -949,12 +949,6 @@ function ___resetStage() {
 	jwObserved.stage = {};
 
 }
-function _____________________________clearQueue({ queue }) {
-	jw_observed[queue] = [];
-}
-function _____________________________toggleObserved(name) {
-	jw_observed[name] = !jw_observed[name];
-}
 function toggleModal() {
 	const modal = byId(jwIds.modal);
 	modal.style.display === 'none' ? modal.removeAttribute('style') : closeModal();
