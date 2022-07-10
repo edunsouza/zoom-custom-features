@@ -32,13 +32,13 @@ function hijackRedux() {
 		jwUnsubscribe();
 	}
 
-	jwUnsubscribe = store.subscribe(() => {
+	jwUnsubscribe = store.subscribe(throttle(() => {
 		const newState = Object.freeze(store.getState());
 		if (jwReduxState !== newState) {
 			onAppStateChange(jwReduxState, newState);
 			jwReduxState = newState;
 		}
-	});
+	}, 300));
 }
 function sendToWebSocket(evt, body) {
 	jwSocket.send(JSON.stringify({ evt, body }));
@@ -137,7 +137,7 @@ function renameUser({ id, name }) {
 		olddn2: btoa(getUserById(id).displayName)
 	});
 }
-// USERS UTILS
+// USER UTILS
 function getUserByText(search, absolute = false) {
 	return selectUsers().find(user => absolute
 		? user.displayName === search
@@ -156,11 +156,6 @@ function createElement(text, events) {
 }
 function removeChildren(element, byTag) {
 	element?.querySelectorAll?.(byTag ?? '*').forEach(child => child.remove());
-}
-function dispatchMouseOver(element) {
-	const bogusEvent = new MouseEvent('mouseover', { bubbles: true });
-	bogusEvent.simulated = true;
-	element.dispatchEvent(bogusEvent);
 }
 function hydrate(html, bindings) {
 	const markup = html.replace(/\b(undefined|null|false)\b/gi, '').replace(/\s+/g, ' ');
@@ -666,14 +661,6 @@ function createCustomFocusFields() {
 		check3: { onchange }
 	});
 }
-function closeModal() {
-	byId(jwIds.modal).style.display = 'none';
-}
-function closeCustomModal() {
-	const modal = byId(jwIds.customModal);
-	removeChildren(modal);
-	modal.style.display = 'none';
-}
 function createRenameRoleField(role, label) {
 	const name = getCleanText(role);
 	return hydrate(`
@@ -884,13 +871,6 @@ function renderServicesFrame() {
 		btn2: { onclick: lowerAllHands }
 	});
 }
-function showParticipantsList() {
-	sendToRedux('SHOW_PARTICIPANTS_LIST', { showParticipants: true });
-	sendToRedux('SHOW_RIGHT_CONTAINER', { data: true });
-}
-function showRenameDialog({ userId, displayName: userName }) {
-	sendToRedux('SET_RENAME_DIALOG_VISIBLE', { payload: { userId, userName, visible: true } });
-}
 function openCustomFocusModal() {
 	renderCustomFocusModal();
 	openCustomModal();
@@ -902,6 +882,25 @@ function openSeeMoreModal() {
 function openCustomModal() {
 	byId(jwIds.customModal).style.display = 'block';
 }
+function toggleModal() {
+	const modal = byId(jwIds.modal);
+	modal.style.display === 'none' ? modal.removeAttribute('style') : closeModal();
+}
+function closeModal() {
+	byId(jwIds.modal).style.display = 'none';
+}
+function closeCustomModal() {
+	const modal = byId(jwIds.customModal);
+	removeChildren(modal);
+	modal.style.display = 'none';
+}
+function showParticipantsList() {
+	sendToRedux('SHOW_PARTICIPANTS_LIST', { showParticipants: true });
+	sendToRedux('SHOW_RIGHT_CONTAINER', { data: true });
+}
+function showRenameDialog({ userId, displayName: userName }) {
+	sendToRedux('SET_RENAME_DIALOG_VISIBLE', { payload: { userId, userName, visible: true } });
+}
 function updateContextMenu(ul, id, contextMenu) {
 	jwLists[id].forEach(value => {
 		const element = createElement(`<li class="striped">${value}</li>`);
@@ -912,38 +911,57 @@ function updateContextMenu(ul, id, contextMenu) {
 }
 // LIFECYCLE
 function onAppStateChange(oldState, newState) {
-	if (oldState.meeting !== newState.meeting || oldState.attendeesList !== newState.attendeesList) {
-		// TODO: dig deep in changes and be more specific/performatic
-		pub(jwTopics.PARTICIPANTS_LIST);
+	if (JSON.stringify(oldState.meeting) !== JSON.stringify(newState.meeting)) {
+		pub(jwTopics.MEETING_CONFIG);
 	}
+	if (JSON.stringify(oldState.video.spotlightVideoList) !== JSON.stringify(newState.video.spotlightVideoList)) {
+		pub(jwTopics.SPOTLIGHT);
+	}
+	if (oldState.attendeesList.attendeesList !== newState.attendeesList.attendeesList) {
+		const { attendeesList: old } = oldState.attendeesList;
+		const { attendeesList: current } = newState.attendeesList;
+		const [bigger, smaller] = old.length > current.length ? [old, current] : [current, old];
+		bigger.forEach(a => {
+			const b = smaller.find(u => u.userId === a.userId);
+			if (b?.muted !== a.muted) pub(jwTopics.AUDIO, a);
+			if (b?.bVideoOn !== a.bVideoOn) pub(jwTopics.VIDEO, a);
+			if (b?.bHold !== a.bHold) pub(jwTopics.WAITING, a);
+			if (b?.bRaiseHand !== a.bRaiseHand) pub(jwTopics.HANDS, a);
+			if (b?.displayName !== a.displayName) pub(jwTopics.NAMES, a);
+		});
+	}
+}
+function setupTopics() {
+	window.PubSub.clearAllSubscriptions();
+	sub(jwTopics.MEETING_CONFIG, handleMeetingConfigs);
+	sub(jwTopics.AUDIO, handleMikesOn);
+	sub(jwTopics.AUDIO, handleRetries);
+	sub(jwTopics.VIDEO, handleVideosOn);
+	sub(jwTopics.VIDEO, handleRetries);
+	sub(jwTopics.WAITING, handleWaitingRoom);
+	sub(jwTopics.HANDS, handleRaisedHands);
+	sub(jwTopics.NAMES, handleAttendanceCount);
+	sub(jwTopics.NAMES, handleInvalidNames);
+	sub(jwTopics.NAMES, handleCustomFocusButtons);
+	sub(jwTopics.NAMES, handleDefaultButtons);
+	sub(jwTopics.CUSTOM_FOCUS, handleCustomFocusButtons);
+	sub(jwTopics.ROLES, handleDefaultButtons);
+	sub(jwTopics.RENAME_LIST, handleRenaming);
+	sub(jwTopics.RETRIES, handleRetries);
+	// sub(jwTopics.SPOTLIGHT, .....)
+	sub(jwTopics.COMMENTING, handleObservables);
+	sub(jwTopics.STAGING, handleObservables);
+
+	// init
+	pub(jwTopics.AUDIO);
+	pub(jwTopics.VIDEO);
+	pub(jwTopics.HANDS);
+	pub(jwTopics.NAMES);
 }
 function setupMeetingDefaults() {
 	allowUsersToUnmute(false);
 	allowUsersToStartVideo(true);
 	muteUsersOnEntry(true);
-}
-function setupTopics() {
-	window.PubSub.clearAllSubscriptions();
-	sub(jwTopics.AUDIO, handleMikesOn);
-	sub(jwTopics.VIDEO, handleVideosOn);
-	sub(jwTopics.PARTICIPANTS_LIST, handleMikesOn);
-	sub(jwTopics.PARTICIPANTS_LIST, handleVideosOn);
-	sub(jwTopics.PARTICIPANTS_LIST, throttle(handleWaitingRoom, 5000));
-	sub(jwTopics.PARTICIPANTS_LIST, handleRaisedHands);
-	sub(jwTopics.PARTICIPANTS_LIST, handleAttendanceCount);
-	sub(jwTopics.PARTICIPANTS_LIST, handleCustomFocusButtons);
-	sub(jwTopics.CUSTOM_FOCUS, handleCustomFocusButtons);
-	sub(jwTopics.PARTICIPANTS_LIST, handleDefaultButtons);
-	sub(jwTopics.ROLES, handleDefaultButtons);
-	sub(jwTopics.PARTICIPANTS_LIST, handleInvalidNames);
-	sub(jwTopics.PARTICIPANTS_LIST, handleRetries);
-	sub(jwTopics.RETRIES, handleRetries);
-	sub(jwTopics.MEETING_CONFIG, handleMeetingConfigs);
-	sub(jwTopics.RENAME_LIST, handleRenaming);
-	sub(jwTopics.COMMENTING, handleObservables);
-	sub(jwTopics.STAGING, handleObservables);
-	// init
-	pub(jwTopics.PARTICIPANTS_LIST);
 }
 function handleMikesOn() {
 	const listId = 'mikesOn';
@@ -1084,31 +1102,23 @@ function handleRenaming(_topic, namesList) {
 }
 function handleObservables(topic, data) {
 	const observed = topic === jwTopics.COMMENTING ? 'commenters' : 'stage';
-	const { remove, add, clear } = data || {};
-	if (clear) { jwObserved[observed] = {}; }
-	if (remove) { delete jwObserved[observed][remove]; }
-	if (add) { jwObserved[observed][add] = add; }
+	const { clear, remove, add } = data;
+	if (clear) jwObserved[observed] = {};
+	if (remove) delete jwObserved[observed][remove];
+	if (add) jwObserved[observed][add] = add;
 }
 
 
-// TODO: use pubsub
-function ___subscribeCommenter(userId) {
-	jwObserved.commenters[userId] = true;
-}
 // TODO: use pubsub
 function ___subscribeStager(userId) {
-	jwObserved.stage[userId] = true;
+	jwObserved.staging[userId] = true;
 }
 function ___resetStage() {
-	jwObserved.stage = {};
+	jwObserved.staging = {};
 
 }
-function toggleModal() {
-	const modal = byId(jwIds.modal);
-	modal.style.display === 'none' ? modal.removeAttribute('style') : closeModal();
-}
 function getCommenters() {
-	return jwObserved.commenters;
+	return Object.keys(jwObserved.commenting);
 }
 
 
@@ -1213,7 +1223,7 @@ function callMember(role) {
 function callCommenter(userId) {
 	startUserAudio(userId);
 	keepUserHandRaised(userId);
-	___subscribeCommenter(userId);
+	pub(jwTopics.COMMENTING, { add: userId });
 
 	getCommenters().forEach(commenterId => {
 		if (userId !== commenterId) {
@@ -1302,8 +1312,8 @@ var jwLists = {
 	customFocus: [],
 };
 var jwObserved = {
-	stage: {},
-	commenters: {},
+	staging: {},
+	commenting: {},
 };
 /* LITERALS */
 var jwIds = {
@@ -1330,9 +1340,12 @@ var jwReduxState = null;
 var jwSocketSend = jwSocketSend || WebSocket.prototype.send;
 var jwSocket = jwSocket || null;
 var jwTopics = {
+	NAMES: 'NAMES',
 	AUDIO: 'AUDIO',
 	VIDEO: 'VIDEO',
-	PARTICIPANTS_LIST: 'PARTICIPANTS_LIST',
+	HANDS: 'HANDS',
+	// SPOTLIGHT: 'SPOTLIGHT',
+	WAITING: 'WAITING',
 	MEETING_CONFIG: 'MEETING_CONFIG',
 	CUSTOM_FOCUS: 'CUSTOM_FOCUS',
 	ROLES: 'ROLES',
