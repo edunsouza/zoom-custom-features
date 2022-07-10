@@ -19,8 +19,6 @@ function hijackWebSocket() {
 		if (jwSocket !== this) {
 			jwSocket = this;
 		}
-		// for debugging purposes
-		// JSON.parse(args[0]).evt !== 4167 && console.log(args[0]);
 		return jwSocketSend.call(this, ...args);
 	};
 }
@@ -56,7 +54,7 @@ function getReduxStore() {
 		.props
 		.store;
 }
-// STORE SELECTORS
+/* DATA SELECTORS */
 function selectUsers() {
 	return jwReduxState?.attendeesList?.attendeesList || [];
 }
@@ -69,10 +67,10 @@ function selectRaisedHandUsers() {
 function selectJoinedUsers() {
 	return selectUsers().filter(({ bHold }) => !bHold);
 }
-function getUsersInWaitingRoom() {
+function selectUsersInWaitingRoom() {
 	return selectUsers().filter(({ bHold }) => bHold);
 }
-// ZOOM ACTIONS
+/* ZOOM ACTIONS */
 function allowUsersToUnmute(on) {
 	sendToWebSocket(jwActions.CONFIG_ALLOW_UNMUTE, { bOn: on });
 }
@@ -100,7 +98,6 @@ function startUserVideo(id) {
 	sendToWebSocket(jwActions.VIDEO, { id, bOn: false });
 }
 function stopUserVideo(id) {
-	// disabled
 	// sendToWebSocket(jwActions.VIDEO, { id, bOn: true });
 }
 function startUserSpotlight(id) {
@@ -137,7 +134,7 @@ function renameUser({ id, name }) {
 		olddn2: btoa(getUserById(id).displayName)
 	});
 }
-// USER UTILS
+/* USER UTILS */
 function getUserByText(search, absolute = false) {
 	return selectUsers().find(user => absolute
 		? user.displayName === search
@@ -147,7 +144,7 @@ function getUserByText(search, absolute = false) {
 function getUserById(id) {
 	return selectUsers().find(user => user.userId === id);
 }
-// UI UTILS
+/* UI UTILS */
 function createElement(text, events) {
 	const dom = new DOMParser().parseFromString(text.replace(/\s+/g, ' '), 'text/html');
 	const element = dom.body.children[0] || dom.head.children[0];
@@ -178,7 +175,7 @@ function queryAll(selector) {
 function byId(selector) {
 	return document.getElementById(selector);
 }
-// GENERIC UTILS
+/* GENERIC UTILS */
 function generateId(text) {
 	return btoa(encodeURI(text)).replace(/=/g, '');
 }
@@ -210,7 +207,7 @@ function pub(topic, data) {
 function sub(topic, observer) {
 	window.PubSub.subscribe(topic, observer);
 }
-// UI HANDLERS
+/* UI HANDLERS */
 function createCss() {
 	const membersPaneWidth = parseInt(query('#wc-container-right').style.width);
 	const footerButtonsHeight = query('#wc-footer').clientHeight;
@@ -586,41 +583,43 @@ function createCustomFocus(details, name) {
 	return {
 		id: generateId(name),
 		name,
-		validate: () => details.every(p => getUserByText(p.role)),
+		validate: () => details.every(({ role }) => getUserByText(role)),
 		click: () => {
 			const fields = details.map(({ role, useMike, useVideo, useSpotlight }) => {
 				const list = [useMike && 'mic', useVideo && 'vídeo', useSpotlight && 'spot'].filter(Boolean);
 				return `${getUserByText(role)?.displayName} - [${list}]\n`;
 			}).join('');
 			const action = prompt(`${name.toUpperCase()}\n${fields}\n"F" = focar\n"C" = chamar\n[Qualquer outra ação] = abortar`);
-			if (!action) {
-				return;
+			if (action) {
+				action?.toUpperCase() === 'F'
+					? customFocus(details)
+					: customCall(details);
 			}
-			const isFocusing = String(action).toUpperCase() === 'F';
-			if (isFocusing) {
-				const exceptionList = details.reduce((list, { role, useMike }) => (
-					useMike ? [...list, getUserByText(role)?.userId] : list
-				), []);
-				stopEveryUserAudio(exceptionList);
-				stopEveryUserSpotlight();
-				___resetStage();
-			}
-			details.forEach(({ role, useVideo, useMike, useSpotlight }) => {
-				const userId = getUserByText(role)?.userId;
-				if (useMike) {
-					startUserAudio(userId);
-					___subscribeStager(userId);
-				}
-				if (useVideo) {
-					startUserVideo(userId);
-					if (useSpotlight && isFocusing) {
-						addUserSpotlight(userId);
-						___subscribeStager(userId);
-					}
-				}
-			});
 		}
 	};
+}
+function customCall(options) {
+	options.forEach(({ role, useMike, useVideo }) => {
+		const { userId, muted, bVideoOn } = getUserByText(role) || {};
+		if (!userId) return;
+		if (useMike && muted) startUserAudio(userId);
+		if (useVideo && !bVideoOn) startUserVideo(userId);
+	});
+}
+function customFocus(options) {
+	stopEveryUserSpotlight();
+	const micsToKeep = [];
+	options.forEach(({ role, useMike, useVideo, useSpotlight }) => {
+		const { userId, muted, bVideoOn } = getUserByText(role) || {};
+		if (!userId) return;
+		if (useVideo && !bVideoOn) startUserVideo(userId);
+		if (useSpotlight) addUserSpotlight(userId);
+		if (useMike) {
+			micsToKeep.push(userId);
+			if (muted) startUserAudio(userId);
+		}
+	});
+	keepUsersAudio(micsToKeep);
 }
 function createCustomFocusFields() {
 	const suffix = Math.random().toString(36).substring(2);
@@ -757,7 +756,7 @@ function renderSeeMoreModal() {
 			</div>
 		</div>`, {
 		close: { onclick: closeCustomModal },
-		input1: { onchange: ({ target }) => pub(jwTopics.MEETING_CONFIG, { public: target.checked }) },
+		input1: { onchange: e => setPublicRoom(e.target.checked) },
 	});
 	queryAll('.call-member-frame button:not(.hidden)').forEach(btn => modal.appendChild(createRenameRoleField(btn.dataset.role, btn.innerText)));
 	return createCustomModal().appendChild(modal);
@@ -867,8 +866,8 @@ function renderServicesFrame() {
 				<ul id="raised-hands"></ul>
 			</div>
 		</div>`, {
-		btn1: { onclick: muteAllCommenters },
-		btn2: { onclick: lowerAllHands }
+		btn1: { onclick: muteCommenters },
+		btn2: { onclick: lowerEveryUserHand }
 	});
 }
 function openCustomFocusModal() {
@@ -909,222 +908,6 @@ function updateContextMenu(ul, id, contextMenu) {
 		ul.appendChild(element);
 	});
 }
-// LIFECYCLE
-function onAppStateChange(oldState, newState) {
-	if (JSON.stringify(oldState.meeting) !== JSON.stringify(newState.meeting)) {
-		pub(jwTopics.MEETING_CONFIG);
-	}
-	if (JSON.stringify(oldState.video.spotlightVideoList) !== JSON.stringify(newState.video.spotlightVideoList)) {
-		pub(jwTopics.SPOTLIGHT);
-	}
-	if (oldState.attendeesList.attendeesList !== newState.attendeesList.attendeesList) {
-		const { attendeesList: old } = oldState.attendeesList;
-		const { attendeesList: current } = newState.attendeesList;
-		const [bigger, smaller] = old.length > current.length ? [old, current] : [current, old];
-		bigger.forEach(a => {
-			const b = smaller.find(u => u.userId === a.userId);
-			if (b?.muted !== a.muted) pub(jwTopics.AUDIO, a);
-			if (b?.bVideoOn !== a.bVideoOn) pub(jwTopics.VIDEO, a);
-			if (b?.bHold !== a.bHold) pub(jwTopics.WAITING, a);
-			if (b?.bRaiseHand !== a.bRaiseHand) pub(jwTopics.HANDS, a);
-			if (b?.displayName !== a.displayName) pub(jwTopics.NAMES, a);
-		});
-	}
-}
-function setupTopics() {
-	window.PubSub.clearAllSubscriptions();
-	sub(jwTopics.MEETING_CONFIG, handleMeetingConfigs);
-	sub(jwTopics.AUDIO, handleMikesOn);
-	sub(jwTopics.AUDIO, handleRetries);
-	sub(jwTopics.VIDEO, handleVideosOn);
-	sub(jwTopics.VIDEO, handleRetries);
-	sub(jwTopics.WAITING, handleWaitingRoom);
-	sub(jwTopics.HANDS, handleRaisedHands);
-	sub(jwTopics.NAMES, handleAttendanceCount);
-	sub(jwTopics.NAMES, handleInvalidNames);
-	sub(jwTopics.NAMES, handleCustomFocusButtons);
-	sub(jwTopics.NAMES, handleDefaultButtons);
-	sub(jwTopics.CUSTOM_FOCUS, handleCustomFocusButtons);
-	sub(jwTopics.ROLES, handleDefaultButtons);
-	sub(jwTopics.RENAME_LIST, handleRenaming);
-	sub(jwTopics.RETRIES, handleRetries);
-	// sub(jwTopics.SPOTLIGHT, .....)
-	sub(jwTopics.COMMENTING, handleObservables);
-	sub(jwTopics.STAGING, handleObservables);
-
-	// init
-	pub(jwTopics.AUDIO);
-	pub(jwTopics.VIDEO);
-	pub(jwTopics.HANDS);
-	pub(jwTopics.NAMES);
-}
-function setupMeetingDefaults() {
-	allowUsersToUnmute(false);
-	allowUsersToStartVideo(true);
-	muteUsersOnEntry(true);
-}
-function handleMikesOn() {
-	const listId = 'mikesOn';
-	jwLists[listId] = selectUsers().reduce((list, { muted, displayName }) => (
-		muted ? list : [...list, displayName]
-	), []);
-
-	const ul = byId(generateId(listId));
-	removeChildren(ul);
-	updateContextMenu(ul, listId, [{
-		text: 'Silenciar',
-		click: name => stopUserAudio(getUserByText(name, true).userId)
-	}]);
-}
-function handleVideosOn() {
-	const listId = 'videosOn';
-	jwLists[listId] = selectJoinedUsers().reduce((list, { bVideoOn, displayName }) => (
-		bVideoOn ? [...list, displayName] : list
-	), []);
-
-	const ul = byId(generateId(listId));
-	removeChildren(ul);
-	updateContextMenu(ul, listId, [{
-		text: 'Desligar vídeo (desativado)',
-		click: name => stopUserVideo(getUserByText(name, true).userId)
-	}]);
-}
-function handleWaitingRoom() {
-	if (jw.publicRoom) {
-		return acceptEveryUserInWaitingRoom();
-	}
-	getUsersInWaitingRoom().forEach(user => (
-		isNameValid(user.displayName) && acceptUserInWaitingRoom(user.userId)
-	));
-}
-function handleRaisedHands() {
-	const [commenterId] = getCommenters();
-	const { muted, bRaiseHand } = getUserById(commenterId) || {};
-	if (bRaiseHand && !muted) {
-		lowerUserHand(commenterId);
-	}
-	const ul = query('#raised-hands');
-	removeChildren(ul);
-	selectRaisedHandUsers().forEach(({ userId, displayName }) => {
-		ul.appendChild(hydrate(`
-			<li>
-				<button hydrate="btn1" class="btn-xs btn-commenters">
-					<i class="material-icons-outlined">mic_none</i>
-					<span>${displayName}</span>
-				</button>
-			</li>`, {
-			btn1: { onclick() { callCommenter(userId) } }
-		}));
-	});
-}
-function handleAttendanceCount() {
-	const { counted, notCounted } = countAttendance();
-	byId(jwIds.counted).innerText = `${counted} identificado(s)`;
-	byId(jwIds.notCounted).innerText = `${notCounted} não identificado(s)`;
-}
-function handleCustomFocusButtons(topic, data) {
-	const listId = 'customFocus';
-	if (topic === jwTopics.CUSTOM_FOCUS) {
-		const { including, excluding } = data || {};
-		jwLists[listId] = [
-			...jwLists[listId].filter(({ id }) => ![excluding, including?.id].includes(id)),
-			including
-		].filter(Boolean);
-	}
-	const ul = byId(generateId(listId));
-	removeChildren(ul, 'li');
-	jwLists[listId].forEach(({ id, name, validate, click }) => {
-		const isValid = validate();
-		ul.appendChild(hydrate(`
-			<li class="btn-custom-focus">
-				<button hydrate="btn1" ${!isValid && 'disabled'} class="btn-sm">${isValid ? name : 'Não encontrado!'}</button>
-				<i hydrate="icon1" class="i-sm material-icons-outlined" style="font-size: 22px; cursor: pointer">cancel</i>
-			</li>`, {
-			btn1: { onclick: () => isValid && click() },
-			icon1: { onclick: () => pub(jwTopics.CUSTOM_FOCUS, { excluding: id }) }
-		}));
-	});
-}
-function handleDefaultButtons(topic, data) {
-	if (topic === jwTopics.ROLES && data?.value) {
-		jwRoles[data.role] = data.value;
-	}
-	const toCall = queryAll('.call-member-frame > button') || [];
-	const toFocus = queryAll('.focus-on-frame > button') || [];
-	const statusClass = 'invalid-focus';
-	toCall.forEach((btnCall, i) => {
-		const btnFocus = toFocus[i];
-		const fn = getUserByText(jwRoles[btnCall.dataset.role]) ? 'remove' : 'add';
-		btnCall.classList[fn](statusClass);
-		btnFocus.classList[fn](statusClass);
-	});
-}
-// TODO: pass list to updateContextMenu and remove string/bracket access
-function handleInvalidNames() {
-	const listId = 'invalidNames';
-	jwLists[listId] = selectJoinedUsers().reduce((list, { displayName }) => isNameValid(displayName) ? list : [...list, displayName], []);
-	const ul = byId(generateId(listId));
-	removeChildren(ul);
-	updateContextMenu(ul, listId, [
-		{ text: 'Renomear', click: name => showRenameDialog(getUserByText(name, true)) },
-		{ text: 'Mover para sala de espera', click: name => moveUserToWaitingRoom(getUserByText(name, true).userId) }
-	]);
-}
-function handleRetries(topic, retryId) {
-	if (topic === jwTopics.RETRIES) {
-		jwLists.retries = jwLists.retries.filter(id => id !== retryId);
-	}
-	const ul = byId(generateId('retries'));
-	removeChildren(ul, 'li');
-	jwLists.retries.forEach(attempt => {
-		ul.appendChild(hydrate(`
-			<li class="checkbox">
-				<label for="${getCleanText(attempt)}">${attempt}</label>
-				<input hydrate="input1" id="${getCleanText(attempt)}" type="checkbox" value="${attempt}"/>
-			</li>`, {
-			input1: { onclick: ({ target }) => pub(jwTopics.RETRIES, target.value) }
-		}));
-	});
-}
-function handleMeetingConfigs(_topic, config) {
-	const { public } = config || {};
-	jw.publicRoom = public ?? !!jw.publicRoom;
-}
-function handleRenaming(_topic, namesList) {
-	jw.renameList = namesList;
-	namesList?.forEach(([currentName, newName]) => {
-		const user = getUserByText(currentName, true);
-		if (user) {
-			renameUser({ id: user.userId, name: newName });
-		}
-	});
-	alert('Os participantes detectados foram renomeados');
-}
-function handleObservables(topic, data) {
-	const observed = topic === jwTopics.COMMENTING ? 'commenters' : 'stage';
-	const { clear, remove, add } = data;
-	if (clear) jwObserved[observed] = {};
-	if (remove) delete jwObserved[observed][remove];
-	if (add) jwObserved[observed][add] = add;
-}
-
-
-// TODO: use pubsub
-function ___subscribeStager(userId) {
-	jwObserved.staging[userId] = true;
-}
-function ___resetStage() {
-	jwObserved.staging = {};
-
-}
-function getCommenters() {
-	return Object.keys(jwObserved.commenting);
-}
-
-
-
-
-
 function validateCustomFocusTarget({ target }) {
 	const { value, classList } = target.parentElement.previousElementSibling;
 	const user = getUserByText(value);
@@ -1171,9 +954,197 @@ function validateCustomFocusFields() {
 		buttonName: focusNameInput.value
 	};
 }
-function keepUserAudio(id) {
+/* LIFECYCLE */
+function onAppStateChange(oldState, newState) {
+	// if (JSON.stringify(oldState.meeting) !== JSON.stringify(newState.meeting)) {
+	// 	pub(jwTopics.MEETING_CONFIG);
+	// }
+	// if (JSON.stringify(oldState.video.spotlightVideoList) !== JSON.stringify(newState.video.spotlightVideoList)) {
+	// 	pub(jwTopics.SPOTLIGHT);
+	// }
+	if (oldState.attendeesList.attendeesList !== newState.attendeesList.attendeesList) {
+		const { attendeesList: old } = oldState.attendeesList;
+		const { attendeesList: current } = newState.attendeesList;
+		const [bigger, smaller] = old.length > current.length ? [old, current] : [current, old];
+		bigger.forEach(a => {
+			const { userId } = a;
+			const b = smaller.find(user => user.userId === userId);
+			if (b?.muted !== a.muted) pub(jwTopics.AUDIO, userId);
+			if (b?.bVideoOn !== a.bVideoOn) pub(jwTopics.VIDEO, userId);
+			if (b?.bHold !== a.bHold) pub(jwTopics.WAITING, userId);
+			if (b?.bRaiseHand !== a.bRaiseHand) pub(jwTopics.HANDS, userId);
+			if (b?.displayName !== a.displayName) pub(jwTopics.NAMES, userId);
+		});
+	}
+}
+function setupTopics() {
+	window.PubSub.clearAllSubscriptions();
+	sub(jwTopics.AUDIO, handleMikesOn);
+	sub(jwTopics.AUDIO, handleRetries);
+	sub(jwTopics.AUDIO, handleCommenters);
+	sub(jwTopics.VIDEO, handleVideosOn);
+	sub(jwTopics.VIDEO, handleRetries);
+	sub(jwTopics.WAITING, handleWaitingRoom);
+	sub(jwTopics.HANDS, handleRaisedHands);
+	sub(jwTopics.NAMES, handleAttendanceCount);
+	sub(jwTopics.NAMES, handleInvalidNames);
+	sub(jwTopics.NAMES, handleCustomFocusButtons);
+	sub(jwTopics.NAMES, handleDefaultButtons);
+	sub(jwTopics.CUSTOM_FOCUS, handleCustomFocusButtons);
+	sub(jwTopics.ROLES, handleDefaultButtons);
+	sub(jwTopics.RENAME_LIST, handleRenaming);
+	sub(jwTopics.RETRIES, handleRetries);
+	// init
+	pub(jwTopics.AUDIO);
+	pub(jwTopics.VIDEO);
+	pub(jwTopics.HANDS);
+	pub(jwTopics.NAMES);
+}
+function setupMeetingDefaults() {
+	allowUsersToUnmute(false);
+	allowUsersToStartVideo(true);
+	muteUsersOnEntry(true);
+}
+function setPublicRoom(public) {
+	jw.publicRoom = public ?? jw.publicRoom;
+	pub(jwTopics.WAITING);
+}
+function handleMikesOn() {
+	const listId = 'mikesOn';
+	jwLists[listId] = selectUsers().reduce((list, { muted, displayName }) => (
+		muted ? list : [...list, displayName]
+	), []);
+
+	const ul = byId(generateId(listId));
+	removeChildren(ul);
+	updateContextMenu(ul, listId, [{
+		text: 'Silenciar',
+		click: name => stopUserAudio(getUserByText(name, true).userId)
+	}]);
+}
+function handleVideosOn() {
+	const listId = 'videosOn';
+	jwLists[listId] = selectJoinedUsers().reduce((list, { bVideoOn, displayName }) => (
+		bVideoOn ? [...list, displayName] : list
+	), []);
+
+	const ul = byId(generateId(listId));
+	removeChildren(ul);
+	updateContextMenu(ul, listId, [{
+		text: 'Desligar vídeo (desativado)',
+		click: name => stopUserVideo(getUserByText(name, true).userId)
+	}]);
+}
+function handleWaitingRoom() {
+	if (jw.publicRoom) {
+		return acceptEveryUserInWaitingRoom();
+	}
+	selectUsersInWaitingRoom().forEach(({ userId, displayName }) => (
+		isNameValid(displayName) && acceptUserInWaitingRoom(userId)
+	));
+}
+function handleRaisedHands() {
+	const ul = query('#raised-hands');
+	removeChildren(ul);
+	selectRaisedHandUsers().forEach(({ userId, displayName }) => {
+		ul.appendChild(hydrate(`
+			<li>
+				<button hydrate="btn1" class="btn-xs btn-commenters">
+					<i class="material-icons-outlined">mic_none</i>
+					<span>${displayName}</span>
+				</button>
+			</li>`, {
+			btn1: { onclick: () => callCommenter(userId) }
+		}));
+	});
+}
+function handleAttendanceCount() {
+	const { counted, notCounted } = countAttendance();
+	byId(jwIds.counted).innerText = `${counted} identificado(s)`;
+	byId(jwIds.notCounted).innerText = `${notCounted} não identificado(s)`;
+}
+function handleCustomFocusButtons(topic, data) {
+	const listId = 'customFocus';
+	if (topic === jwTopics.CUSTOM_FOCUS) {
+		const { including, excluding } = data || {};
+		jwLists[listId] = [
+			...jwLists[listId].filter(({ id }) => ![excluding, including?.id].includes(id)),
+			including
+		].filter(Boolean);
+	}
+	const ul = byId(generateId(listId));
+	removeChildren(ul, 'li');
+	jwLists[listId].forEach(({ id, name, validate, click }) => {
+		const isValid = validate();
+		ul.appendChild(hydrate(`
+			<li class="btn-custom-focus">
+				<button hydrate="btn1" ${!isValid && 'disabled'} class="btn-sm">${isValid ? name : 'Não encontrado!'}</button>
+				<i hydrate="icon1" class="i-sm material-icons-outlined" style="font-size: 22px; cursor: pointer">cancel</i>
+			</li>`, {
+			btn1: { onclick: () => isValid && click() },
+			icon1: { onclick: () => pub(jwTopics.CUSTOM_FOCUS, { excluding: id }) }
+		}));
+	});
+}
+function handleDefaultButtons(topic, data) {
+	if (topic === jwTopics.ROLES && data?.value) {
+		jwRoles[data.role] = data.value;
+	}
+	const toCall = queryAll('.call-member-frame > button') || [];
+	const toFocus = queryAll('.focus-on-frame > button') || [];
+	const statusClass = 'invalid-focus';
+	toCall.forEach((btnCall, i) => {
+		const btnFocus = toFocus[i];
+		const fn = getUserByText(jwRoles[btnCall.dataset.role]) ? 'remove' : 'add';
+		btnCall.classList[fn](statusClass);
+		btnFocus.classList[fn](statusClass);
+	});
+}
+function handleInvalidNames() {
+	const listId = 'invalidNames';
+	jwLists[listId] = selectJoinedUsers().reduce((list, { displayName }) => isNameValid(displayName) ? list : [...list, displayName], []);
+	const ul = byId(generateId(listId));
+	removeChildren(ul);
+	updateContextMenu(ul, listId, [
+		{ text: 'Renomear', click: name => showRenameDialog(getUserByText(name, true)) },
+		{ text: 'Mover para sala de espera', click: name => moveUserToWaitingRoom(getUserByText(name, true).userId) }
+	]);
+}
+function handleRetries(topic, retryId) {
+	if (topic === jwTopics.RETRIES) {
+		jwLists.retries = jwLists.retries.filter(id => id !== retryId);
+	}
+	const ul = byId(generateId('retries'));
+	removeChildren(ul, 'li');
+	jwLists.retries.forEach(attempt => {
+		ul.appendChild(hydrate(`
+			<li class="checkbox">
+				<label for="${getCleanText(attempt)}">${attempt}</label>
+				<input hydrate="input1" id="${getCleanText(attempt)}" type="checkbox" value="${attempt}"/>
+			</li>`, {
+			input1: { onclick: ({ target }) => pub(jwTopics.RETRIES, target.value) }
+		}));
+	});
+}
+function handleRenaming(_topic, namesList) {
+	jw.renameList = namesList;
+	namesList?.forEach(([currentName, newName]) => {
+		const user = getUserByText(currentName, true);
+		if (user) {
+			renameUser({ id: user.userId, name: newName });
+		}
+	});
+	alert('Os participantes detectados foram renomeados');
+}
+function handleCommenters() {
+	const { userId, muted, bRaiseHand } = getUserById(jw.commenting) || {};
+	if (!muted && bRaiseHand) {
+		lowerUserHand(userId);
+	}
+}
+function keepUsersAudio(users) {
 	selectUsers().forEach(({ userId, muted }) => {
-		if (userId !== id && !muted) {
+		if (!users.includes(userId) && !muted) {
 			stopUserAudio(userId);
 		}
 	});
@@ -1189,7 +1160,7 @@ function unrestrictedMode() {
 	allowUsersToUnmute(true);
 	muteUsersOnEntry(false);
 	allowUsersToStartVideo(true);
-	pub(jwTopics.MEETING_CONFIG, { public: true });
+	setPublicRoom(true);
 	startEveryUserAudio();
 	stopEveryUserSpotlight();
 	selectJoinedUsers().forEach(({ userId }) => startUserVideo(userId));
@@ -1200,45 +1171,33 @@ function restrictedMode() {
 	muteUsersOnEntry(true);
 }
 function focusOn(role) {
-	const user = getUserByText(role);
-	if (!user?.userId) {
+	const { userId, muted, bVideoOn } = getUserByText(role) || {};
+	if (!userId) {
 		return alert(`Participante: "${role}" não encontrado`);
 	}
-	___resetStage();
-	startUserVideo(user.userId);
-	startUserAudio(user.userId);
-	keepUserAudio(user.userId);
-	startUserSpotlight(user.userId);
-	___subscribeStager(user.userId);
+	if (!bVideoOn) startUserVideo(userId);
+	if (muted) startUserAudio(userId);
+	keepUsersAudio([userId]);
+	startUserSpotlight(userId);
 }
 function callMember(role) {
-	const id = getUserByText(role)?.userId;
-	if (!id) {
-		alert(`Participante: "${role}" não encontrado`);
-		return;
+	const { userId, muted, bVideoOn } = getUserByText(role) || {};
+	if (!userId) {
+		return alert(`Participante: "${role}" não encontrado`);
 	}
-	startUserVideo(id);
-	startUserAudio(id);
+	if (!bVideoOn) startUserVideo(userId);
+	if (muted) startUserAudio(userId);
 }
-function callCommenter(userId) {
-	startUserAudio(userId);
-	keepUserHandRaised(userId);
-	pub(jwTopics.COMMENTING, { add: userId });
-
-	getCommenters().forEach(commenterId => {
-		if (userId !== commenterId) {
-			stopUserAudio(commenterId);
-			pub(jwTopics.COMMENTING, { remove: commenterId });
-		}
+function callCommenter(id) {
+	selectJoinedUsers().forEach(({ userId, muted, bRaiseHand }) => {
+		if (userId === id && muted) startUserAudio(userId);
+		if (bRaiseHand && (userId !== id || (userId === id && !muted))) lowerUserHand(userId);
+		if (!muted && userId === jw.commenting && userId !== id) stopUserAudio(userId);
 	});
+	jw.commenting = id;
 }
-function muteAllCommenters() {
-	getCommenters().forEach(id => stopUserAudio(id));
-}
-function lowerAllHands() {
-	if (selectRaisedHandUsers().length) {
-		lowerEveryUserHand();
-	}
+function muteCommenters() {
+	stopUserAudio(jw.commenting);
 }
 async function fetchRenamingList(id) {
 	try {
@@ -1302,18 +1261,15 @@ var jw = jw || {
 	defaultHeaders: { Accept: 'application/json', 'Content-Type': 'application/json' },
 	publicRoom: false,
 	renameList: null,
-	applauseDuration: 8000
+	applauseDuration: 8000,
+	commenting: null,
 };
-var jwLists = {
+var jwLists = jwLists || {
 	retries: [],
 	invalidNames: [],
 	videosOn: [],
 	mikesOn: [],
 	customFocus: [],
-};
-var jwObserved = {
-	staging: {},
-	commenting: {},
 };
 /* LITERALS */
 var jwIds = {
@@ -1321,9 +1277,9 @@ var jwIds = {
 	notCounted: 'not-counted-members',
 	modal: 'meeting-options',
 	customModal: 'custom-modal',
-	customMenu: 'context-menu'
+	customMenu: 'context-menu',
 };
-var jwRoles = {
+var jwRoles = jwRoles || {
 	conductor: 'dirigente',
 	president: 'presidente',
 	reader: 'leitor',
@@ -1332,7 +1288,7 @@ var jwRoles = {
 	gems: 'joias',
 	bible: 'biblia',
 	living1: 'vida-1',
-	living2: 'vida-2'
+	living2: 'vida-2',
 };
 /* HACK STUFF */
 var jwUnsubscribe = jwUnsubscribe || null;
@@ -1344,15 +1300,11 @@ var jwTopics = {
 	AUDIO: 'AUDIO',
 	VIDEO: 'VIDEO',
 	HANDS: 'HANDS',
-	// SPOTLIGHT: 'SPOTLIGHT',
 	WAITING: 'WAITING',
-	MEETING_CONFIG: 'MEETING_CONFIG',
 	CUSTOM_FOCUS: 'CUSTOM_FOCUS',
 	ROLES: 'ROLES',
 	RETRIES: 'RETRIES',
 	RENAME_LIST: 'RENAME_LIST',
-	COMMENTING: 'COMMENTING',
-	STAGING: 'STAGING'
 };
 var jwActions = {
 	AUDIO: 8193,
