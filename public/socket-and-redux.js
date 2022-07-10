@@ -985,6 +985,7 @@ function setupTopics() {
 	sub(jwTopics.VIDEO, handleVideosOn);
 	sub(jwTopics.VIDEO, handleRetries);
 	sub(jwTopics.WAITING, handleWaitingRoom);
+	sub(jwTopics.WAITING, handleInvalidNames);
 	sub(jwTopics.HANDS, handleRaisedHands);
 	sub(jwTopics.NAMES, handleAttendanceCount);
 	sub(jwTopics.NAMES, handleInvalidNames);
