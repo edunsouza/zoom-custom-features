@@ -1,6 +1,6 @@
-function startHacking() {
-	hijackWebSocket();
-	hijackRedux();
+async function startHacking() {
+	await hijackWebSocket();
+	await hijackRedux();
 	showParticipantsList();
 	createCss();
 	renderModal();
@@ -9,21 +9,23 @@ function startHacking() {
 	setupTopics();
 	toggleModal();
 }
-function hijackWebSocket() {
-	if (window.commandSocket) {
-		jwSocket = window.commandSocket;
-		return;
-	}
-
-	WebSocket.prototype.send = function (...args) {
-		if (jwSocket !== this) {
-			jwSocket = this;
-		}
-		return jwSocketSend.call(this, ...args);
-	};
+function asyncCondition(check = () => true) {
+	return new Promise((resolve, reject) => {
+		const interval = setInterval(() => check() && resolve(), 500);
+		setTimeout(() => {
+			clearInterval(interval);
+			reject(`Não foi possível encontrar: ${check}`)
+		}, 10000);
+	});
 }
-function hijackRedux() {
+async function hijackWebSocket() {
+	await asyncCondition(() => window?.WCSockets?.instance?.RWG?.socket?.readyState === WebSocket.OPEN);
+	jwSocket = window.WCSockets.instance.RWG.socket;
+}
+async function hijackRedux() {
+	await asyncCondition(() => getReduxStore());
 	const store = getReduxStore();
+
 	jwReduxState = Object.freeze(store.getState());
 
 	if (jwUnsubscribe) {
@@ -45,14 +47,7 @@ function sendToRedux(type, payload) {
 	getReduxStore().dispatch({ type, ...payload });
 }
 function getReduxStore() {
-	return document.querySelector('#root')
-		._reactRootContainer
-		._internalRoot
-		.current
-		.memoizedState
-		.element
-		.props
-		.store;
+	return byId('root')?._reactRootContainer?._internalRoot?.current?.memoizedState?.element?.props?.store;
 }
 /* DATA SELECTORS */
 function selectUsers() {
@@ -573,8 +568,9 @@ function createCustomMenu(element, options) {
 		removeChildren(menu);
 		options.forEach(({ text, onclick }) => menu.appendChild(createElement(`<span>${text}</span>`, { onclick })));
 	};
-	document.body.onclick = ({ path }) => {
-		if (menu && !path.find(e => e.id === 'wc-container-right')) {
+	document.body.onclick = event => {
+		const path = event.composedPath ? event.composedPath() : event.path;
+		if (menu && path.every(({ id }) => id !== 'wc-container-right')) {
 			menu.style.display = 'none';
 		}
 	};
@@ -820,7 +816,7 @@ function renderButtonsFrame() {
 		btn3: { onclick: openCustomFocusModal },
 		btn4: { onclick: openSeeMoreModal },
 		btn5: { onclick: confirmAction(restrictedMode) },
-		btn6: { onclick: confirmAction(requestApplause) },
+		btn6: { onclick: requestApplause },
 		check1: { onchange: () => byId(jwIds.modal).classList.toggle('transparent-modal') },
 		div1: {
 			onclick() {
@@ -1137,10 +1133,13 @@ function handleRenaming(_topic, namesList) {
 	});
 	alert('Os participantes detectados foram renomeados');
 }
-function handleCommenters() {
-	const { userId, muted, bRaiseHand } = getUserById(jw.commenting) || {};
+function handleCommenters(_topic, userId) {
+	const { userId: commenterId, muted, bRaiseHand } = getUserById(jw.commenting) || {};
 	if (!muted && bRaiseHand) {
-		lowerUserHand(userId);
+		lowerUserHand(commenterId);
+	}
+	if (userId === commenterId && muted) {
+		jw.commenting = null;
 	}
 }
 function keepUsersAudio(users) {
@@ -1198,7 +1197,9 @@ function callCommenter(id) {
 	jw.commenting = id;
 }
 function muteCommenters() {
-	stopUserAudio(jw.commenting);
+	if (jw.commenting) {
+		stopUserAudio(jw.commenting);
+	}
 }
 async function fetchRenamingList(id) {
 	try {
@@ -1294,7 +1295,6 @@ var jwRoles = jwRoles || {
 /* HACK STUFF */
 var jwUnsubscribe = jwUnsubscribe || null;
 var jwReduxState = null;
-var jwSocketSend = jwSocketSend || WebSocket.prototype.send;
 var jwSocket = jwSocket || null;
 var jwTopics = {
 	NAMES: 'NAMES',
@@ -1323,9 +1323,8 @@ var jwActions = {
 };
 
 /* INIT */
-try {
-	startHacking();
+startHacking().then(() => {
 	console.clear();
-} catch (erro) {
-	alert('Erro ao executar o script: ' + erro.message);
-}
+}).catch(error => {
+	alert('Erro ao executar o script: ' + error.message);
+});
