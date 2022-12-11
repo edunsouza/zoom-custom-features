@@ -15,6 +15,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-direction: column;
       font-family: sans-serif;
       text-transform: uppercase;
       background-color: #121212;
@@ -72,23 +73,31 @@
 
     button {
       border: none;
-      background-color: #345996;
+      background-color: #1c4892;
       color: whitesmoke;
       padding: 15px;
       cursor: pointer;
+    }
+
+    img {
+      margin: 0 0 20px 15px;
+      width: 100px;
+      height: 100px;
     }
   </style>
 </head>
 
 <body>
+  <img src="https://assetsnffrgf-a.akamaihd.net/assets/ct/6bbd2a5f06/images/siteLogo-jworg-large.svg" alt="jw" />
+
   <main>
     <label>
       Assistência:
       <input id="attendance" type="text" />
     </label>
     <label>
-      Senha:
-      <input id="password" type="text" value="nordeste" />
+      Congregação:
+      <input id="id" type="text" />
     </label>
 
     <button id="send">Enviar</button>
@@ -97,25 +106,25 @@
   <script type="application/javascript">
     function bindEvents() {
       document.querySelector('#send').onclick = () => {
-        const { attendance, password } = getFields();
+        const { attendance, id } = getFields();
 
-        if (!attendance || !password) {
-          return alert(!attendance ? 'Informe a assistência' : 'Informe a senha');
+        if (!attendance || !id) {
+          return alert(!attendance ? 'Informe a assistência' : 'Informe a congregação');
         }
 
         if (confirm(`confirmar envio da assistência de ${attendance}?`)) {
-          sendEmail(attendance, password)
+          sendEmail(attendance, id);
         }
       };
     }
 
     function getFields() {
-      const attendance = document.querySelector('#attendance').value
-      const password = document.querySelector('#password').value
-      return { attendance, password };
+      const attendance = document.querySelector('#attendance').value;
+      const id = document.querySelector('#id').value;
+      return { attendance, id };
     }
 
-    async function sendEmail(attendance, password) {
+    async function sendEmail(attendance, id) {
       try {
         const response = await fetch('https://zoom.vercel.app/api/send-email', {
           headers: {
@@ -124,8 +133,8 @@
           },
           method: 'POST',
           body: JSON.stringify({
-            attendance,
-            id: password.replace(/^./, char => char.toUpperCase())
+            id,
+            attendance
           })
         });
         const { success, message } = await response.json();

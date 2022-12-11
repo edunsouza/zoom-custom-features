@@ -12,7 +12,7 @@ const getHtmlBody = (attendance = 'Não informado', congregation = 'Nordeste', m
             </h1>
             <h1 style="text-align: center; color: #4a6ca7">Assistência: ${attendance}</h1>
             <img
-                src="https://assetsnffrgf-a.akamaihd.net/assets/m/802013048/univ/art/802013048_univ_sqr_md.jpg"
+                src="https://assetsnffrgf-a.akamaihd.net/assets/ct/6bbd2a5f06/images/siteLogo-jworg-large.svg"
                 style="display: block; margin-left: auto; margin-right: auto;"
                 width="100"
                 height="100"
@@ -28,8 +28,12 @@ const sendEmail = async (req, res) => {
 		const { attendance, id } = req.body;
 		const meeting = moment.locale('pt-br') && moment().format('DD/MM/YYYY - dddd');
 
+		if (process.env.ATTENDANCE_ID.toLowerCase() !== id.toLowerCase()) {
+			return res.status(401).json({ success: false, message: 'Identificação inválida!' });
+		}
+
 		if (!attendance || attendance < 1) {
-			return res.status(500).json({ success: false, message: 'Assistência não informada!' });
+			return res.status(400).json({ success: false, message: 'Assistência não informada!' });
 		}
 
 		sgMail.setApiKey(process.env.SENDGRID_API_KEY);

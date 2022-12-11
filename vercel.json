@@ -60,10 +60,6 @@
 		{
 			"source": "/email",
 			"destination": "/public/attendance-registry.html"
-		},
-		{
-			"source": "/email2",
-			"destination": "/public/attendance-registry.html"
 		}
 	]
 }
