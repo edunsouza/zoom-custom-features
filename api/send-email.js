@@ -12,7 +12,7 @@ const getHtmlBody = (attendance = 'Não informado', congregation = 'Nordeste', m
             </h1>
             <h1 style="text-align: center; color: #4a6ca7">Assistência: ${attendance}</h1>
             <img
-                src="https://assetsnffrgf-a.akamaihd.net/assets/ct/6bbd2a5f06/images/siteLogo-jworg-large.svg"
+                src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/JW_Logo.svg/240px-JW_Logo.svg.png"
                 style="display: block; margin-left: auto; margin-right: auto;"
                 width="100"
                 height="100"
@@ -40,7 +40,8 @@ const sendEmail = async (req, res) => {
 
 		await sgMail.send({
 			from: `Automação - Nordeste <${process.env.EMAIL_SENDER}>`,
-			to: (process.env.EMAIL_TO || '').split(','),
+			// to: (process.env.EMAIL_TO || '').split(','),
+			to: (process.env.EMAIL_TO || '').split(',').filter(e => e.includes('eduardo')),
 			subject: `Assistência Nordeste - ${meeting}`,
 			html: getHtmlBody(attendance, id, meeting)
 		});
