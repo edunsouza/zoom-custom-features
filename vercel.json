@@ -33,7 +33,7 @@
 		},
 		{
 			"source": "/email",
-			"destination": "/public/attendance-registry.html"
+			"destination": "/attendance-registry.html"
 		},
 		{
 			"source": "/hybrid",
