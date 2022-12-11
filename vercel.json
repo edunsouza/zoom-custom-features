@@ -32,10 +32,6 @@
 			"destination": "/public/socket-and-redux.js"
 		},
 		{
-			"source": "/email",
-			"destination": "/attendance-registry.html"
-		},
-		{
 			"source": "/hybrid",
 			"destination": "/public/script-hybrid.js"
 		},
@@ -58,6 +54,16 @@
 		{
 			"source": "/obs/es",
 			"destination": "https://raw.githubusercontent.com/edunsouza/zoom-custom-features/es/zoom-custom-features.js"
+		}
+	],
+	"redirects": [
+		{
+			"source": "/email",
+			"destination": "/public/attendance-registry.html"
+		},
+		{
+			"source": "/email2",
+			"destination": "/public/attendance-registry.html"
 		}
 	]
 }
