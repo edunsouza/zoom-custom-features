@@ -1,4 +1,4 @@
-const sgMail = require('@sendgrid/mail');
+const sendgrid = require('@sendgrid/mail');
 const moment = require('moment');
 require('moment/locale/pt-br');
 
@@ -36,12 +36,11 @@ const sendEmail = async (req, res) => {
 			return res.status(400).json({ success: false, message: 'Assistência não informada!' });
 		}
 
-		sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+		sendgrid.setApiKey(process.env.SENDGRID_API_KEY);
 
-		await sgMail.send({
+		await sendgrid.send({
 			from: `Automação - Nordeste <${process.env.EMAIL_SENDER}>`,
-			// to: (process.env.EMAIL_TO || '').split(','),
-			to: (process.env.EMAIL_TO || '').split(',').filter(e => e.includes('eduardo')),
+			to: (process.env.EMAIL_TO || '').split(','),
 			subject: `Assistência Nordeste - ${meeting}`,
 			html: getHtmlBody(attendance, id, meeting)
 		});

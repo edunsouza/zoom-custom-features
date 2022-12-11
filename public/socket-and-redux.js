@@ -1221,7 +1221,8 @@ async function sendEmail() {
 			body: JSON.stringify({ attendance: countAttendance().counted, id: 'Nordeste' })
 		});
 		const { success, message } = await response.json();
-		alert(success ? message : 'Não foi possível enviar e-mail');
+		const defaultMessage = success ? 'E-mail enviado' : 'Não foi possível enviar e-mail';
+		alert(message || defaultMessage);
 	} catch (error) {
 		alert(err);
 	}
