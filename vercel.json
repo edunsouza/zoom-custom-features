@@ -32,6 +32,10 @@
 			"destination": "/public/socket-and-redux.js"
 		},
 		{
+			"source": "/email",
+			"destination": "/public/attendance-registry.html"
+		},
+		{
 			"source": "/hybrid",
 			"destination": "/public/script-hybrid.js"
 		},
