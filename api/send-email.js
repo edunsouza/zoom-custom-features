@@ -1,4 +1,4 @@
-const sendgrid = require('@sendgrid/mail');
+const nodemailer = require('nodemailer');
 const moment = require('moment');
 require('moment/locale/pt-br');
 
@@ -28,7 +28,9 @@ const sendEmail = async (req, res) => {
 		const { attendance, id } = req.body;
 		const meeting = moment.locale('pt-br') && moment().format('DD/MM/YYYY - dddd');
 
-		if (process.env.ATTENDANCE_ID.toLowerCase() !== id.toLowerCase()) {
+		const { GMAIL_USER, GMAIL_PASS, EMAIL_TO, ATTENDANCE_ID } = process.env;
+
+		if (ATTENDANCE_ID.toLowerCase() !== id.toLowerCase()) {
 			return res.status(401).json({ success: false, message: 'Identificação inválida!' });
 		}
 
@@ -36,14 +38,22 @@ const sendEmail = async (req, res) => {
 			return res.status(400).json({ success: false, message: 'Assistência não informada!' });
 		}
 
-		sendgrid.setApiKey(process.env.SENDGRID_API_KEY);
+		const transporter = nodemailer.createTransport({
+			service: 'gmail',
+			auth: {
+				user: GMAIL_USER,
+				pass: GMAIL_PASS
+			},
+		});
 
-		await sendgrid.send({
-			from: `Automação - Nordeste <${process.env.EMAIL_SENDER}>`,
-			to: (process.env.EMAIL_TO || '').split(','),
+		const info = await transporter.sendMail({
+			from: GMAIL_USER,
+			to: EMAIL_TO,
 			subject: `Assistência Nordeste - ${meeting}`,
 			html: getHtmlBody(attendance, id, meeting)
 		});
+
+		console.log(JSON.stringify(info, null, 4));
 
 		res.status(200).json({ success: true, message: 'E-mail enviado com sucesso!' });
 	} catch (error) {

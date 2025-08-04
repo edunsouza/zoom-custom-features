@@ -18,8 +18,8 @@
   "license": "ISC",
   "homepage": "https://github.com/edunsouza/zoom-custom-features",
   "dependencies": {
-    "@sendgrid/mail": "^7.2.1",
     "googleapis": "^72.0.0",
-    "moment": "^2.27.0"
+    "moment": "^2.27.0",
+    "nodemailer": "^7.0.5"
   }
 }
